@@ -12,6 +12,14 @@ class QDockWidget;
 class QTreeWidget;
 class QTreeWidgetItem;
 class QListWidget;
+class QTabWidget;
+class QToolButton;
+
+struct TabState {
+    MindMapScene* scene = nullptr;
+    MindMapView*  view  = nullptr;
+    QString       filePath;
+};
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -23,6 +31,20 @@ protected:
     void closeEvent(QCloseEvent* event) override;
 
 private:
+    // Tab management
+    void setupTabWidget();
+    void addNewTab();
+    void addTab(MindMapScene* scene, MindMapView* view, const QString& filePath);
+    void closeTab(int index);
+    void switchToTab(int index);
+    void updateTabText(int index);
+    void disconnectUndoStack();
+    void connectSceneSignals(MindMapScene* scene);
+    bool maybeSaveTab(int index);
+    bool isTabEmpty(int index) const;
+    int findTabByFilePath(const QString& filePath) const;
+    void onTabBarContextMenu(const QPoint& pos);
+
     void setupActions();
     void setupToolBar();
     void setupMenuBar();
@@ -55,9 +77,14 @@ private:
     static QIcon makeToolIcon(const QString& name);
     static QPixmap makeTemplatePreview(int index);
 
-    MindMapView* m_view;
-    MindMapScene* m_scene;
+    // Cached active-tab pointers
+    MindMapView* m_view = nullptr;
+    MindMapScene* m_scene = nullptr;
     QString m_currentFile;
+
+    // Tab infrastructure
+    QTabWidget* m_tabWidget = nullptr;
+    QList<TabState> m_tabs;
 
     QAction* m_undoAct = nullptr;
     QAction* m_redoAct = nullptr;

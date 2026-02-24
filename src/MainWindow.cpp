@@ -14,12 +14,17 @@
 #include <QKeySequence>
 #include <QLabel>
 #include <QListWidget>
+#include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QPainter>
+#include <QSignalBlocker>
 #include <QStatusBar>
+#include <QTabBar>
+#include <QTabWidget>
 #include <QTimer>
 #include <QToolBar>
+#include <QToolButton>
 #include <QTreeWidget>
 #include <QUndoStack>
 #include <QVBoxLayout>
@@ -73,6 +78,45 @@ static const char* kDarkStyleSheet = R"(
     }
     QToolButton:pressed {
         background-color: #094771;
+    }
+    QTabWidget::pane {
+        border: none;
+        background-color: #1E1E1E;
+    }
+    QTabBar {
+        background-color: #252526;
+    }
+    QTabBar::tab {
+        background-color: #2D2D30;
+        color: #969696;
+        border: none;
+        border-right: 1px solid #252526;
+        padding: 6px 12px;
+        min-width: 100px;
+        max-width: 200px;
+    }
+    QTabBar::tab:selected {
+        background-color: #1E1E1E;
+        color: #D4D4D4;
+        border-bottom: 2px solid #007ACC;
+    }
+    QTabBar::tab:hover:!selected {
+        background-color: #2D2D30;
+        color: #D4D4D4;
+    }
+    QTabBar::close-button {
+        image: none;
+        subcontrol-position: right;
+        border: none;
+        padding: 2px;
+        margin: 2px;
+        background: transparent;
+        width: 14px;
+        height: 14px;
+    }
+    QTabBar::close-button:hover {
+        background-color: #3F3F46;
+        border-radius: 3px;
     }
     QDockWidget {
         background-color: #252526;
@@ -415,25 +459,12 @@ QPixmap MainWindow::makeTemplatePreview(int index) {
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     resize(1280, 800);
 
-    m_scene = new MindMapScene(this);
-    m_view = new MindMapView(this);
-    m_view->setScene(m_scene);
-    setCentralWidget(m_view);
-
+    setupTabWidget();
     setupActions();
     setupToolBar();
     setupMenuBar();
     setupSidebar();
-
-    connect(m_scene, &MindMapScene::modifiedChanged, this,
-            [this](bool) { updateWindowTitle(); });
-    connect(m_scene, &MindMapScene::fileLoaded, this, [this](const QString& path) {
-        m_currentFile = path;
-        updateWindowTitle();
-    });
-
-    connectUndoStack();
-    updateWindowTitle();
+    addNewTab();
 
     // Auto-save timer
     m_autoSaveTimer = new QTimer(this);
@@ -448,11 +479,236 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 
     restoreWindowState();
     applyTheme();
-    refreshOutline();
 
     statusBar()->showMessage("Enter: Add Child  |  Ctrl+Enter: Add Sibling  |  Del: Delete  |  "
                              "F2/Double-click: Edit  |  Ctrl+L: Auto Layout  |  Scroll: Zoom  |  "
                              "Middle/Right-drag: Pan");
+}
+
+// ---------------------------------------------------------------------------
+// Tab widget setup
+// ---------------------------------------------------------------------------
+void MainWindow::setupTabWidget() {
+    m_tabWidget = new QTabWidget(this);
+    m_tabWidget->setTabsClosable(true);
+    m_tabWidget->setMovable(true);
+    m_tabWidget->setDocumentMode(true);
+
+    // "+" button as corner widget for new tab
+    auto* newTabBtn = new QToolButton(this);
+    newTabBtn->setText("+");
+    newTabBtn->setToolTip("New Tab (Ctrl+T)");
+    newTabBtn->setAutoRaise(true);
+    m_tabWidget->setCornerWidget(newTabBtn, Qt::TopRightCorner);
+    connect(newTabBtn, &QToolButton::clicked, this, &MainWindow::addNewTab);
+
+    // Tab switching and closing
+    connect(m_tabWidget, &QTabWidget::currentChanged, this, &MainWindow::switchToTab);
+    connect(m_tabWidget, &QTabWidget::tabCloseRequested, this, &MainWindow::closeTab);
+
+    // Tab bar context menu
+    m_tabWidget->tabBar()->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(m_tabWidget->tabBar(), &QWidget::customContextMenuRequested,
+            this, &MainWindow::onTabBarContextMenu);
+
+    setCentralWidget(m_tabWidget);
+}
+
+// ---------------------------------------------------------------------------
+// Tab management
+// ---------------------------------------------------------------------------
+void MainWindow::addNewTab() {
+    auto* scene = new MindMapScene(this);
+    auto* view = new MindMapView(this);
+    view->setScene(scene);
+    addTab(scene, view, QString());
+}
+
+void MainWindow::addTab(MindMapScene* scene, MindMapView* view, const QString& filePath) {
+    TabState tab;
+    tab.scene = scene;
+    tab.view = view;
+    tab.filePath = filePath;
+
+    connectSceneSignals(scene);
+
+    {
+        QSignalBlocker blocker(m_tabWidget);
+        m_tabs.append(tab);
+        QString label = filePath.isEmpty() ? "Untitled" : QFileInfo(filePath).fileName();
+        m_tabWidget->addTab(view, label);
+    }
+
+    // Now switch to the new tab (triggers switchToTab)
+    m_tabWidget->setCurrentIndex(m_tabs.size() - 1);
+}
+
+void MainWindow::connectSceneSignals(MindMapScene* scene) {
+    connect(scene, &MindMapScene::modifiedChanged, this, [this, scene](bool) {
+        // Find which tab this scene belongs to
+        for (int i = 0; i < m_tabs.size(); ++i) {
+            if (m_tabs[i].scene == scene) {
+                updateTabText(i);
+                if (i == m_tabWidget->currentIndex())
+                    updateWindowTitle();
+                break;
+            }
+        }
+    });
+
+    connect(scene, &MindMapScene::fileLoaded, this, [this, scene](const QString& path) {
+        for (int i = 0; i < m_tabs.size(); ++i) {
+            if (m_tabs[i].scene == scene) {
+                m_tabs[i].filePath = path;
+                updateTabText(i);
+                if (i == m_tabWidget->currentIndex()) {
+                    m_currentFile = path;
+                    updateWindowTitle();
+                }
+                break;
+            }
+        }
+    });
+}
+
+void MainWindow::switchToTab(int index) {
+    if (index < 0 || index >= m_tabs.size())
+        return;
+
+    disconnectUndoStack();
+
+    m_scene = m_tabs[index].scene;
+    m_view = m_tabs[index].view;
+    m_currentFile = m_tabs[index].filePath;
+
+    connectUndoStack();
+    updateWindowTitle();
+    refreshOutline();
+}
+
+void MainWindow::disconnectUndoStack() {
+    if (!m_scene)
+        return;
+    auto* stack = m_scene->undoStack();
+    disconnect(stack, nullptr, m_undoAct, nullptr);
+    disconnect(stack, nullptr, m_redoAct, nullptr);
+    disconnect(stack, &QUndoStack::undoTextChanged, this, nullptr);
+    disconnect(stack, &QUndoStack::redoTextChanged, this, nullptr);
+    disconnect(stack, &QUndoStack::indexChanged, this, nullptr);
+}
+
+void MainWindow::updateTabText(int index) {
+    if (index < 0 || index >= m_tabs.size())
+        return;
+    const auto& tab = m_tabs[index];
+    QString label = tab.filePath.isEmpty() ? "Untitled" : QFileInfo(tab.filePath).fileName();
+    if (tab.scene->isModified())
+        label.prepend("* ");
+    m_tabWidget->setTabText(index, label);
+}
+
+bool MainWindow::isTabEmpty(int index) const {
+    if (index < 0 || index >= m_tabs.size())
+        return false;
+    const auto& tab = m_tabs[index];
+    return tab.filePath.isEmpty() && !tab.scene->isModified();
+}
+
+int MainWindow::findTabByFilePath(const QString& filePath) const {
+    for (int i = 0; i < m_tabs.size(); ++i) {
+        if (m_tabs[i].filePath == filePath)
+            return i;
+    }
+    return -1;
+}
+
+bool MainWindow::maybeSaveTab(int index) {
+    if (index < 0 || index >= m_tabs.size())
+        return true;
+    auto* scene = m_tabs[index].scene;
+    if (!scene->isModified())
+        return true;
+
+    QString name = m_tabs[index].filePath.isEmpty()
+                       ? "Untitled"
+                       : QFileInfo(m_tabs[index].filePath).fileName();
+
+    auto ret = QMessageBox::warning(this, "XMind",
+                                    QString("The mind map \"%1\" has been modified.\n"
+                                            "Do you want to save your changes?").arg(name),
+                                    QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
+
+    if (ret == QMessageBox::Save) {
+        // Temporarily switch cached pointers to this tab for save
+        auto* prevScene = m_scene;
+        auto* prevView = m_view;
+        auto prevFile = m_currentFile;
+
+        m_scene = m_tabs[index].scene;
+        m_view = m_tabs[index].view;
+        m_currentFile = m_tabs[index].filePath;
+
+        saveFile();
+
+        // Restore cached pointers
+        m_scene = prevScene;
+        m_view = prevView;
+        m_currentFile = prevFile;
+
+        return !m_tabs[index].scene->isModified();
+    }
+    if (ret == QMessageBox::Cancel)
+        return false;
+
+    return true; // Discard
+}
+
+void MainWindow::closeTab(int index) {
+    if (index < 0 || index >= m_tabs.size())
+        return;
+
+    if (!maybeSaveTab(index))
+        return;
+
+    auto tab = m_tabs[index];
+
+    m_tabs.removeAt(index);
+    m_tabWidget->removeTab(index);
+
+    delete tab.scene;
+    // view is deleted by removeTab since it's a child widget of the tab widget
+
+    // Always keep at least one tab
+    if (m_tabs.isEmpty())
+        addNewTab();
+}
+
+void MainWindow::onTabBarContextMenu(const QPoint& pos) {
+    int index = m_tabWidget->tabBar()->tabAt(pos);
+
+    QMenu menu(this);
+
+    auto* newTabAct = menu.addAction("New Tab");
+    connect(newTabAct, &QAction::triggered, this, &MainWindow::addNewTab);
+
+    if (index >= 0) {
+        menu.addSeparator();
+        auto* closeAct = menu.addAction("Close");
+        connect(closeAct, &QAction::triggered, this, [this, index]() {
+            closeTab(index);
+        });
+
+        auto* closeOthersAct = menu.addAction("Close Others");
+        connect(closeOthersAct, &QAction::triggered, this, [this, index]() {
+            // Close tabs after the target first (in reverse), then tabs before
+            for (int i = m_tabs.size() - 1; i > index; --i)
+                closeTab(i);
+            for (int i = index - 1; i >= 0; --i)
+                closeTab(i);
+        });
+    }
+
+    menu.exec(m_tabWidget->tabBar()->mapToGlobal(pos));
 }
 
 // ---------------------------------------------------------------------------
@@ -475,80 +731,79 @@ void MainWindow::updateWindowTitle() {
     if (!m_currentFile.isEmpty()) {
         title = QFileInfo(m_currentFile).fileName() + " - XMind";
     }
-    if (m_scene->isModified()) {
+    if (m_scene && m_scene->isModified()) {
         title.prepend("* ");
     }
     setWindowTitle(title);
 }
 
 // ---------------------------------------------------------------------------
-// Maybe save
+// Maybe save (all tabs)
 // ---------------------------------------------------------------------------
 bool MainWindow::maybeSave() {
-    if (!m_scene->isModified())
-        return true;
-
-    auto ret = QMessageBox::warning(this, "XMind", "The mind map has been modified.\n"
-                                                    "Do you want to save your changes?",
-                                    QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
-
-    if (ret == QMessageBox::Save) {
-        saveFile();
-        return !m_scene->isModified();
+    for (int i = 0; i < m_tabs.size(); ++i) {
+        if (!maybeSaveTab(i))
+            return false;
     }
-    if (ret == QMessageBox::Cancel)
-        return false;
-
-    return true; // Discard
+    return true;
 }
 
 // ---------------------------------------------------------------------------
 // File operations
 // ---------------------------------------------------------------------------
 void MainWindow::newFile() {
-    if (!maybeSave())
-        return;
-
-    m_scene->clearScene();
-
-    m_currentFile.clear();
-    delete m_scene;
-    m_scene = new MindMapScene(this);
-    m_view->setScene(m_scene);
-
-    connect(m_scene, &MindMapScene::modifiedChanged, this,
-            [this](bool) { updateWindowTitle(); });
-    connect(m_scene, &MindMapScene::fileLoaded, this, [this](const QString& path) {
-        m_currentFile = path;
-        updateWindowTitle();
-    });
-
-    connectUndoStack();
-    updateWindowTitle();
-    applyTheme();
-    refreshOutline();
+    int cur = m_tabWidget->currentIndex();
+    if (cur >= 0 && isTabEmpty(cur))
+        return; // Current tab is already empty+untitled
+    addNewTab();
 }
 
 void MainWindow::openFile() {
-    if (!maybeSave())
-        return;
-
     QString filePath =
         QFileDialog::getOpenFileName(this, "Open Mind Map", QString(),
                                      "XMind Files (*.xmind);;JSON Files (*.json);;All Files (*)");
     if (filePath.isEmpty())
         return;
 
-    if (!m_scene->loadFromFile(filePath)) {
-        QMessageBox::warning(this, "XMind",
-                             "Could not open file:\n" + filePath);
+    // Check if already open in a tab
+    int existing = findTabByFilePath(filePath);
+    if (existing >= 0) {
+        m_tabWidget->setCurrentIndex(existing);
         return;
     }
 
-    m_currentFile = filePath;
-    updateWindowTitle();
-    m_view->zoomToFit();
-    refreshOutline();
+    // Reuse current tab if it's empty, otherwise create new
+    int cur = m_tabWidget->currentIndex();
+    if (cur >= 0 && isTabEmpty(cur)) {
+        if (!m_scene->loadFromFile(filePath)) {
+            QMessageBox::warning(this, "XMind",
+                                 "Could not open file:\n" + filePath);
+            return;
+        }
+        m_currentFile = filePath;
+        m_tabs[cur].filePath = filePath;
+        updateTabText(cur);
+        updateWindowTitle();
+        m_view->zoomToFit();
+        refreshOutline();
+    } else {
+        // Create a new tab for the file
+        auto* scene = new MindMapScene(this);
+        auto* view = new MindMapView(this);
+        view->setScene(scene);
+
+        if (!scene->loadFromFile(filePath)) {
+            QMessageBox::warning(this, "XMind",
+                                 "Could not open file:\n" + filePath);
+            delete scene;
+            delete view;
+            return;
+        }
+
+        addTab(scene, view, filePath);
+        m_view->zoomToFit();
+        refreshOutline();
+    }
 }
 
 void MainWindow::saveFile() {
@@ -560,6 +815,12 @@ void MainWindow::saveFile() {
     if (!m_scene->saveToFile(m_currentFile)) {
         QMessageBox::warning(this, "XMind",
                              "Could not save file:\n" + m_currentFile);
+    }
+
+    int cur = m_tabWidget->currentIndex();
+    if (cur >= 0) {
+        m_tabs[cur].filePath = m_currentFile;
+        updateTabText(cur);
     }
     updateWindowTitle();
 }
@@ -581,6 +842,11 @@ void MainWindow::saveFileAs() {
     }
 
     m_currentFile = filePath;
+    int cur = m_tabWidget->currentIndex();
+    if (cur >= 0) {
+        m_tabs[cur].filePath = filePath;
+        updateTabText(cur);
+    }
     updateWindowTitle();
 }
 
@@ -621,9 +887,6 @@ void MainWindow::exportAsMarkdown() {
 }
 
 void MainWindow::importFromText() {
-    if (!maybeSave())
-        return;
-
     QString filePath =
         QFileDialog::getOpenFileName(this, "Import from Text", QString(),
                                      "Text Files (*.txt);;All Files (*)");
@@ -638,15 +901,34 @@ void MainWindow::importFromText() {
     QString text = QString::fromUtf8(file.readAll());
     file.close();
 
-    if (!m_scene->importFromText(text)) {
-        QMessageBox::warning(this, "XMind", "Could not parse text file:\n" + filePath);
-        return;
+    // Reuse current tab if empty, otherwise create new
+    int cur = m_tabWidget->currentIndex();
+    if (cur >= 0 && isTabEmpty(cur)) {
+        if (!m_scene->importFromText(text)) {
+            QMessageBox::warning(this, "XMind", "Could not parse text file:\n" + filePath);
+            return;
+        }
+        m_currentFile.clear();
+        updateWindowTitle();
+        m_view->zoomToFit();
+        refreshOutline();
+    } else {
+        auto* scene = new MindMapScene(this);
+        auto* view = new MindMapView(this);
+        view->setScene(scene);
+
+        if (!scene->importFromText(text)) {
+            QMessageBox::warning(this, "XMind", "Could not parse text file:\n" + filePath);
+            delete scene;
+            delete view;
+            return;
+        }
+
+        addTab(scene, view, QString());
+        m_view->zoomToFit();
+        refreshOutline();
     }
 
-    m_currentFile.clear();
-    updateWindowTitle();
-    m_view->zoomToFit();
-    refreshOutline();
     statusBar()->showMessage("Imported from " + filePath, 3000);
 }
 
@@ -684,12 +966,18 @@ void MainWindow::setupAutoSaveTimer() {
 }
 
 void MainWindow::onAutoSaveTimeout() {
-    if (!m_currentFile.isEmpty() && m_scene->isModified()) {
-        if (m_scene->saveToFile(m_currentFile)) {
-            updateWindowTitle();
-            statusBar()->showMessage("Auto-saved", 3000);
+    // Auto-save ALL tabs that have a file path and are modified
+    for (int i = 0; i < m_tabs.size(); ++i) {
+        const auto& tab = m_tabs[i];
+        if (!tab.filePath.isEmpty() && tab.scene->isModified()) {
+            if (tab.scene->saveToFile(tab.filePath)) {
+                updateTabText(i);
+            }
         }
     }
+    // Update window title for current tab
+    updateWindowTitle();
+    statusBar()->showMessage("Auto-saved", 3000);
 }
 
 void MainWindow::onAutoSaveSettingsChanged() {
@@ -707,18 +995,23 @@ void MainWindow::applyTheme() {
         qApp->setStyleSheet(QString());
     }
 
-    // Invalidate caches so items repaint with new theme colors
-    const auto items = m_scene->items();
-    for (auto* item : items) {
-        item->setCacheMode(QGraphicsItem::NoCache);
+    // Invalidate caches on ALL open scenes
+    for (const auto& tab : m_tabs) {
+        const auto items = tab.scene->items();
+        for (auto* item : items) {
+            item->setCacheMode(QGraphicsItem::NoCache);
+        }
+        tab.view->viewport()->update();
     }
-    m_view->viewport()->update();
+
     // Re-enable cache after repaint
     QTimer::singleShot(0, this, [this]() {
-        const auto items = m_scene->items();
-        for (auto* item : items) {
-            if (dynamic_cast<NodeItem*>(item))
-                item->setCacheMode(QGraphicsItem::DeviceCoordinateCache);
+        for (const auto& tab : m_tabs) {
+            const auto items = tab.scene->items();
+            for (auto* item : items) {
+                if (dynamic_cast<NodeItem*>(item))
+                    item->setCacheMode(QGraphicsItem::DeviceCoordinateCache);
+            }
         }
     });
 }
@@ -745,6 +1038,8 @@ void MainWindow::setupActions() {
 }
 
 void MainWindow::connectUndoStack() {
+    if (!m_scene)
+        return;
     auto* stack = m_scene->undoStack();
     connect(stack, &QUndoStack::canUndoChanged, m_undoAct, &QAction::setEnabled);
     connect(stack, &QUndoStack::canRedoChanged, m_redoAct, &QAction::setEnabled);
@@ -800,11 +1095,15 @@ void MainWindow::setupToolBar() {
 
     auto* zoomAct = toolbar->addAction(makeToolIcon("zoom"), "Zoom");
     zoomAct->setToolTip("Zoom in (Ctrl++)");
-    connect(zoomAct, &QAction::triggered, m_view, &MindMapView::zoomIn);
+    connect(zoomAct, &QAction::triggered, this, [this]() {
+        m_view->zoomIn();
+    });
 
     auto* fitAct = toolbar->addAction(makeToolIcon("fit-view"), "Fit View");
     fitAct->setToolTip("Fit all nodes in view (Ctrl+0)");
-    connect(fitAct, &QAction::triggered, m_view, &MindMapView::zoomToFit);
+    connect(fitAct, &QAction::triggered, this, [this]() {
+        m_view->zoomToFit();
+    });
 
     toolbar->addSeparator();
 
@@ -824,6 +1123,10 @@ void MainWindow::setupMenuBar() {
     newAct->setShortcut(QKeySequence::New);
     connect(newAct, &QAction::triggered, this, &MainWindow::newFile);
 
+    auto* newTabAct = fileMenu->addAction("New &Tab");
+    newTabAct->setShortcut(QKeySequence("Ctrl+T"));
+    connect(newTabAct, &QAction::triggered, this, &MainWindow::addNewTab);
+
     auto* openAct = fileMenu->addAction("&Open...");
     openAct->setShortcut(QKeySequence::Open);
     connect(openAct, &QAction::triggered, this, &MainWindow::openFile);
@@ -837,6 +1140,14 @@ void MainWindow::setupMenuBar() {
     auto* saveAsAct = fileMenu->addAction("Save &As...");
     saveAsAct->setShortcut(QKeySequence::SaveAs);
     connect(saveAsAct, &QAction::triggered, this, &MainWindow::saveFileAs);
+
+    fileMenu->addSeparator();
+
+    auto* closeTabAct = fileMenu->addAction("&Close Tab");
+    closeTabAct->setShortcut(QKeySequence("Ctrl+W"));
+    connect(closeTabAct, &QAction::triggered, this, [this]() {
+        closeTab(m_tabWidget->currentIndex());
+    });
 
     fileMenu->addSeparator();
 
@@ -875,15 +1186,21 @@ void MainWindow::setupMenuBar() {
 
     auto* zoomInAct = viewMenu->addAction("Zoom &In");
     zoomInAct->setShortcut(QKeySequence::ZoomIn);
-    connect(zoomInAct, &QAction::triggered, m_view, &MindMapView::zoomIn);
+    connect(zoomInAct, &QAction::triggered, this, [this]() {
+        m_view->zoomIn();
+    });
 
     auto* zoomOutAct = viewMenu->addAction("Zoom &Out");
     zoomOutAct->setShortcut(QKeySequence::ZoomOut);
-    connect(zoomOutAct, &QAction::triggered, m_view, &MindMapView::zoomOut);
+    connect(zoomOutAct, &QAction::triggered, this, [this]() {
+        m_view->zoomOut();
+    });
 
     auto* fitAct = viewMenu->addAction("&Fit to View");
     fitAct->setShortcut(QKeySequence("Ctrl+0"));
-    connect(fitAct, &QAction::triggered, m_view, &MindMapView::zoomToFit);
+    connect(fitAct, &QAction::triggered, this, [this]() {
+        m_view->zoomToFit();
+    });
 
     viewMenu->addSeparator();
     // Sidebar toggle will be added after setupSidebar()
@@ -1005,6 +1322,9 @@ void MainWindow::refreshOutline() {
 
     m_outlineTree->clear();
 
+    if (!m_scene)
+        return;
+
     auto* root = m_scene->rootNode();
     if (!root)
         return;
@@ -1043,20 +1363,37 @@ void MainWindow::onOutlineItemClicked(QTreeWidgetItem* item, int /*column*/) {
 // Template loading
 // ---------------------------------------------------------------------------
 void MainWindow::loadTemplate(int index) {
-    if (!maybeSave())
-        return;
+    // If current tab is not empty, create a new tab
+    int cur = m_tabWidget->currentIndex();
+    if (cur >= 0 && !isTabEmpty(cur)) {
+        addNewTab();
+    }
 
     m_currentFile.clear();
-    delete m_scene;
+    int tabIdx = m_tabWidget->currentIndex();
+    if (tabIdx >= 0)
+        m_tabs[tabIdx].filePath.clear();
+
+    // Replace the scene within the current tab
+    auto* oldScene = m_scene;
     m_scene = new MindMapScene(this);
     m_view->setScene(m_scene);
 
-    connect(m_scene, &MindMapScene::modifiedChanged, this,
-            [this](bool) { updateWindowTitle(); });
-    connect(m_scene, &MindMapScene::fileLoaded, this, [this](const QString& path) {
-        m_currentFile = path;
-        updateWindowTitle();
-    });
+    if (tabIdx >= 0)
+        m_tabs[tabIdx].scene = m_scene;
+
+    connectSceneSignals(m_scene);
+
+    // Disconnect old undo stack connections from the old scene (already replaced)
+    if (oldScene) {
+        auto* oldStack = oldScene->undoStack();
+        disconnect(oldStack, nullptr, m_undoAct, nullptr);
+        disconnect(oldStack, nullptr, m_redoAct, nullptr);
+        disconnect(oldStack, &QUndoStack::undoTextChanged, this, nullptr);
+        disconnect(oldStack, &QUndoStack::redoTextChanged, this, nullptr);
+        disconnect(oldStack, &QUndoStack::indexChanged, this, nullptr);
+        delete oldScene;
+    }
 
     connectUndoStack();
 
@@ -1090,6 +1427,7 @@ void MainWindow::loadTemplate(int index) {
     m_scene->undoStack()->clear();
     m_scene->setModified(false);
 
+    updateTabText(tabIdx);
     updateWindowTitle();
     applyTheme();
     refreshOutline();
