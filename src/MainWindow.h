@@ -6,7 +6,12 @@
 
 class MindMapView;
 class MindMapScene;
+class NodeItem;
 class QTimer;
+class QDockWidget;
+class QTreeWidget;
+class QTreeWidgetItem;
+class QListWidget;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -21,6 +26,7 @@ private:
     void setupActions();
     void setupToolBar();
     void setupMenuBar();
+    void setupSidebar();
     void updateWindowTitle();
     void connectUndoStack();
     bool maybeSave();
@@ -41,12 +47,24 @@ private:
     void onAutoSaveSettingsChanged();
     void applyTheme();
 
+    void refreshOutline();
+    void buildOutlineSubtree(NodeItem* node, QTreeWidgetItem* parentItem);
+    void onOutlineItemClicked(QTreeWidgetItem* item, int column);
+    void loadTemplate(int index);
+
+    static QIcon makeToolIcon(const QString& name);
+    static QPixmap makeTemplatePreview(int index);
+
     MindMapView* m_view;
     MindMapScene* m_scene;
     QString m_currentFile;
 
     QAction* m_undoAct = nullptr;
     QAction* m_redoAct = nullptr;
+
+    QDockWidget* m_sidebarDock = nullptr;
+    QTreeWidget* m_outlineTree = nullptr;
+    QListWidget* m_templateList = nullptr;
 
     QTimer* m_autoSaveTimer = nullptr;
 };
