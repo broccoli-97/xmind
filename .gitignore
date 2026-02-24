@@ -3,3 +3,4 @@ build-*/
 deploy/
 *.xmind
 *.sh
+.cache/*

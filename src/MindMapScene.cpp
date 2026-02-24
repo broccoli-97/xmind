@@ -22,9 +22,8 @@
 
 MindMapScene::MindMapScene(QObject* parent) : QGraphicsScene(parent) {
     m_undoStack = new QUndoStack(this);
-    connect(m_undoStack, &QUndoStack::cleanChanged, this, [this](bool clean) {
-        setModified(!clean);
-    });
+    connect(m_undoStack, &QUndoStack::cleanChanged, this,
+            [this](bool clean) { setModified(!clean); });
 
     m_rootNode = new NodeItem("Central Topic");
     addItem(m_rootNode);
@@ -170,19 +169,16 @@ void MindMapScene::startEditing(NodeItem* node) {
 
     bool dark = AppSettings::instance().theme() == AppTheme::Dark;
     int fontSize = node->font().pointSize();
-    m_editLineEdit->setStyleSheet(
-        QStringLiteral("QLineEdit {"
-                        "  background: %1;"
-                        "  border: 2px solid %2;"
-                        "  border-radius: 6px;"
-                        "  padding: 4px 8px;"
-                        "  font-size: %3pt;"
-                        "  color: %4;"
-                        "}")
-            .arg(dark ? "#2A2A4A" : "white",
-                 dark ? "#42A5F5" : "#1565C0",
-                 QString::number(fontSize),
-                 dark ? "#E0E0E0" : "#333"));
+    m_editLineEdit->setStyleSheet(QStringLiteral("QLineEdit {"
+                                                 "  background: %1;"
+                                                 "  border: 2px solid %2;"
+                                                 "  border-radius: 6px;"
+                                                 "  padding: 4px 8px;"
+                                                 "  font-size: %3pt;"
+                                                 "  color: %4;"
+                                                 "}")
+                                      .arg(dark ? "#2A2A4A" : "white", dark ? "#42A5F5" : "#1565C0",
+                                           QString::number(fontSize), dark ? "#E0E0E0" : "#333"));
 
     m_editProxy = addWidget(m_editLineEdit);
     m_editProxy->setZValue(100);
@@ -252,10 +248,10 @@ bool MindMapScene::eventFilter(QObject* obj, QEvent* event) {
             return true;
         }
         if (keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter) {
-            // Don't finish editing while IME is composing (e.g. Chinese input)
-            auto* im = QGuiApplication::inputMethod();
-            if (im && im->isVisible())
-                return false;
+            // // Don't finish editing while IME is composing (e.g. Chinese input)
+            // auto* im = QGuiApplication::inputMethod();
+            // if (im && im->isVisible())
+            //     return false;
             finishEditing();
             return true;
         }

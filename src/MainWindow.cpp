@@ -472,10 +472,9 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     setupAutoSaveTimer();
 
     // Settings signals
-    connect(&AppSettings::instance(), &AppSettings::autoSaveSettingsChanged,
-            this, &MainWindow::onAutoSaveSettingsChanged);
-    connect(&AppSettings::instance(), &AppSettings::themeChanged,
-            this, &MainWindow::applyTheme);
+    connect(&AppSettings::instance(), &AppSettings::autoSaveSettingsChanged, this,
+            &MainWindow::onAutoSaveSettingsChanged);
+    connect(&AppSettings::instance(), &AppSettings::themeChanged, this, &MainWindow::applyTheme);
 
     restoreWindowState();
     applyTheme();
@@ -508,8 +507,8 @@ void MainWindow::setupTabWidget() {
 
     // Tab bar context menu
     m_tabWidget->tabBar()->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(m_tabWidget->tabBar(), &QWidget::customContextMenuRequested,
-            this, &MainWindow::onTabBarContextMenu);
+    connect(m_tabWidget->tabBar(), &QWidget::customContextMenuRequested, this,
+            &MainWindow::onTabBarContextMenu);
 
     setCentralWidget(m_tabWidget);
 }
@@ -540,7 +539,8 @@ void MainWindow::addTab(MindMapScene* scene, MindMapView* view, const QString& f
     }
 
     // Now switch to the new tab (triggers switchToTab)
-    m_tabWidget->setCurrentIndex(m_tabs.size() - 1);
+    // m_tabWidget->setCurrentIndex(m_tabs.size() - 1);
+    switchToTab(m_tabs.size() - 1);
 }
 
 void MainWindow::connectSceneSignals(MindMapScene* scene) {
@@ -629,13 +629,13 @@ bool MainWindow::maybeSaveTab(int index) {
     if (!scene->isModified())
         return true;
 
-    QString name = m_tabs[index].filePath.isEmpty()
-                       ? "Untitled"
-                       : QFileInfo(m_tabs[index].filePath).fileName();
+    QString name = m_tabs[index].filePath.isEmpty() ? "Untitled"
+                                                    : QFileInfo(m_tabs[index].filePath).fileName();
 
     auto ret = QMessageBox::warning(this, "XMind",
                                     QString("The mind map \"%1\" has been modified.\n"
-                                            "Do you want to save your changes?").arg(name),
+                                            "Do you want to save your changes?")
+                                        .arg(name),
                                     QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
 
     if (ret == QMessageBox::Save) {
@@ -694,9 +694,7 @@ void MainWindow::onTabBarContextMenu(const QPoint& pos) {
     if (index >= 0) {
         menu.addSeparator();
         auto* closeAct = menu.addAction("Close");
-        connect(closeAct, &QAction::triggered, this, [this, index]() {
-            closeTab(index);
-        });
+        connect(closeAct, &QAction::triggered, this, [this, index]() { closeTab(index); });
 
         auto* closeOthersAct = menu.addAction("Close Others");
         connect(closeOthersAct, &QAction::triggered, this, [this, index]() {
@@ -776,8 +774,7 @@ void MainWindow::openFile() {
     int cur = m_tabWidget->currentIndex();
     if (cur >= 0 && isTabEmpty(cur)) {
         if (!m_scene->loadFromFile(filePath)) {
-            QMessageBox::warning(this, "XMind",
-                                 "Could not open file:\n" + filePath);
+            QMessageBox::warning(this, "XMind", "Could not open file:\n" + filePath);
             return;
         }
         m_currentFile = filePath;
@@ -793,8 +790,7 @@ void MainWindow::openFile() {
         view->setScene(scene);
 
         if (!scene->loadFromFile(filePath)) {
-            QMessageBox::warning(this, "XMind",
-                                 "Could not open file:\n" + filePath);
+            QMessageBox::warning(this, "XMind", "Could not open file:\n" + filePath);
             delete scene;
             delete view;
             return;
@@ -813,8 +809,7 @@ void MainWindow::saveFile() {
     }
 
     if (!m_scene->saveToFile(m_currentFile)) {
-        QMessageBox::warning(this, "XMind",
-                             "Could not save file:\n" + m_currentFile);
+        QMessageBox::warning(this, "XMind", "Could not save file:\n" + m_currentFile);
     }
 
     int cur = m_tabWidget->currentIndex();
@@ -836,8 +831,7 @@ void MainWindow::saveFileAs() {
         filePath += ".xmind";
 
     if (!m_scene->saveToFile(filePath)) {
-        QMessageBox::warning(this, "XMind",
-                             "Could not save file:\n" + filePath);
+        QMessageBox::warning(this, "XMind", "Could not save file:\n" + filePath);
         return;
     }
 
@@ -851,9 +845,8 @@ void MainWindow::saveFileAs() {
 }
 
 void MainWindow::exportAsText() {
-    QString filePath =
-        QFileDialog::getSaveFileName(this, "Export as Text", QString(),
-                                     "Text Files (*.txt);;All Files (*)");
+    QString filePath = QFileDialog::getSaveFileName(this, "Export as Text", QString(),
+                                                    "Text Files (*.txt);;All Files (*)");
     if (filePath.isEmpty())
         return;
 
@@ -869,9 +862,8 @@ void MainWindow::exportAsText() {
 }
 
 void MainWindow::exportAsMarkdown() {
-    QString filePath =
-        QFileDialog::getSaveFileName(this, "Export as Markdown", QString(),
-                                     "Markdown Files (*.md);;All Files (*)");
+    QString filePath = QFileDialog::getSaveFileName(this, "Export as Markdown", QString(),
+                                                    "Markdown Files (*.md);;All Files (*)");
     if (filePath.isEmpty())
         return;
 
@@ -887,9 +879,8 @@ void MainWindow::exportAsMarkdown() {
 }
 
 void MainWindow::importFromText() {
-    QString filePath =
-        QFileDialog::getOpenFileName(this, "Import from Text", QString(),
-                                     "Text Files (*.txt);;All Files (*)");
+    QString filePath = QFileDialog::getOpenFileName(this, "Import from Text", QString(),
+                                                    "Text Files (*.txt);;All Files (*)");
     if (filePath.isEmpty())
         return;
 
@@ -1067,43 +1058,32 @@ void MainWindow::setupToolBar() {
 
     auto* addChildAct = toolbar->addAction(makeToolIcon("add-child"), "Add Child");
     addChildAct->setToolTip("Add a child node (Enter)");
-    connect(addChildAct, &QAction::triggered, this, [this]() {
-        m_scene->addChildToSelected();
-    });
+    connect(addChildAct, &QAction::triggered, this, [this]() { m_scene->addChildToSelected(); });
 
     auto* addSiblingAct = toolbar->addAction(makeToolIcon("add-sibling"), "Add Sibling");
     addSiblingAct->setToolTip("Add a sibling node (Ctrl+Enter)");
-    connect(addSiblingAct, &QAction::triggered, this, [this]() {
-        m_scene->addSiblingToSelected();
-    });
+    connect(addSiblingAct, &QAction::triggered, this,
+            [this]() { m_scene->addSiblingToSelected(); });
 
     auto* deleteAct = toolbar->addAction(makeToolIcon("delete"), "Delete");
     deleteAct->setToolTip("Delete selected node (Del)");
-    connect(deleteAct, &QAction::triggered, this, [this]() {
-        m_scene->deleteSelected();
-    });
+    connect(deleteAct, &QAction::triggered, this, [this]() { m_scene->deleteSelected(); });
 
     toolbar->addSeparator();
 
     auto* layoutAct = toolbar->addAction(makeToolIcon("auto-layout"), "Auto Layout");
     layoutAct->setToolTip("Automatically arrange all nodes (Ctrl+L)");
-    connect(layoutAct, &QAction::triggered, this, [this]() {
-        m_scene->autoLayout();
-    });
+    connect(layoutAct, &QAction::triggered, this, [this]() { m_scene->autoLayout(); });
 
     toolbar->addSeparator();
 
     auto* zoomAct = toolbar->addAction(makeToolIcon("zoom"), "Zoom");
     zoomAct->setToolTip("Zoom in (Ctrl++)");
-    connect(zoomAct, &QAction::triggered, this, [this]() {
-        m_view->zoomIn();
-    });
+    connect(zoomAct, &QAction::triggered, this, [this]() { m_view->zoomIn(); });
 
     auto* fitAct = toolbar->addAction(makeToolIcon("fit-view"), "Fit View");
     fitAct->setToolTip("Fit all nodes in view (Ctrl+0)");
-    connect(fitAct, &QAction::triggered, this, [this]() {
-        m_view->zoomToFit();
-    });
+    connect(fitAct, &QAction::triggered, this, [this]() { m_view->zoomToFit(); });
 
     toolbar->addSeparator();
 
@@ -1145,9 +1125,8 @@ void MainWindow::setupMenuBar() {
 
     auto* closeTabAct = fileMenu->addAction("&Close Tab");
     closeTabAct->setShortcut(QKeySequence("Ctrl+W"));
-    connect(closeTabAct, &QAction::triggered, this, [this]() {
-        closeTab(m_tabWidget->currentIndex());
-    });
+    connect(closeTabAct, &QAction::triggered, this,
+            [this]() { closeTab(m_tabWidget->currentIndex()); });
 
     fileMenu->addSeparator();
 
@@ -1177,30 +1156,22 @@ void MainWindow::setupMenuBar() {
 
     auto* deleteAct = editMenu->addAction("&Delete");
     deleteAct->setToolTip("Delete selected node (Del)");
-    connect(deleteAct, &QAction::triggered, this, [this]() {
-        m_scene->deleteSelected();
-    });
+    connect(deleteAct, &QAction::triggered, this, [this]() { m_scene->deleteSelected(); });
 
     // ---- View menu ----
     auto* viewMenu = menuBar()->addMenu("&View");
 
     auto* zoomInAct = viewMenu->addAction("Zoom &In");
     zoomInAct->setShortcut(QKeySequence::ZoomIn);
-    connect(zoomInAct, &QAction::triggered, this, [this]() {
-        m_view->zoomIn();
-    });
+    connect(zoomInAct, &QAction::triggered, this, [this]() { m_view->zoomIn(); });
 
     auto* zoomOutAct = viewMenu->addAction("Zoom &Out");
     zoomOutAct->setShortcut(QKeySequence::ZoomOut);
-    connect(zoomOutAct, &QAction::triggered, this, [this]() {
-        m_view->zoomOut();
-    });
+    connect(zoomOutAct, &QAction::triggered, this, [this]() { m_view->zoomOut(); });
 
     auto* fitAct = viewMenu->addAction("&Fit to View");
     fitAct->setShortcut(QKeySequence("Ctrl+0"));
-    connect(fitAct, &QAction::triggered, this, [this]() {
-        m_view->zoomToFit();
-    });
+    connect(fitAct, &QAction::triggered, this, [this]() { m_view->zoomToFit(); });
 
     viewMenu->addSeparator();
     // Sidebar toggle will be added after setupSidebar()
@@ -1210,24 +1181,19 @@ void MainWindow::setupMenuBar() {
 
     auto* autoLayoutAct = layoutMenu->addAction("&Auto Layout");
     autoLayoutAct->setShortcut(QKeySequence("Ctrl+L"));
-    connect(autoLayoutAct, &QAction::triggered, this, [this]() {
-        m_scene->autoLayout();
-    });
+    connect(autoLayoutAct, &QAction::triggered, this, [this]() { m_scene->autoLayout(); });
 
     // ---- Insert menu ----
     auto* insertMenu = menuBar()->addMenu("&Insert");
 
     auto* addChildAct = insertMenu->addAction("Add &Child");
     addChildAct->setToolTip("Add a child node (Enter)");
-    connect(addChildAct, &QAction::triggered, this, [this]() {
-        m_scene->addChildToSelected();
-    });
+    connect(addChildAct, &QAction::triggered, this, [this]() { m_scene->addChildToSelected(); });
 
     auto* addSiblingAct = insertMenu->addAction("Add &Sibling");
     addSiblingAct->setToolTip("Add a sibling node (Ctrl+Enter)");
-    connect(addSiblingAct, &QAction::triggered, this, [this]() {
-        m_scene->addSiblingToSelected();
-    });
+    connect(addSiblingAct, &QAction::triggered, this,
+            [this]() { m_scene->addSiblingToSelected(); });
 
     // ---- Style menu ----
     auto* styleMenu = menuBar()->addMenu("&Style");
