@@ -19,7 +19,8 @@ A desktop mind map editor built with C++ and Qt6. Create, edit, and organize hie
 
 ## Screenshots
 
-The application features a dark theme with a tabbed interface, sidebar outline, and template gallery.
+The application features a light/dark theme with a tabbed interface, sidebar outline, and template gallery.
+![image](./img/Screenshot.png)
 
 ## Building
 
@@ -52,27 +53,27 @@ make
 
 ## Keyboard Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
-| `Enter` | Add child node |
-| `Ctrl+Enter` | Add sibling node |
-| `Del` | Delete selected node |
-| `F2` / Double-click | Edit node text |
-| `Ctrl+L` | Auto layout |
-| `Ctrl+T` | New tab |
-| `Ctrl+W` | Close tab |
-| `Ctrl+N` | New file |
-| `Ctrl+O` | Open file |
-| `Ctrl+S` | Save |
-| `Ctrl+Shift+S` | Save as |
-| `Ctrl+Z` | Undo |
-| `Ctrl+Y` | Redo |
-| `Ctrl++` | Zoom in |
-| `Ctrl+-` | Zoom out |
-| `Ctrl+0` | Fit to view |
-| `Ctrl+,` | Settings |
-| Scroll wheel | Zoom |
-| Middle/Right-drag | Pan |
+| Shortcut            | Action               |
+| ------------------- | -------------------- |
+| `Enter`             | Add child node       |
+| `Ctrl+Enter`        | Add sibling node     |
+| `Del`               | Delete selected node |
+| `F2` / Double-click | Edit node text       |
+| `Ctrl+L`            | Auto layout          |
+| `Ctrl+T`            | New tab              |
+| `Ctrl+W`            | Close tab            |
+| `Ctrl+N`            | New file             |
+| `Ctrl+O`            | Open file            |
+| `Ctrl+S`            | Save                 |
+| `Ctrl+Shift+S`      | Save as              |
+| `Ctrl+Z`            | Undo                 |
+| `Ctrl+Y`            | Redo                 |
+| `Ctrl++`            | Zoom in              |
+| `Ctrl+-`            | Zoom out             |
+| `Ctrl+0`            | Fit to view          |
+| `Ctrl+,`            | Settings             |
+| Scroll wheel        | Zoom                 |
+| Middle/Right-drag   | Pan                  |
 
 ## Project Structure
 
