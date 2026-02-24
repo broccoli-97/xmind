@@ -1,4 +1,5 @@
 #include "EdgeItem.h"
+#include "AppSettings.h"
 #include "NodeItem.h"
 
 #include <QPainter>
@@ -19,7 +20,8 @@ QRectF EdgeItem::boundingRect() const {
 void EdgeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/,
                      QWidget* /*widget*/) {
     painter->setRenderHint(QPainter::Antialiasing);
-    QColor color = m_target->nodeColor().lighter(140);
+    int lighten = (AppSettings::instance().theme() == AppTheme::Dark) ? 120 : 140;
+    QColor color = m_target->nodeColor().lighter(lighten);
     painter->setPen(QPen(color, 2.5, Qt::SolidLine, Qt::RoundCap));
     painter->setBrush(Qt::NoBrush);
     painter->drawPath(m_path);

@@ -6,6 +6,7 @@
 #include <QList>
 
 class EdgeItem;
+class MindMapScene;
 
 class NodeItem : public QGraphicsObject {
     Q_OBJECT
@@ -26,10 +27,12 @@ public:
 
     QList<NodeItem*> childNodes() const;
     void addChild(NodeItem* child);
+    void insertChild(int index, NodeItem* child);
     void removeChild(NodeItem* child);
 
     int level() const;
     QColor nodeColor() const;
+    QFont font() const;
 
     void addEdge(EdgeItem* edge);
     void removeEdge(EdgeItem* edge);
@@ -57,6 +60,7 @@ private:
     QList<NodeItem*> m_children;
     QList<EdgeItem*> m_edges;
     QPointF m_dragStartPos;
+    QPointF m_dragOrigPos;
     bool m_dragging = false;
 
     static constexpr qreal kMinWidth = 120.0;

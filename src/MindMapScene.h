@@ -9,9 +9,15 @@ class QLineEdit;
 class QGraphicsProxyWidget;
 class QJsonObject;
 class QJsonArray;
+class QUndoStack;
+class AddNodeCommand;
+class RemoveNodeCommand;
 
 class MindMapScene : public QGraphicsScene {
     Q_OBJECT
+
+    friend class AddNodeCommand;
+    friend class RemoveNodeCommand;
 
 public:
     explicit MindMapScene(QObject* parent = nullptr);
@@ -22,6 +28,9 @@ public:
     void autoLayout();
 
     NodeItem* selectedNode() const;
+
+    QUndoStack* undoStack() const;
+    bool isEditing() const;
 
     // Serialization
     QJsonObject toJson() const;
@@ -70,6 +79,7 @@ private:
 
     NodeItem* m_rootNode = nullptr;
     QList<EdgeItem*> m_edges;
+    QUndoStack* m_undoStack;
     bool m_modified = false;
 
     // Editing state

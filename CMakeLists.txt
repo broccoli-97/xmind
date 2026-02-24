@@ -17,6 +17,9 @@ set(SOURCES
     src/MindMapView.cpp
     src/NodeItem.cpp
     src/EdgeItem.cpp
+    src/Commands.cpp
+    src/AppSettings.cpp
+    src/SettingsDialog.cpp
 )
 
 set(HEADERS
@@ -25,6 +28,9 @@ set(HEADERS
     src/MindMapView.h
     src/NodeItem.h
     src/EdgeItem.h
+    src/Commands.h
+    src/AppSettings.h
+    src/SettingsDialog.h
 )
 
 if(WIN32)

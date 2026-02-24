@@ -1,4 +1,5 @@
 #include "MindMapView.h"
+#include "AppSettings.h"
 
 #include <QMouseEvent>
 #include <QPainter>
@@ -75,9 +76,10 @@ void MindMapView::zoomToFit() {
 }
 
 void MindMapView::drawBackground(QPainter* painter, const QRectF& rect) {
-    painter->fillRect(rect, QColor("#F8F9FA"));
+    bool dark = AppSettings::instance().theme() == AppTheme::Dark;
+    painter->fillRect(rect, QColor(dark ? "#1A1A2E" : "#F8F9FA"));
 
-    QPen dotPen(QColor("#D8D8D8"), 2);
+    QPen dotPen(QColor(dark ? "#2A2A4A" : "#D8D8D8"), 2);
     dotPen.setCapStyle(Qt::RoundCap);
     painter->setPen(dotPen);
 

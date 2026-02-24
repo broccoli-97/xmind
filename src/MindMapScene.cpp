@@ -1,4 +1,6 @@
 #include "MindMapScene.h"
+#include "AppSettings.h"
+#include "Commands.h"
 #include "EdgeItem.h"
 #include "NodeItem.h"
 
@@ -16,8 +18,14 @@
 #include <QParallelAnimationGroup>
 #include <QPropertyAnimation>
 #include <QTextStream>
+#include <QUndoStack>
 
 MindMapScene::MindMapScene(QObject* parent) : QGraphicsScene(parent) {
+    m_undoStack = new QUndoStack(this);
+    connect(m_undoStack, &QUndoStack::cleanChanged, this, [this](bool clean) {
+        setModified(!clean);
+    });
+
     m_rootNode = new NodeItem("Central Topic");
     addItem(m_rootNode);
     m_rootNode->setPos(0, 0);
@@ -107,15 +115,24 @@ NodeItem* MindMapScene::selectedNode() const {
     return nullptr;
 }
 
+QUndoStack* MindMapScene::undoStack() const {
+    return m_undoStack;
+}
+
+bool MindMapScene::isEditing() const {
+    return m_editingNode != nullptr;
+}
+
 void MindMapScene::addChildToSelected() {
     if (m_editingNode)
         finishEditing();
     NodeItem* node = selectedNode();
     if (!node)
         node = m_rootNode;
-    auto* child = addNode("New Topic", node);
-    if (child)
-        startEditing(child);
+
+    auto* cmd = new AddNodeCommand(this, node, "New Topic");
+    m_undoStack->push(cmd);
+    startEditing(cmd->createdNode());
 }
 
 void MindMapScene::addSiblingToSelected() {
@@ -126,9 +143,10 @@ void MindMapScene::addSiblingToSelected() {
         addChildToSelected();
         return;
     }
-    auto* sibling = addNode("New Topic", node->parentNode());
-    if (sibling)
-        startEditing(sibling);
+
+    auto* cmd = new AddNodeCommand(this, node->parentNode(), "New Topic");
+    m_undoStack->push(cmd);
+    startEditing(cmd->createdNode());
 }
 
 void MindMapScene::deleteSelected() {
@@ -136,7 +154,7 @@ void MindMapScene::deleteSelected() {
         cancelEditing();
     NodeItem* node = selectedNode();
     if (node && node != m_rootNode) {
-        removeNode(node);
+        m_undoStack->push(new RemoveNodeCommand(this, node));
     }
 }
 
@@ -149,14 +167,22 @@ void MindMapScene::startEditing(NodeItem* node) {
     m_editLineEdit->setAlignment(Qt::AlignCenter);
     m_editLineEdit->selectAll();
     m_editLineEdit->setAttribute(Qt::WA_InputMethodEnabled, true);
-    m_editLineEdit->setStyleSheet("QLineEdit {"
-                                  "  background: white;"
-                                  "  border: 2px solid #1565C0;"
-                                  "  border-radius: 6px;"
-                                  "  padding: 4px 8px;"
-                                  "  font-size: 12pt;"
-                                  "  color: #333;"
-                                  "}");
+
+    bool dark = AppSettings::instance().theme() == AppTheme::Dark;
+    int fontSize = node->font().pointSize();
+    m_editLineEdit->setStyleSheet(
+        QStringLiteral("QLineEdit {"
+                        "  background: %1;"
+                        "  border: 2px solid %2;"
+                        "  border-radius: 6px;"
+                        "  padding: 4px 8px;"
+                        "  font-size: %3pt;"
+                        "  color: %4;"
+                        "}")
+            .arg(dark ? "#2A2A4A" : "white",
+                 dark ? "#42A5F5" : "#1565C0",
+                 QString::number(fontSize),
+                 dark ? "#E0E0E0" : "#333"));
 
     m_editProxy = addWidget(m_editLineEdit);
     m_editProxy->setZValue(100);
@@ -179,6 +205,7 @@ void MindMapScene::finishEditing() {
         return;
 
     QString newText = m_editLineEdit->text().trimmed();
+    QString oldText = m_editingNode->text();
     NodeItem* node = m_editingNode;
 
     // Cleanly remove event filter before deleting UI
@@ -193,9 +220,8 @@ void MindMapScene::finishEditing() {
     m_editProxy->deleteLater();
     m_editProxy = nullptr;
 
-    if (!newText.isEmpty()) {
-        node->setText(newText);
-        markModified();
+    if (!newText.isEmpty() && newText != oldText) {
+        m_undoStack->push(new EditTextCommand(node, oldText, newText));
     }
     clearSelection();
     node->setSelected(true);
@@ -364,6 +390,7 @@ bool MindMapScene::fromJson(const QJsonObject& json) {
         connect(m_rootNode, &NodeItem::doubleClicked, this, &MindMapScene::startEditing);
     }
 
+    m_undoStack->clear();
     setModified(false);
     return true;
 }
@@ -377,6 +404,7 @@ bool MindMapScene::saveToFile(const QString& filePath) {
     file.write(doc.toJson(QJsonDocument::Indented));
     file.close();
 
+    m_undoStack->setClean();
     setModified(false);
     return true;
 }
@@ -404,6 +432,8 @@ bool MindMapScene::loadFromFile(const QString& filePath) {
 void MindMapScene::clearScene() {
     if (m_editingNode)
         cancelEditing();
+
+    m_undoStack->clear();
 
     // Remove all edges
     for (auto* edge : m_edges) {

@@ -1,5 +1,8 @@
 #include "NodeItem.h"
+#include "AppSettings.h"
+#include "Commands.h"
 #include "EdgeItem.h"
+#include "MindMapScene.h"
 
 #include <QFontMetricsF>
 #include <QGraphicsSceneMouseEvent>
@@ -14,13 +17,22 @@ static const QColor kPalette[] = {
     QColor("#C62828"), // Level 4 - Red
     QColor("#00838F"), // Level 5 - Teal
 };
+
+static const QColor kDarkPalette[] = {
+    QColor("#42A5F5"), // Root - Blue
+    QColor("#66BB6A"), // Level 1 - Green
+    QColor("#FFA726"), // Level 2 - Orange
+    QColor("#AB47BC"), // Level 3 - Purple
+    QColor("#EF5350"), // Level 4 - Red
+    QColor("#26C6DA"), // Level 5 - Teal
+};
 static constexpr int kPaletteSize = sizeof(kPalette) / sizeof(kPalette[0]);
 
 NodeItem::NodeItem(const QString& text, QGraphicsItem* parent)
     : QGraphicsObject(parent), m_text(text) {
     setFlags(ItemIsMovable | ItemIsSelectable | ItemSendsGeometryChanges);
     setCacheMode(DeviceCoordinateCache);
-    m_font.setPointSize(12);
+    m_font.setPointSize(AppSettings::instance().defaultFontSize());
     m_font.setFamilies({"Segoe UI", "Microsoft YaHei", "Noto Sans CJK SC", "PingFang SC", "sans-serif"});
     updateGeometry();
 }
@@ -92,6 +104,13 @@ void NodeItem::addChild(NodeItem* child) {
     child->setParentNode(this);
 }
 
+void NodeItem::insertChild(int index, NodeItem* child) {
+    if (index < 0 || index > m_children.size())
+        index = m_children.size();
+    m_children.insert(index, child);
+    child->setParentNode(this);
+}
+
 void NodeItem::removeChild(NodeItem* child) {
     m_children.removeOne(child);
     child->setParentNode(nullptr);
@@ -108,7 +127,13 @@ int NodeItem::level() const {
 }
 
 QColor NodeItem::nodeColor() const {
+    if (AppSettings::instance().theme() == AppTheme::Dark)
+        return kDarkPalette[level() % kPaletteSize];
     return kPalette[level() % kPaletteSize];
+}
+
+QFont NodeItem::font() const {
+    return m_font;
 }
 
 void NodeItem::addEdge(EdgeItem* edge) {
@@ -147,6 +172,7 @@ void NodeItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event) {
 void NodeItem::mousePressEvent(QGraphicsSceneMouseEvent* event) {
     if (event->button() == Qt::LeftButton) {
         m_dragStartPos = pos();
+        m_dragOrigPos = pos();
         m_dragging = true;
     }
     QGraphicsObject::mousePressEvent(event);
@@ -165,6 +191,13 @@ void NodeItem::mouseMoveEvent(QGraphicsSceneMouseEvent* event) {
 }
 
 void NodeItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event) {
+    if (m_dragging && pos() != m_dragOrigPos) {
+        auto* mindMapScene = dynamic_cast<MindMapScene*>(scene());
+        if (mindMapScene) {
+            mindMapScene->undoStack()->push(
+                new MoveNodeCommand(this, m_dragOrigPos, pos()));
+        }
+    }
     m_dragging = false;
     QGraphicsObject::mouseReleaseEvent(event);
 }

@@ -1,6 +1,9 @@
 #include "MainWindow.h"
+#include "AppSettings.h"
 #include "MindMapScene.h"
 #include "MindMapView.h"
+#include "NodeItem.h"
+#include "SettingsDialog.h"
 
 #include <QAction>
 #include <QCloseEvent>
@@ -10,7 +13,9 @@
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QStatusBar>
+#include <QTimer>
 #include <QToolBar>
+#include <QUndoStack>
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     resize(1280, 800);
@@ -31,7 +36,22 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
         updateWindowTitle();
     });
 
+    connectUndoStack();
     updateWindowTitle();
+
+    // Auto-save timer
+    m_autoSaveTimer = new QTimer(this);
+    connect(m_autoSaveTimer, &QTimer::timeout, this, &MainWindow::onAutoSaveTimeout);
+    setupAutoSaveTimer();
+
+    // Settings signals
+    connect(&AppSettings::instance(), &AppSettings::autoSaveSettingsChanged,
+            this, &MainWindow::onAutoSaveSettingsChanged);
+    connect(&AppSettings::instance(), &AppSettings::themeChanged,
+            this, &MainWindow::applyTheme);
+
+    restoreWindowState();
+    applyTheme();
 
     statusBar()->showMessage("Enter: Add Child  |  Ctrl+Enter: Add Sibling  |  Del: Delete  |  "
                              "F2/Double-click: Edit  |  Ctrl+L: Auto Layout  |  Scroll: Zoom  |  "
@@ -39,10 +59,12 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 }
 
 void MainWindow::closeEvent(QCloseEvent* event) {
-    if (maybeSave())
+    if (maybeSave()) {
+        saveWindowState();
         event->accept();
-    else
+    } else {
         event->ignore();
+    }
 }
 
 void MainWindow::updateWindowTitle() {
@@ -94,7 +116,9 @@ void MainWindow::newFile() {
         updateWindowTitle();
     });
 
+    connectUndoStack();
     updateWindowTitle();
+    applyTheme();
 }
 
 void MainWindow::openFile() {
@@ -217,12 +241,106 @@ void MainWindow::importFromText() {
     statusBar()->showMessage("Imported from " + filePath, 3000);
 }
 
-void MainWindow::setupActions() {}
+void MainWindow::openSettings() {
+    SettingsDialog dlg(this);
+    dlg.exec();
+}
+
+void MainWindow::saveWindowState() {
+    auto& s = AppSettings::instance();
+    s.setWindowGeometry(saveGeometry());
+    s.setWindowState(QMainWindow::saveState());
+}
+
+void MainWindow::restoreWindowState() {
+    auto& s = AppSettings::instance();
+    QByteArray geo = s.windowGeometry();
+    if (!geo.isEmpty())
+        restoreGeometry(geo);
+    QByteArray state = s.windowState();
+    if (!state.isEmpty())
+        QMainWindow::restoreState(state);
+}
+
+void MainWindow::setupAutoSaveTimer() {
+    auto& s = AppSettings::instance();
+    if (s.autoSaveEnabled()) {
+        m_autoSaveTimer->start(s.autoSaveIntervalMinutes() * 60 * 1000);
+    } else {
+        m_autoSaveTimer->stop();
+    }
+}
+
+void MainWindow::onAutoSaveTimeout() {
+    if (!m_currentFile.isEmpty() && m_scene->isModified()) {
+        if (m_scene->saveToFile(m_currentFile)) {
+            updateWindowTitle();
+            statusBar()->showMessage("Auto-saved", 3000);
+        }
+    }
+}
+
+void MainWindow::onAutoSaveSettingsChanged() {
+    setupAutoSaveTimer();
+}
+
+void MainWindow::applyTheme() {
+    // Invalidate caches so items repaint with new theme colors
+    const auto items = m_scene->items();
+    for (auto* item : items) {
+        item->setCacheMode(QGraphicsItem::NoCache);
+    }
+    m_view->viewport()->update();
+    // Re-enable cache after repaint
+    QTimer::singleShot(0, this, [this]() {
+        const auto items = m_scene->items();
+        for (auto* item : items) {
+            if (dynamic_cast<NodeItem*>(item))
+                item->setCacheMode(QGraphicsItem::DeviceCoordinateCache);
+        }
+    });
+}
+
+void MainWindow::setupActions() {
+    m_undoAct = new QAction("&Undo", this);
+    m_undoAct->setShortcut(QKeySequence::Undo);
+    m_undoAct->setEnabled(false);
+    connect(m_undoAct, &QAction::triggered, this, [this]() {
+        if (!m_scene->isEditing())
+            m_scene->undoStack()->undo();
+    });
+
+    m_redoAct = new QAction("&Redo", this);
+    m_redoAct->setShortcuts({QKeySequence::Redo, QKeySequence("Ctrl+Y")});
+    m_redoAct->setEnabled(false);
+    connect(m_redoAct, &QAction::triggered, this, [this]() {
+        if (!m_scene->isEditing())
+            m_scene->undoStack()->redo();
+    });
+}
+
+void MainWindow::connectUndoStack() {
+    auto* stack = m_scene->undoStack();
+    connect(stack, &QUndoStack::canUndoChanged, m_undoAct, &QAction::setEnabled);
+    connect(stack, &QUndoStack::canRedoChanged, m_redoAct, &QAction::setEnabled);
+    connect(stack, &QUndoStack::undoTextChanged, this, [this](const QString& text) {
+        m_undoAct->setText(text.isEmpty() ? "&Undo" : "&Undo " + text);
+    });
+    connect(stack, &QUndoStack::redoTextChanged, this, [this](const QString& text) {
+        m_redoAct->setText(text.isEmpty() ? "&Redo" : "&Redo " + text);
+    });
+    m_undoAct->setEnabled(stack->canUndo());
+    m_redoAct->setEnabled(stack->canRedo());
+}
 
 void MainWindow::setupToolBar() {
     auto* toolbar = addToolBar("Main");
     toolbar->setMovable(false);
     toolbar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+
+    toolbar->addAction(m_undoAct);
+    toolbar->addAction(m_redoAct);
+    toolbar->addSeparator();
 
     auto* addChildAct = toolbar->addAction("Add Child");
     addChildAct->setToolTip("Add a child node (Enter)");
@@ -301,6 +419,10 @@ void MainWindow::setupMenuBar() {
     // Edit menu
     auto* editMenu = menuBar()->addMenu("&Edit");
 
+    editMenu->addAction(m_undoAct);
+    editMenu->addAction(m_redoAct);
+    editMenu->addSeparator();
+
     auto* addChildAct = editMenu->addAction("Add &Child");
     addChildAct->setToolTip("Add a child node (Enter)");
     connect(addChildAct, &QAction::triggered, m_scene, &MindMapScene::addChildToSelected);
@@ -318,6 +440,12 @@ void MainWindow::setupMenuBar() {
     auto* layoutAct = editMenu->addAction("Auto &Layout");
     layoutAct->setShortcut(QKeySequence("Ctrl+L"));
     connect(layoutAct, &QAction::triggered, m_scene, &MindMapScene::autoLayout);
+
+    editMenu->addSeparator();
+
+    auto* settingsAct = editMenu->addAction("&Settings...");
+    settingsAct->setShortcut(QKeySequence("Ctrl+,"));
+    connect(settingsAct, &QAction::triggered, this, &MainWindow::openSettings);
 
     // View menu
     auto* viewMenu = menuBar()->addMenu("&View");
