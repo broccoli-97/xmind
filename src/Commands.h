@@ -1,9 +1,10 @@
 #pragma once
 
+#include <QList>
 #include <QPointF>
 #include <QString>
 #include <QUndoCommand>
-#include <QList>
+
 
 class MindMapScene;
 class NodeItem;
@@ -37,8 +38,7 @@ private:
 // ---------------------------------------------------------------------------
 class RemoveNodeCommand : public QUndoCommand {
 public:
-    RemoveNodeCommand(MindMapScene* scene, NodeItem* node,
-                      QUndoCommand* parentCmd = nullptr);
+    RemoveNodeCommand(MindMapScene* scene, NodeItem* node, QUndoCommand* parentCmd = nullptr);
     ~RemoveNodeCommand() override;
 
     void undo() override;
@@ -47,10 +47,10 @@ public:
 private:
     struct NodeSnapshot {
         NodeItem* node;
-        EdgeItem* edge;       // edge connecting to parent (nullptr for root)
+        EdgeItem* edge; // edge connecting to parent (nullptr for root)
         NodeItem* parent;
         QPointF position;
-        int childIndex;       // index in parent's child list
+        int childIndex; // index in parent's child list
         QList<NodeSnapshot> children;
     };
 

@@ -17,8 +17,8 @@ class QToolButton;
 
 struct TabState {
     MindMapScene* scene = nullptr;
-    MindMapView*  view  = nullptr;
-    QString       filePath;
+    MindMapView* view = nullptr;
+    QString filePath;
 };
 
 class MainWindow : public QMainWindow {

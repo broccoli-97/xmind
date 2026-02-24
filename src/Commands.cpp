@@ -7,12 +7,9 @@
 // AddNodeCommand
 // ===========================================================================
 
-AddNodeCommand::AddNodeCommand(MindMapScene* scene, NodeItem* parent,
-                               const QString& text, QUndoCommand* parentCmd)
-    : QUndoCommand("Add Node", parentCmd),
-      m_scene(scene),
-      m_parent(parent),
-      m_text(text) {}
+AddNodeCommand::AddNodeCommand(MindMapScene* scene, NodeItem* parent, const QString& text,
+                               QUndoCommand* parentCmd)
+    : QUndoCommand("Add Node", parentCmd), m_scene(scene), m_parent(parent), m_text(text) {}
 
 AddNodeCommand::~AddNodeCommand() {
     if (m_ownsObjects) {
@@ -38,14 +35,12 @@ void AddNodeCommand::redo() {
         // Position near parent
         QPointF parentPos = m_parent->pos();
         int childCount = m_parent->childNodes().size();
-        qreal xDir = (m_parent == m_scene->m_rootNode)
-                          ? ((childCount % 2 == 1) ? 1.0 : -1.0)
-                          : (parentPos.x() >= 0 ? 1.0 : -1.0);
+        qreal xDir = (m_parent == m_scene->m_rootNode) ? ((childCount % 2 == 1) ? 1.0 : -1.0)
+                                                       : (parentPos.x() >= 0 ? 1.0 : -1.0);
         qreal yOffset = (childCount - 1) * 60.0;
         m_node->setPos(parentPos.x() + xDir * 220.0, parentPos.y() + yOffset);
 
-        QObject::connect(m_node, &NodeItem::doubleClicked, m_scene,
-                         &MindMapScene::startEditing);
+        QObject::connect(m_node, &NodeItem::doubleClicked, m_scene, &MindMapScene::startEditing);
     } else {
         // Re-do: re-attach existing objects
         m_scene->addItem(m_node);
@@ -78,8 +73,7 @@ void AddNodeCommand::undo() {
 // RemoveNodeCommand
 // ===========================================================================
 
-RemoveNodeCommand::RemoveNodeCommand(MindMapScene* scene, NodeItem* node,
-                                     QUndoCommand* parentCmd)
+RemoveNodeCommand::RemoveNodeCommand(MindMapScene* scene, NodeItem* node, QUndoCommand* parentCmd)
     : QUndoCommand("Delete Node", parentCmd), m_scene(scene) {
     m_snapshot = captureSubtree(node);
 }
@@ -189,12 +183,9 @@ void RemoveNodeCommand::undo() {
 // EditTextCommand
 // ===========================================================================
 
-EditTextCommand::EditTextCommand(NodeItem* node, const QString& oldText,
-                                 const QString& newText, QUndoCommand* parentCmd)
-    : QUndoCommand("Edit Text", parentCmd),
-      m_node(node),
-      m_oldText(oldText),
-      m_newText(newText) {}
+EditTextCommand::EditTextCommand(NodeItem* node, const QString& oldText, const QString& newText,
+                                 QUndoCommand* parentCmd)
+    : QUndoCommand("Edit Text", parentCmd), m_node(node), m_oldText(oldText), m_newText(newText) {}
 
 void EditTextCommand::undo() {
     m_node->setText(m_oldText);
@@ -208,12 +199,9 @@ void EditTextCommand::redo() {
 // MoveNodeCommand
 // ===========================================================================
 
-MoveNodeCommand::MoveNodeCommand(NodeItem* node, const QPointF& oldPos,
-                                 const QPointF& newPos, QUndoCommand* parentCmd)
-    : QUndoCommand("Move Node", parentCmd),
-      m_node(node),
-      m_oldPos(oldPos),
-      m_newPos(newPos) {}
+MoveNodeCommand::MoveNodeCommand(NodeItem* node, const QPointF& oldPos, const QPointF& newPos,
+                                 QUndoCommand* parentCmd)
+    : QUndoCommand("Move Node", parentCmd), m_node(node), m_oldPos(oldPos), m_newPos(newPos) {}
 
 void MoveNodeCommand::undo() {
     QPointF delta = m_oldPos - m_node->pos();

@@ -33,7 +33,8 @@ NodeItem::NodeItem(const QString& text, QGraphicsItem* parent)
     setFlags(ItemIsMovable | ItemIsSelectable | ItemSendsGeometryChanges);
     setCacheMode(DeviceCoordinateCache);
     m_font.setPointSize(AppSettings::instance().defaultFontSize());
-    m_font.setFamilies({"Segoe UI", "Microsoft YaHei", "Noto Sans CJK SC", "PingFang SC", "sans-serif"});
+    m_font.setFamilies(
+        {"Segoe UI", "Microsoft YaHei", "Noto Sans CJK SC", "PingFang SC", "sans-serif"});
     updateGeometry();
 }
 
@@ -194,8 +195,7 @@ void NodeItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event) {
     if (m_dragging && pos() != m_dragOrigPos) {
         auto* mindMapScene = dynamic_cast<MindMapScene*>(scene());
         if (mindMapScene) {
-            mindMapScene->undoStack()->push(
-                new MoveNodeCommand(this, m_dragOrigPos, pos()));
+            mindMapScene->undoStack()->push(new MoveNodeCommand(this, m_dragOrigPos, pos()));
         }
     }
     m_dragging = false;
