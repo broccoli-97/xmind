@@ -539,7 +539,7 @@ void MainWindow::addTab(MindMapScene* scene, MindMapView* view, const QString& f
     }
 
     // Now switch to the new tab (triggers switchToTab)
-    // m_tabWidget->setCurrentIndex(m_tabs.size() - 1);
+    m_tabWidget->setCurrentIndex(m_tabs.size() - 1);
     switchToTab(m_tabs.size() - 1);
 }
 
@@ -850,6 +850,9 @@ void MainWindow::exportAsText() {
     if (filePath.isEmpty())
         return;
 
+    if (!filePath.endsWith(".txt", Qt::CaseInsensitive))
+        filePath += ".txt";
+
     QFile file(filePath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::warning(this, "XMind", "Could not write file:\n" + filePath);
@@ -867,6 +870,9 @@ void MainWindow::exportAsMarkdown() {
     if (filePath.isEmpty())
         return;
 
+    if (!filePath.endsWith(".md", Qt::CaseInsensitive))
+        filePath += ".md";
+
     QFile file(filePath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::warning(this, "XMind", "Could not write file:\n" + filePath);
@@ -875,6 +881,54 @@ void MainWindow::exportAsMarkdown() {
     file.write(m_scene->exportToMarkdown().toUtf8());
     file.close();
 
+    statusBar()->showMessage("Exported to " + filePath, 3000);
+}
+
+void MainWindow::exportAsPng() {
+    QString filePath = QFileDialog::getSaveFileName(this, "Export as PNG", QString(),
+                                                    "PNG Images (*.png);;All Files (*)");
+    if (filePath.isEmpty())
+        return;
+
+    if (!filePath.endsWith(".png", Qt::CaseInsensitive))
+        filePath += ".png";
+
+    if (!m_scene->exportToPng(filePath)) {
+        QMessageBox::warning(this, "XMind", "Could not export PNG:\n" + filePath);
+        return;
+    }
+    statusBar()->showMessage("Exported to " + filePath, 3000);
+}
+
+void MainWindow::exportAsSvg() {
+    QString filePath = QFileDialog::getSaveFileName(this, "Export as SVG", QString(),
+                                                    "SVG Files (*.svg);;All Files (*)");
+    if (filePath.isEmpty())
+        return;
+
+    if (!filePath.endsWith(".svg", Qt::CaseInsensitive))
+        filePath += ".svg";
+
+    if (!m_scene->exportToSvg(filePath)) {
+        QMessageBox::warning(this, "XMind", "Could not export SVG:\n" + filePath);
+        return;
+    }
+    statusBar()->showMessage("Exported to " + filePath, 3000);
+}
+
+void MainWindow::exportAsPdf() {
+    QString filePath = QFileDialog::getSaveFileName(this, "Export as PDF", QString(),
+                                                    "PDF Files (*.pdf);;All Files (*)");
+    if (filePath.isEmpty())
+        return;
+
+    if (!filePath.endsWith(".pdf", Qt::CaseInsensitive))
+        filePath += ".pdf";
+
+    if (!m_scene->exportToPdf(filePath)) {
+        QMessageBox::warning(this, "XMind", "Could not export PDF:\n" + filePath);
+        return;
+    }
     statusBar()->showMessage("Exported to " + filePath, 3000);
 }
 
@@ -1087,9 +1141,21 @@ void MainWindow::setupToolBar() {
 
     toolbar->addSeparator();
 
-    auto* exportAct = toolbar->addAction(makeToolIcon("export"), "Export");
-    exportAct->setToolTip("Export mind map");
-    connect(exportAct, &QAction::triggered, this, &MainWindow::exportAsText);
+    auto* exportBtn = new QToolButton(this);
+    exportBtn->setIcon(makeToolIcon("export"));
+    exportBtn->setText("Export");
+    exportBtn->setToolTip("Export mind map");
+    exportBtn->setPopupMode(QToolButton::InstantPopup);
+    exportBtn->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+    auto* exportBtnMenu = new QMenu(exportBtn);
+    exportBtnMenu->addAction("As Text...", this, &MainWindow::exportAsText);
+    exportBtnMenu->addAction("As Markdown...", this, &MainWindow::exportAsMarkdown);
+    exportBtnMenu->addSeparator();
+    exportBtnMenu->addAction("As PNG...", this, &MainWindow::exportAsPng);
+    exportBtnMenu->addAction("As SVG...", this, &MainWindow::exportAsSvg);
+    exportBtnMenu->addAction("As PDF...", this, &MainWindow::exportAsPdf);
+    exportBtn->setMenu(exportBtnMenu);
+    toolbar->addWidget(exportBtn);
 }
 
 // ---------------------------------------------------------------------------
@@ -1137,6 +1203,17 @@ void MainWindow::setupMenuBar() {
 
     auto* exportMdAct = exportMenu->addAction("As &Markdown...");
     connect(exportMdAct, &QAction::triggered, this, &MainWindow::exportAsMarkdown);
+
+    exportMenu->addSeparator();
+
+    auto* exportPngAct = exportMenu->addAction("As &PNG...");
+    connect(exportPngAct, &QAction::triggered, this, &MainWindow::exportAsPng);
+
+    auto* exportSvgAct = exportMenu->addAction("As &SVG...");
+    connect(exportSvgAct, &QAction::triggered, this, &MainWindow::exportAsSvg);
+
+    auto* exportPdfAct = exportMenu->addAction("As P&DF...");
+    connect(exportPdfAct, &QAction::triggered, this, &MainWindow::exportAsPdf);
 
     auto* importAct = fileMenu->addAction("&Import from Text...");
     connect(importAct, &QAction::triggered, this, &MainWindow::importFromText);

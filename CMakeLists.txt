@@ -8,7 +8,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(BUILD_STATIC "Build a fully static executable" OFF)
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Widgets Svg PrintSupport)
 
 set(SOURCES
     src/main.cpp
@@ -40,7 +40,7 @@ else()
     add_executable(xmind ${SOURCES} ${HEADERS})
 endif()
 
-target_link_libraries(xmind PRIVATE Qt6::Widgets)
+target_link_libraries(xmind PRIVATE Qt6::Widgets Qt6::Svg Qt6::PrintSupport)
 target_include_directories(xmind PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 # Static linking for Windows

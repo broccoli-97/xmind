@@ -41,6 +41,9 @@ public:
     // Export/Import
     QString exportToText() const;
     QString exportToMarkdown() const;
+    bool exportToPng(const QString& filePath, int scaleFactor = 2);
+    bool exportToSvg(const QString& filePath);
+    bool exportToPdf(const QString& filePath);
     bool importFromText(const QString& text);
 
     // Scene management

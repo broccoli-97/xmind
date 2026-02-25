@@ -59,6 +59,9 @@ private:
     void saveFileAs();
     void exportAsText();
     void exportAsMarkdown();
+    void exportAsPng();
+    void exportAsSvg();
+    void exportAsPdf();
     void importFromText();
 
     void openSettings();

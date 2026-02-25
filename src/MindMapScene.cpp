@@ -9,14 +9,19 @@
 #include <QGraphicsProxyWidget>
 #include <QGraphicsSceneMouseEvent>
 #include <QGuiApplication>
+#include <QImage>
 #include <QInputMethod>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QKeyEvent>
 #include <QLineEdit>
+#include <QPageSize>
 #include <QParallelAnimationGroup>
+#include <QPainter>
+#include <QtPrintSupport/QPrinter>
 #include <QPropertyAnimation>
+#include <QtSvg/QSvgGenerator>
 #include <QTextStream>
 #include <QUndoStack>
 
@@ -489,6 +494,56 @@ QString MindMapScene::exportToMarkdown() const {
     if (m_rootNode)
         exportNodeToMarkdown(m_rootNode, 0, output);
     return output;
+}
+
+bool MindMapScene::exportToPng(const QString& filePath, int scaleFactor) {
+    QRectF contentRect = itemsBoundingRect().adjusted(-40, -40, 40, 40);
+    QSize imageSize(static_cast<int>(contentRect.width() * scaleFactor),
+                    static_cast<int>(contentRect.height() * scaleFactor));
+
+    QImage image(imageSize, QImage::Format_ARGB32_Premultiplied);
+    image.fill(Qt::white);
+
+    QPainter painter(&image);
+    painter.setRenderHint(QPainter::Antialiasing);
+    render(&painter, QRectF(), contentRect);
+    painter.end();
+
+    return image.save(filePath, "PNG");
+}
+
+bool MindMapScene::exportToSvg(const QString& filePath) {
+    QRectF contentRect = itemsBoundingRect().adjusted(-40, -40, 40, 40);
+
+    QSvgGenerator generator;
+    generator.setFileName(filePath);
+    generator.setSize(contentRect.size().toSize());
+    generator.setViewBox(QRectF(QPointF(0, 0), contentRect.size()));
+    generator.setTitle("XMind Export");
+
+    QPainter painter(&generator);
+    painter.setRenderHint(QPainter::Antialiasing);
+    render(&painter, QRectF(), contentRect);
+    painter.end();
+
+    return true;
+}
+
+bool MindMapScene::exportToPdf(const QString& filePath) {
+    QRectF contentRect = itemsBoundingRect().adjusted(-40, -40, 40, 40);
+
+    QPrinter printer(QPrinter::HighResolution);
+    printer.setOutputFormat(QPrinter::PdfFormat);
+    printer.setOutputFileName(filePath);
+    printer.setPageSize(QPageSize(contentRect.size().toSize(), QPageSize::Point));
+    printer.setPageMargins(QMarginsF(0, 0, 0, 0));
+
+    QPainter painter(&printer);
+    painter.setRenderHint(QPainter::Antialiasing);
+    render(&painter, QRectF(), contentRect);
+    painter.end();
+
+    return true;
 }
 
 // --- Import ---
