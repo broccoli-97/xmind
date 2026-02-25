@@ -97,3 +97,17 @@ private:
     QPointF m_newPos;
     bool m_firstRedo = true;
 };
+
+// ---------------------------------------------------------------------------
+// ToggleEdgeLockCommand
+// ---------------------------------------------------------------------------
+class ToggleEdgeLockCommand : public QUndoCommand {
+public:
+    ToggleEdgeLockCommand(EdgeItem* edge, QUndoCommand* parentCmd = nullptr);
+
+    void undo() override;
+    void redo() override;
+
+private:
+    EdgeItem* m_edge;
+};

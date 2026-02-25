@@ -35,10 +35,17 @@ void AddNodeCommand::redo() {
         // Position near parent
         QPointF parentPos = m_parent->pos();
         int childCount = m_parent->childNodes().size();
-        qreal xDir = (m_parent == m_scene->m_rootNode) ? ((childCount % 2 == 1) ? 1.0 : -1.0)
-                                                       : (parentPos.x() >= 0 ? 1.0 : -1.0);
         qreal yOffset = (childCount - 1) * 60.0;
-        m_node->setPos(parentPos.x() + xDir * 220.0, parentPos.y() + yOffset);
+
+        if (m_scene->layoutStyle() == LayoutStyle::TopDown) {
+            m_node->setPos(parentPos.x() + (childCount - 1) * 60.0, parentPos.y() + 100.0);
+        } else if (m_scene->layoutStyle() == LayoutStyle::RightTree) {
+            m_node->setPos(parentPos.x() + 220.0, parentPos.y() + yOffset);
+        } else {
+            qreal xDir = (m_parent == m_scene->m_rootNode) ? ((childCount % 2 == 1) ? 1.0 : -1.0)
+                                                           : (parentPos.x() >= 0 ? 1.0 : -1.0);
+            m_node->setPos(parentPos.x() + xDir * 220.0, parentPos.y() + yOffset);
+        }
 
         QObject::connect(m_node, &NodeItem::doubleClicked, m_scene, &MindMapScene::startEditing);
     } else {
@@ -216,4 +223,19 @@ void MoveNodeCommand::redo() {
     }
     QPointF delta = m_newPos - m_node->pos();
     m_node->moveSubtree(delta);
+}
+
+// ===========================================================================
+// ToggleEdgeLockCommand
+// ===========================================================================
+
+ToggleEdgeLockCommand::ToggleEdgeLockCommand(EdgeItem* edge, QUndoCommand* parentCmd)
+    : QUndoCommand("Toggle Edge Lock", parentCmd), m_edge(edge) {}
+
+void ToggleEdgeLockCommand::undo() {
+    m_edge->setLocked(!m_edge->isLocked());
+}
+
+void ToggleEdgeLockCommand::redo() {
+    m_edge->setLocked(!m_edge->isLocked());
 }

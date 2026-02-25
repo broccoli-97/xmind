@@ -58,10 +58,21 @@ NodeItem* MindMapScene::addNode(const QString& text, NodeItem* parent) {
     // Position near parent
     QPointF parentPos = parent->pos();
     int childCount = parent->childNodes().size();
-    qreal xDir = (parent == m_rootNode) ? ((childCount % 2 == 1) ? 1.0 : -1.0)
-                                        : (parentPos.x() >= 0 ? 1.0 : -1.0);
     qreal yOffset = (childCount - 1) * 60.0;
-    node->setPos(parentPos.x() + xDir * kHSpacing, parentPos.y() + yOffset);
+
+    qreal xDir;
+    if (m_layoutStyle == LayoutStyle::TopDown) {
+        // Place below parent
+        node->setPos(parentPos.x() + (childCount - 1) * 60.0, parentPos.y() + kTopDownLevelSpacing);
+    } else if (m_layoutStyle == LayoutStyle::RightTree) {
+        // Always right
+        node->setPos(parentPos.x() + kHSpacing, parentPos.y() + yOffset);
+    } else {
+        // Bilateral
+        xDir = (parent == m_rootNode) ? ((childCount % 2 == 1) ? 1.0 : -1.0)
+                                      : (parentPos.x() >= 0 ? 1.0 : -1.0);
+        node->setPos(parentPos.x() + xDir * kHSpacing, parentPos.y() + yOffset);
+    }
 
     connect(node, &NodeItem::doubleClicked, this, &MindMapScene::startEditing);
 
@@ -125,6 +136,22 @@ QUndoStack* MindMapScene::undoStack() const {
 
 bool MindMapScene::isEditing() const {
     return m_editingNode != nullptr;
+}
+
+LayoutStyle MindMapScene::layoutStyle() const {
+    return m_layoutStyle;
+}
+
+void MindMapScene::setLayoutStyle(LayoutStyle style) {
+    m_layoutStyle = style;
+}
+
+EdgeItem* MindMapScene::findEdge(NodeItem* parent, NodeItem* child) const {
+    for (auto* edge : m_edges) {
+        if (edge->sourceNode() == parent && edge->targetNode() == child)
+            return edge;
+    }
+    return nullptr;
 }
 
 void MindMapScene::addChildToSelected() {
@@ -329,6 +356,14 @@ QJsonObject MindMapScene::nodeToJson(NodeItem* node) const {
     obj["x"] = node->pos().x();
     obj["y"] = node->pos().y();
 
+    // Serialize edge lock state
+    if (node->parentNode()) {
+        EdgeItem* edge = findEdge(node->parentNode(), node);
+        if (edge && edge->isLocked()) {
+            obj["edgeLocked"] = true;
+        }
+    }
+
     QJsonArray children;
     for (auto* child : node->childNodes()) {
         children.append(nodeToJson(child));
@@ -341,6 +376,7 @@ QJsonObject MindMapScene::toJson() const {
     QJsonObject root;
     root["format"] = QStringLiteral("xmind");
     root["version"] = 1;
+    root["layoutStyle"] = static_cast<int>(m_layoutStyle);
     if (m_rootNode) {
         root["root"] = nodeToJson(m_rootNode);
     }
@@ -368,6 +404,13 @@ NodeItem* MindMapScene::nodeFromJson(const QJsonObject& json, NodeItem* parent) 
     if (!node)
         return nullptr;
 
+    // Restore edge lock state
+    if (parent && json["edgeLocked"].toBool(false)) {
+        EdgeItem* edge = findEdge(parent, node);
+        if (edge)
+            edge->setLocked(true);
+    }
+
     QJsonArray children = json["children"].toArray();
     for (const auto& childVal : children) {
         nodeFromJson(childVal.toObject(), node);
@@ -380,6 +423,9 @@ bool MindMapScene::fromJson(const QJsonObject& json) {
         return false;
 
     clearScene();
+
+    // Restore layout style (default to Bilateral for old files)
+    m_layoutStyle = static_cast<LayoutStyle>(json["layoutStyle"].toInt(0));
 
     QJsonObject rootObj = json["root"].toObject();
     m_rootNode = nodeFromJson(rootObj, nullptr);
@@ -639,7 +685,34 @@ void MindMapScene::calculatePositions(NodeItem* node, qreal x, qreal y, int dire
     for (auto* child : children) {
         qreal h = subtreeHeight(child);
         qreal centerY = childY + h / 2;
-        calculatePositions(child, childX, centerY, direction, positions);
+
+        // Check edge lock
+        EdgeItem* edge = findEdge(node, child);
+        if (edge && edge->isLocked()) {
+            // Keep locked node at current position, but recurse into subtree
+            QPointF lockedPos = child->pos();
+            positions[child] = lockedPos;
+            // Recurse relative to locked position
+            auto grandchildren = child->childNodes();
+            if (!grandchildren.isEmpty()) {
+                qreal gcTotalH = 0;
+                for (int i = 0; i < grandchildren.size(); ++i) {
+                    gcTotalH += subtreeHeight(grandchildren[i]);
+                    if (i < grandchildren.size() - 1)
+                        gcTotalH += kVSpacing;
+                }
+                qreal gcY = lockedPos.y() - gcTotalH / 2;
+                for (auto* gc : grandchildren) {
+                    qreal gcH = subtreeHeight(gc);
+                    calculatePositions(gc, lockedPos.x() + direction * kHSpacing,
+                                       gcY + gcH / 2, direction, positions);
+                    gcY += gcH + kVSpacing;
+                }
+            }
+        } else {
+            calculatePositions(child, childX, centerY, direction, positions);
+        }
+
         childY += h + kVSpacing;
     }
 }
@@ -653,6 +726,33 @@ void MindMapScene::autoLayout() {
     QMap<NodeItem*, QPointF> positions;
     positions[m_rootNode] = QPointF(0, 0);
 
+    switch (m_layoutStyle) {
+    case LayoutStyle::TopDown:
+        layoutTopDown(positions);
+        break;
+    case LayoutStyle::RightTree:
+        layoutRightTree(positions);
+        break;
+    case LayoutStyle::Bilateral:
+    default:
+        layoutBilateral(positions);
+        break;
+    }
+
+    // Animate to new positions
+    auto* group = new QParallelAnimationGroup(this);
+    for (auto it = positions.begin(); it != positions.end(); ++it) {
+        auto* anim = new QPropertyAnimation(it.key(), "pos");
+        anim->setDuration(400);
+        anim->setEndValue(it.value());
+        anim->setEasingCurve(QEasingCurve::OutCubic);
+        group->addAnimation(anim);
+    }
+    connect(group, &QAbstractAnimation::finished, group, &QObject::deleteLater);
+    group->start();
+}
+
+void MindMapScene::layoutBilateral(QMap<NodeItem*, QPointF>& positions) {
     auto children = m_rootNode->childNodes();
     QList<NodeItem*> rightChildren, leftChildren;
 
@@ -674,8 +774,30 @@ void MindMapScene::autoLayout() {
         }
         qreal y = -totalH / 2;
         for (auto* child : rightChildren) {
+            EdgeItem* edge = findEdge(m_rootNode, child);
             qreal h = subtreeHeight(child);
-            calculatePositions(child, kHSpacing, y + h / 2, 1, positions);
+            if (edge && edge->isLocked()) {
+                positions[child] = child->pos();
+                // Recurse subtree from locked position
+                auto grandchildren = child->childNodes();
+                if (!grandchildren.isEmpty()) {
+                    qreal gcTotalH = 0;
+                    for (int i = 0; i < grandchildren.size(); ++i) {
+                        gcTotalH += subtreeHeight(grandchildren[i]);
+                        if (i < grandchildren.size() - 1)
+                            gcTotalH += kVSpacing;
+                    }
+                    qreal gcY = child->pos().y() - gcTotalH / 2;
+                    for (auto* gc : grandchildren) {
+                        qreal gcH = subtreeHeight(gc);
+                        calculatePositions(gc, child->pos().x() + kHSpacing,
+                                           gcY + gcH / 2, 1, positions);
+                        gcY += gcH + kVSpacing;
+                    }
+                }
+            } else {
+                calculatePositions(child, kHSpacing, y + h / 2, 1, positions);
+            }
             y += h + kVSpacing;
         }
     }
@@ -690,21 +812,142 @@ void MindMapScene::autoLayout() {
         }
         qreal y = -totalH / 2;
         for (auto* child : leftChildren) {
+            EdgeItem* edge = findEdge(m_rootNode, child);
             qreal h = subtreeHeight(child);
-            calculatePositions(child, -kHSpacing, y + h / 2, -1, positions);
+            if (edge && edge->isLocked()) {
+                positions[child] = child->pos();
+                auto grandchildren = child->childNodes();
+                if (!grandchildren.isEmpty()) {
+                    qreal gcTotalH = 0;
+                    for (int i = 0; i < grandchildren.size(); ++i) {
+                        gcTotalH += subtreeHeight(grandchildren[i]);
+                        if (i < grandchildren.size() - 1)
+                            gcTotalH += kVSpacing;
+                    }
+                    qreal gcY = child->pos().y() - gcTotalH / 2;
+                    for (auto* gc : grandchildren) {
+                        qreal gcH = subtreeHeight(gc);
+                        calculatePositions(gc, child->pos().x() - kHSpacing,
+                                           gcY + gcH / 2, -1, positions);
+                        gcY += gcH + kVSpacing;
+                    }
+                }
+            } else {
+                calculatePositions(child, -kHSpacing, y + h / 2, -1, positions);
+            }
             y += h + kVSpacing;
         }
     }
+}
 
-    // Animate to new positions
-    auto* group = new QParallelAnimationGroup(this);
-    for (auto it = positions.begin(); it != positions.end(); ++it) {
-        auto* anim = new QPropertyAnimation(it.key(), "pos");
-        anim->setDuration(400);
-        anim->setEndValue(it.value());
-        anim->setEasingCurve(QEasingCurve::OutCubic);
-        group->addAnimation(anim);
+void MindMapScene::layoutRightTree(QMap<NodeItem*, QPointF>& positions) {
+    auto children = m_rootNode->childNodes();
+    if (children.isEmpty())
+        return;
+
+    qreal totalH = 0;
+    for (int i = 0; i < children.size(); ++i) {
+        totalH += subtreeHeight(children[i]);
+        if (i < children.size() - 1)
+            totalH += kVSpacing;
     }
-    connect(group, &QAbstractAnimation::finished, group, &QObject::deleteLater);
-    group->start();
+
+    qreal y = -totalH / 2;
+    for (auto* child : children) {
+        EdgeItem* edge = findEdge(m_rootNode, child);
+        qreal h = subtreeHeight(child);
+        if (edge && edge->isLocked()) {
+            positions[child] = child->pos();
+            auto grandchildren = child->childNodes();
+            if (!grandchildren.isEmpty()) {
+                qreal gcTotalH = 0;
+                for (int i = 0; i < grandchildren.size(); ++i) {
+                    gcTotalH += subtreeHeight(grandchildren[i]);
+                    if (i < grandchildren.size() - 1)
+                        gcTotalH += kVSpacing;
+                }
+                qreal gcY = child->pos().y() - gcTotalH / 2;
+                for (auto* gc : grandchildren) {
+                    qreal gcH = subtreeHeight(gc);
+                    calculatePositions(gc, child->pos().x() + kHSpacing,
+                                       gcY + gcH / 2, 1, positions);
+                    gcY += gcH + kVSpacing;
+                }
+            }
+        } else {
+            calculatePositions(child, kHSpacing, y + h / 2, 1, positions);
+        }
+        y += h + kVSpacing;
+    }
+}
+
+void MindMapScene::layoutTopDown(QMap<NodeItem*, QPointF>& positions) {
+    calculatePositionsTopDown(m_rootNode, 0, 0, positions);
+}
+
+qreal MindMapScene::subtreeWidth(NodeItem* node) const {
+    auto children = node->childNodes();
+    if (children.isEmpty()) {
+        return node->nodeRect().width();
+    }
+    qreal total = 0;
+    for (int i = 0; i < children.size(); ++i) {
+        total += subtreeWidth(children[i]);
+        if (i < children.size() - 1) {
+            total += kVSpacing;
+        }
+    }
+    return qMax(node->nodeRect().width(), total);
+}
+
+void MindMapScene::calculatePositionsTopDown(NodeItem* node, qreal x, qreal y,
+                                             QMap<NodeItem*, QPointF>& positions) {
+    positions[node] = QPointF(x, y);
+
+    auto children = node->childNodes();
+    if (children.isEmpty())
+        return;
+
+    qreal totalW = 0;
+    for (int i = 0; i < children.size(); ++i) {
+        totalW += subtreeWidth(children[i]);
+        if (i < children.size() - 1) {
+            totalW += kVSpacing;
+        }
+    }
+
+    qreal childY = y + kTopDownLevelSpacing;
+    qreal childX = x - totalW / 2;
+
+    for (auto* child : children) {
+        qreal w = subtreeWidth(child);
+        qreal centerX = childX + w / 2;
+
+        EdgeItem* edge = findEdge(node, child);
+        if (edge && edge->isLocked()) {
+            // Keep locked node at current position
+            positions[child] = child->pos();
+            // Recurse subtree from locked position
+            auto grandchildren = child->childNodes();
+            if (!grandchildren.isEmpty()) {
+                qreal gcTotalW = 0;
+                for (int i = 0; i < grandchildren.size(); ++i) {
+                    gcTotalW += subtreeWidth(grandchildren[i]);
+                    if (i < grandchildren.size() - 1)
+                        gcTotalW += kVSpacing;
+                }
+                qreal gcX = child->pos().x() - gcTotalW / 2;
+                for (auto* gc : grandchildren) {
+                    qreal gcW = subtreeWidth(gc);
+                    calculatePositionsTopDown(gc, gcX + gcW / 2,
+                                             child->pos().y() + kTopDownLevelSpacing, positions);
+                    gcX += gcW + kVSpacing;
+                }
+            }
+        } else {
+            calculatePositionsTopDown(child, centerX, childY, positions);
+        }
+
+        childX += w + kVSpacing;
+    }
 }

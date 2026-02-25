@@ -1449,15 +1449,18 @@ void MainWindow::loadTemplate(int index) {
         m_scene->addNode("Branch 2", root);
         m_scene->addNode("Branch 3", root);
         m_scene->addNode("Branch 4", root);
+        m_scene->setLayoutStyle(LayoutStyle::Bilateral);
     } else if (index == 1) {
         // Org Chart — CEO -> 3 departments
         root->setText("CEO");
+        m_scene->setLayoutStyle(LayoutStyle::TopDown);
         m_scene->addNode("Engineering", root);
         m_scene->addNode("Marketing", root);
         m_scene->addNode("Sales", root);
     } else if (index == 2) {
         // Project Plan — root -> phases -> tasks
         root->setText("Project");
+        m_scene->setLayoutStyle(LayoutStyle::RightTree);
         auto* phase1 = m_scene->addNode("Phase 1", root);
         auto* phase2 = m_scene->addNode("Phase 2", root);
         m_scene->addNode("Task 1.1", phase1);
