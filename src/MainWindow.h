@@ -8,12 +8,12 @@ class MindMapView;
 class MindMapScene;
 class NodeItem;
 class QTimer;
-class QDockWidget;
 class QTreeWidget;
 class QTreeWidgetItem;
-class QTabWidget;
+class QTabBar;
 class QToolButton;
 class QStackedWidget;
+class QSplitter;
 
 struct TabState {
     MindMapScene* scene = nullptr;
@@ -30,11 +30,10 @@ public:
 
 protected:
     void closeEvent(QCloseEvent* event) override;
-    bool eventFilter(QObject* obj, QEvent* event) override;
 
 private:
-    // Tab management
-    void setupTabWidget();
+    // Layout and tab management
+    void setupCentralLayout();
     void addNewTab();
     void addTab(MindMapScene* scene, MindMapView* view, QStackedWidget* stack,
                 const QString& filePath);
@@ -47,12 +46,12 @@ private:
     bool isTabEmpty(int index) const;
     int findTabByFilePath(const QString& filePath) const;
     void onTabBarContextMenu(const QPoint& pos);
-    void repositionNewTabBtn();
+    void updateContentVisibility();
 
     void setupActions();
     void setupToolBar();
     void setupMenuBar();
-    void setupSidebar();
+    void setupOutlinePanel();
     void updateWindowTitle();
     void connectUndoStack();
     bool maybeSave();
@@ -92,15 +91,27 @@ private:
     QString m_currentFile;
 
     // Tab infrastructure
-    QTabWidget* m_tabWidget = nullptr;
+    QTabBar* m_tabBar = nullptr;
+    QStackedWidget* m_contentStack = nullptr;
     QToolButton* m_newTabBtn = nullptr;
     QList<TabState> m_tabs;
 
+    // Toolbar, outline, content area
+    QWidget* m_toolbarWidget = nullptr;
+    QSplitter* m_contentSplitter = nullptr;
+    QWidget* m_outlinePanel = nullptr;
+    QTreeWidget* m_outlineTree = nullptr;
+    QWidget* m_rightPanel = nullptr;
+
+    QToolButton* m_toggleOutlineBtn = nullptr;
+    QToolButton* m_toggleToolbarBtn = nullptr;
+
+    QAction* m_toggleToolbarAct = nullptr;
+    QAction* m_toggleOutlineAct = nullptr;
     QAction* m_undoAct = nullptr;
     QAction* m_redoAct = nullptr;
-
-    QDockWidget* m_sidebarDock = nullptr;
-    QTreeWidget* m_outlineTree = nullptr;
+    QAction* m_addChildAct = nullptr;
+    QAction* m_addSiblingAct = nullptr;
 
     QTimer* m_autoSaveTimer = nullptr;
 };

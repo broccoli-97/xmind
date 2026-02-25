@@ -8,10 +8,9 @@
 #include <QAction>
 #include <QApplication>
 #include <QCloseEvent>
-#include <QDockWidget>
-#include <QEvent>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QFrame>
 #include <QHBoxLayout>
 #include <QKeySequence>
 #include <QLabel>
@@ -21,12 +20,11 @@
 #include <QPainter>
 #include <QPushButton>
 #include <QSignalBlocker>
+#include <QSplitter>
 #include <QStackedWidget>
 #include <QStatusBar>
 #include <QTabBar>
-#include <QTabWidget>
 #include <QTimer>
-#include <QToolBar>
 #include <QToolButton>
 #include <QTreeWidget>
 #include <QUndoStack>
@@ -82,10 +80,6 @@ static const char* kDarkStyleSheet = R"(
     QToolButton:pressed {
         background-color: #094771;
     }
-    QTabWidget::pane {
-        border: none;
-        background-color: #1E1E1E;
-    }
     QTabBar {
         background-color: #252526;
     }
@@ -133,25 +127,43 @@ static const char* kDarkStyleSheet = R"(
         background-color: #3F3F46;
         color: #D4D4D4;
     }
-    QDockWidget {
-        background-color: #252526;
-        color: #D4D4D4;
-        titlebar-close-icon: none;
-        titlebar-normal-icon: none;
+    QWidget#inlineToolbar {
+        background-color: #2D2D30;
+        border-bottom: 1px solid #3F3F46;
     }
-    QDockWidget::title {
-        background-color: #252526;
-        padding: 0px;
-        margin: 0px;
-        border: none;
-    }
-    QLabel#sectionHeader {
+    QLabel#sectionHeader, QWidget#sectionHeader {
         background-color: #2D2D30;
         color: #D4D4D4;
         font-weight: bold;
         font-size: 12px;
         padding: 6px 10px;
         border-bottom: 1px solid #3F3F46;
+    }
+    QToolButton#togglePanelBtn {
+        background-color: transparent;
+        color: #969696;
+        border: none;
+        border-radius: 4px;
+        padding: 4px;
+    }
+    QToolButton#togglePanelBtn:hover {
+        background-color: #3F3F46;
+        color: #D4D4D4;
+    }
+    QToolButton#togglePanelBtn:checked {
+        background-color: #094771;
+        color: #D4D4D4;
+    }
+    QToolButton#closePanelBtn {
+        background-color: transparent;
+        color: #969696;
+        border: none;
+        border-radius: 3px;
+        padding: 2px;
+    }
+    QToolButton#closePanelBtn:hover {
+        background-color: #3F3F46;
+        color: #D4D4D4;
     }
     QTreeWidget {
         background-color: #252526;
@@ -172,22 +184,6 @@ static const char* kDarkStyleSheet = R"(
     }
     QTreeWidget::branch {
         background-color: #252526;
-    }
-    QListWidget {
-        background-color: #252526;
-        color: #D4D4D4;
-        border: none;
-        outline: none;
-    }
-    QListWidget::item {
-        padding: 4px;
-        border-radius: 4px;
-    }
-    QListWidget::item:hover {
-        background-color: #2A2D2E;
-    }
-    QListWidget::item:selected {
-        background-color: #094771;
     }
     QStatusBar {
         background-color: #007ACC;
@@ -335,13 +331,9 @@ static const char* kDarkStyleSheet = R"(
 )";
 
 // ---------------------------------------------------------------------------
-// Light stylesheet (tab bar + start page only; rest uses Qt defaults)
+// Light stylesheet
 // ---------------------------------------------------------------------------
 static const char* kLightStyleSheet = R"(
-    QTabWidget::pane {
-        border: none;
-        background-color: #FFFFFF;
-    }
     QTabBar {
         background-color: #E8E8E8;
     }
@@ -388,6 +380,79 @@ static const char* kLightStyleSheet = R"(
     QToolButton#newTabBtn:hover {
         background-color: #D0D0D0;
         color: #333333;
+    }
+    QWidget#inlineToolbar {
+        background-color: #F3F3F3;
+        border-bottom: 1px solid #D0D0D0;
+    }
+    QWidget#inlineToolbar QToolButton {
+        background-color: transparent;
+        color: #333333;
+        border: 1px solid transparent;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+    QWidget#inlineToolbar QToolButton:hover {
+        background-color: #D0D0D0;
+        border-color: #D0D0D0;
+    }
+    QWidget#inlineToolbar QToolButton:pressed {
+        background-color: #B8D4F0;
+    }
+    QLabel#sectionHeader, QWidget#sectionHeader {
+        background-color: #F0F0F0;
+        color: #333333;
+        font-weight: bold;
+        font-size: 12px;
+        padding: 6px 10px;
+        border-bottom: 1px solid #D0D0D0;
+    }
+    QToolButton#togglePanelBtn {
+        background-color: transparent;
+        color: #666666;
+        border: none;
+        border-radius: 4px;
+        padding: 4px;
+    }
+    QToolButton#togglePanelBtn:hover {
+        background-color: #D0D0D0;
+        color: #333333;
+    }
+    QToolButton#togglePanelBtn:checked {
+        background-color: #CCE4F7;
+        color: #1E1E1E;
+    }
+    QToolButton#closePanelBtn {
+        background-color: transparent;
+        color: #666666;
+        border: none;
+        border-radius: 3px;
+        padding: 2px;
+    }
+    QToolButton#closePanelBtn:hover {
+        background-color: #D0D0D0;
+        color: #333333;
+    }
+    QTreeWidget {
+        background-color: #FFFFFF;
+        color: #1E1E1E;
+        border: none;
+        outline: none;
+        font-size: 12px;
+    }
+    QTreeWidget::item {
+        padding: 3px 0px;
+    }
+    QTreeWidget::item:hover {
+        background-color: #E8E8E8;
+    }
+    QTreeWidget::item:selected {
+        background-color: #CCE4F7;
+        color: #1E1E1E;
+    }
+    QTreeWidget::branch {
+        background-color: #FFFFFF;
     }
 )";
 
@@ -460,6 +525,23 @@ QIcon MainWindow::makeToolIcon(const QString& name) {
         p.drawLine(16, 16, 16, 4);
         p.drawLine(12, 8, 16, 4);
         p.drawLine(20, 8, 16, 4);
+    } else if (name == "sidebar") {
+        // Outline/sidebar icon — panel with lines
+        p.drawRect(4, 4, 24, 24);
+        p.drawLine(14, 4, 14, 28);
+        p.drawLine(17, 10, 25, 10);
+        p.drawLine(17, 16, 25, 16);
+        p.drawLine(17, 22, 25, 22);
+    } else if (name == "toolbar") {
+        // Toolbar icon — horizontal bar with buttons
+        p.drawRect(4, 10, 24, 12);
+        p.drawLine(10, 10, 10, 22);
+        p.drawLine(16, 10, 16, 22);
+        p.drawLine(22, 10, 22, 22);
+    } else if (name == "close-panel") {
+        // Small X
+        p.drawLine(10, 10, 22, 22);
+        p.drawLine(22, 10, 10, 22);
     }
 
     p.end();
@@ -654,11 +736,9 @@ QWidget* MainWindow::createStartPage() {
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     resize(1280, 800);
 
-    setupTabWidget();
     setupActions();
-    setupToolBar();
+    setupCentralLayout();
     setupMenuBar();
-    setupSidebar();
     addNewTab();
 
     // Auto-save timer
@@ -680,64 +760,107 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 }
 
 // ---------------------------------------------------------------------------
-// Tab widget setup
+// Central layout: tab bar + toolbar + splitter(outline, content)
 // ---------------------------------------------------------------------------
-void MainWindow::setupTabWidget() {
-    m_tabWidget = new QTabWidget(this);
-    m_tabWidget->setTabsClosable(true);
-    m_tabWidget->setMovable(true);
-    m_tabWidget->setDocumentMode(true);
+void MainWindow::setupCentralLayout() {
+    auto* centralW = new QWidget(this);
+    auto* mainLayout = new QVBoxLayout(centralW);
+    mainLayout->setContentsMargins(0, 0, 0, 0);
+    mainLayout->setSpacing(0);
 
-    // "+" button lives on the tab bar, repositioned via event filter
-    m_newTabBtn = new QToolButton(m_tabWidget->tabBar());
+    // ---- Tab bar row ----
+    auto* tabBarRow = new QHBoxLayout();
+    tabBarRow->setContentsMargins(0, 0, 0, 0);
+    tabBarRow->setSpacing(0);
+
+    m_tabBar = new QTabBar(this);
+    m_tabBar->setTabsClosable(true);
+    m_tabBar->setMovable(true);
+    m_tabBar->setDocumentMode(true);
+    m_tabBar->setExpanding(false);
+    tabBarRow->addWidget(m_tabBar);
+
+    m_newTabBtn = new QToolButton(this);
     m_newTabBtn->setText("+");
     m_newTabBtn->setToolTip("New Tab (Ctrl+T)");
     m_newTabBtn->setAutoRaise(true);
     m_newTabBtn->setFixedSize(28, 28);
     m_newTabBtn->setObjectName("newTabBtn");
     connect(m_newTabBtn, &QToolButton::clicked, this, &MainWindow::addNewTab);
+    tabBarRow->addWidget(m_newTabBtn);
+    tabBarRow->addStretch();
 
-    // Watch tab bar for any geometry/layout changes
-    m_tabWidget->tabBar()->installEventFilter(this);
+    // Toggle buttons at right end of tab bar row
+    m_toggleOutlineBtn = new QToolButton(this);
+    m_toggleOutlineBtn->setIcon(makeToolIcon("sidebar"));
+    m_toggleOutlineBtn->setToolTip("Toggle Outline Panel");
+    m_toggleOutlineBtn->setCheckable(true);
+    m_toggleOutlineBtn->setChecked(true);
+    m_toggleOutlineBtn->setAutoRaise(true);
+    m_toggleOutlineBtn->setFixedSize(28, 28);
+    m_toggleOutlineBtn->setIconSize(QSize(18, 18));
+    m_toggleOutlineBtn->setObjectName("togglePanelBtn");
+    tabBarRow->addWidget(m_toggleOutlineBtn);
 
-    // Tab switching and closing
-    connect(m_tabWidget, &QTabWidget::currentChanged, this, &MainWindow::switchToTab);
-    connect(m_tabWidget, &QTabWidget::tabCloseRequested, this, &MainWindow::closeTab);
+    m_toggleToolbarBtn = new QToolButton(this);
+    m_toggleToolbarBtn->setIcon(makeToolIcon("toolbar"));
+    m_toggleToolbarBtn->setToolTip("Toggle Toolbar");
+    m_toggleToolbarBtn->setCheckable(true);
+    m_toggleToolbarBtn->setChecked(true);
+    m_toggleToolbarBtn->setAutoRaise(true);
+    m_toggleToolbarBtn->setFixedSize(28, 28);
+    m_toggleToolbarBtn->setIconSize(QSize(18, 18));
+    m_toggleToolbarBtn->setObjectName("togglePanelBtn");
+    tabBarRow->addWidget(m_toggleToolbarBtn);
 
-    // Tab bar context menu
-    m_tabWidget->tabBar()->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(m_tabWidget->tabBar(), &QWidget::customContextMenuRequested, this,
+    mainLayout->addLayout(tabBarRow);
+
+    // ---- Inline toolbar ----
+    setupToolBar();
+
+    // ---- Content area: splitter with outline + right panel (toolbar + tab pages) ----
+    m_contentSplitter = new QSplitter(Qt::Horizontal, this);
+
+    setupOutlinePanel();
+    m_contentSplitter->addWidget(m_outlinePanel);
+
+    // Right panel: toolbar above content stack
+    m_rightPanel = new QWidget(this);
+    auto* rightLayout = new QVBoxLayout(m_rightPanel);
+    rightLayout->setContentsMargins(0, 0, 0, 0);
+    rightLayout->setSpacing(0);
+    rightLayout->addWidget(m_toolbarWidget);
+
+    m_contentStack = new QStackedWidget(this);
+    rightLayout->addWidget(m_contentStack, 1);
+
+    m_contentSplitter->addWidget(m_rightPanel);
+
+    m_contentSplitter->setStretchFactor(0, 0);
+    m_contentSplitter->setStretchFactor(1, 1);
+    m_contentSplitter->setSizes({200, 1080});
+    m_contentSplitter->setCollapsible(0, true);
+    m_contentSplitter->setCollapsible(1, false);
+
+    mainLayout->addWidget(m_contentSplitter, 1);
+
+    setCentralWidget(centralW);
+
+    // ---- Signals ----
+    connect(m_tabBar, &QTabBar::currentChanged, this, &MainWindow::switchToTab);
+    connect(m_tabBar, &QTabBar::tabCloseRequested, this, &MainWindow::closeTab);
+    connect(m_tabBar, &QTabBar::tabMoved, this, [this](int from, int to) {
+        m_tabs.move(from, to);
+        QWidget* w = m_contentStack->widget(from);
+        QSignalBlocker blocker(m_contentStack);
+        m_contentStack->removeWidget(w);
+        m_contentStack->insertWidget(to, w);
+        m_contentStack->setCurrentIndex(m_tabBar->currentIndex());
+    });
+
+    m_tabBar->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(m_tabBar, &QWidget::customContextMenuRequested, this,
             &MainWindow::onTabBarContextMenu);
-
-    setCentralWidget(m_tabWidget);
-}
-
-void MainWindow::repositionNewTabBtn() {
-    QTabBar* bar = m_tabWidget->tabBar();
-    if (bar->count() == 0) {
-        m_newTabBtn->move(4, qMax(0, (bar->height() - m_newTabBtn->height()) / 2));
-        return;
-    }
-    QRect lastTabRect = bar->tabRect(bar->count() - 1);
-    int x = lastTabRect.right() + 4;
-    int y = qMax(0, (bar->height() - m_newTabBtn->height()) / 2);
-    m_newTabBtn->move(x, y);
-}
-
-bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
-    if (obj == m_tabWidget->tabBar()) {
-        switch (event->type()) {
-        case QEvent::Resize:
-        case QEvent::LayoutRequest:
-        case QEvent::Show:
-            // Defer so the tab bar finishes its own layout first
-            QTimer::singleShot(0, this, &MainWindow::repositionNewTabBtn);
-            break;
-        default:
-            break;
-        }
-    }
-    return QMainWindow::eventFilter(obj, event);
 }
 
 // ---------------------------------------------------------------------------
@@ -767,14 +890,15 @@ void MainWindow::addTab(MindMapScene* scene, MindMapView* view, QStackedWidget* 
     connectSceneSignals(scene);
 
     {
-        QSignalBlocker blocker(m_tabWidget);
+        QSignalBlocker blocker(m_tabBar);
         m_tabs.append(tab);
         QString label = filePath.isEmpty() ? "Untitled" : QFileInfo(filePath).fileName();
-        m_tabWidget->addTab(stack, label);
+        m_tabBar->addTab(label);
+        m_contentStack->addWidget(stack);
     }
 
     // Now switch to the new tab (triggers switchToTab)
-    m_tabWidget->setCurrentIndex(m_tabs.size() - 1);
+    m_tabBar->setCurrentIndex(m_tabs.size() - 1);
     switchToTab(m_tabs.size() - 1);
 }
 
@@ -784,7 +908,7 @@ void MainWindow::connectSceneSignals(MindMapScene* scene) {
         for (int i = 0; i < m_tabs.size(); ++i) {
             if (m_tabs[i].scene == scene) {
                 updateTabText(i);
-                if (i == m_tabWidget->currentIndex())
+                if (i == m_tabBar->currentIndex())
                     updateWindowTitle();
                 break;
             }
@@ -796,7 +920,7 @@ void MainWindow::connectSceneSignals(MindMapScene* scene) {
             if (m_tabs[i].scene == scene) {
                 m_tabs[i].filePath = path;
                 updateTabText(i);
-                if (i == m_tabWidget->currentIndex()) {
+                if (i == m_tabBar->currentIndex()) {
                     m_currentFile = path;
                     updateWindowTitle();
                 }
@@ -816,9 +940,12 @@ void MainWindow::switchToTab(int index) {
     m_view = m_tabs[index].view;
     m_currentFile = m_tabs[index].filePath;
 
+    m_contentStack->setCurrentIndex(index);
+
     connectUndoStack();
     updateWindowTitle();
     refreshOutline();
+    updateContentVisibility();
 }
 
 void MainWindow::disconnectUndoStack() {
@@ -839,7 +966,7 @@ void MainWindow::updateTabText(int index) {
     QString label = tab.filePath.isEmpty() ? "Untitled" : QFileInfo(tab.filePath).fileName();
     if (tab.scene->isModified())
         label.prepend("* ");
-    m_tabWidget->setTabText(index, label);
+    m_tabBar->setTabText(index, label);
 }
 
 bool MainWindow::isTabEmpty(int index) const {
@@ -847,8 +974,11 @@ bool MainWindow::isTabEmpty(int index) const {
         return false;
     const auto& tab = m_tabs[index];
     // Tab is empty if showing start page, or if untitled and unmodified
-    if (tab.stack && tab.stack->currentIndex() == 0)
-        return true;
+    if (tab.stack) {
+        QWidget* current = tab.stack->currentWidget();
+        if (current && current->objectName() == "startPage")
+            return true;
+    }
     return tab.filePath.isEmpty() && !tab.scene->isModified();
 }
 
@@ -911,11 +1041,11 @@ void MainWindow::closeTab(int index) {
     auto tab = m_tabs[index];
 
     m_tabs.removeAt(index);
-    m_tabWidget->removeTab(index);
+    m_tabBar->removeTab(index);
+    m_contentStack->removeWidget(tab.stack);
 
     delete tab.scene;
-    // stack (and its children including view and start page) is deleted by removeTab
-    // since it's a child widget of the tab widget
+    delete tab.stack;
 
     // Always keep at least one tab
     if (m_tabs.isEmpty())
@@ -923,7 +1053,7 @@ void MainWindow::closeTab(int index) {
 }
 
 void MainWindow::onTabBarContextMenu(const QPoint& pos) {
-    int index = m_tabWidget->tabBar()->tabAt(pos);
+    int index = m_tabBar->tabAt(pos);
 
     QMenu menu(this);
 
@@ -945,7 +1075,7 @@ void MainWindow::onTabBarContextMenu(const QPoint& pos) {
         });
     }
 
-    menu.exec(m_tabWidget->tabBar()->mapToGlobal(pos));
+    menu.exec(m_tabBar->mapToGlobal(pos));
 }
 
 // ---------------------------------------------------------------------------
@@ -989,7 +1119,7 @@ bool MainWindow::maybeSave() {
 // File operations
 // ---------------------------------------------------------------------------
 void MainWindow::newFile() {
-    int cur = m_tabWidget->currentIndex();
+    int cur = m_tabBar->currentIndex();
     if (cur >= 0 && isTabEmpty(cur))
         return; // Current tab is already empty+untitled
     addNewTab();
@@ -1005,12 +1135,12 @@ void MainWindow::openFile() {
     // Check if already open in a tab
     int existing = findTabByFilePath(filePath);
     if (existing >= 0) {
-        m_tabWidget->setCurrentIndex(existing);
+        m_tabBar->setCurrentIndex(existing);
         return;
     }
 
     // Reuse current tab if it's empty, otherwise create new
-    int cur = m_tabWidget->currentIndex();
+    int cur = m_tabBar->currentIndex();
     if (cur >= 0 && isTabEmpty(cur)) {
         if (!m_scene->loadFromFile(filePath)) {
             QMessageBox::warning(this, "XMind", "Could not open file:\n" + filePath);
@@ -1025,6 +1155,7 @@ void MainWindow::openFile() {
         updateWindowTitle();
         m_view->zoomToFit();
         refreshOutline();
+        updateContentVisibility();
     } else {
         // Create a new tab for the file
         auto* scene = new MindMapScene(this);
@@ -1059,7 +1190,7 @@ void MainWindow::saveFile() {
         QMessageBox::warning(this, "XMind", "Could not save file:\n" + m_currentFile);
     }
 
-    int cur = m_tabWidget->currentIndex();
+    int cur = m_tabBar->currentIndex();
     if (cur >= 0) {
         m_tabs[cur].filePath = m_currentFile;
         updateTabText(cur);
@@ -1083,7 +1214,7 @@ void MainWindow::saveFileAs() {
     }
 
     m_currentFile = filePath;
-    int cur = m_tabWidget->currentIndex();
+    int cur = m_tabBar->currentIndex();
     if (cur >= 0) {
         m_tabs[cur].filePath = filePath;
         updateTabText(cur);
@@ -1194,7 +1325,7 @@ void MainWindow::importFromText() {
     file.close();
 
     // Reuse current tab if empty, otherwise create new
-    int cur = m_tabWidget->currentIndex();
+    int cur = m_tabBar->currentIndex();
     if (cur >= 0 && isTabEmpty(cur)) {
         if (!m_scene->importFromText(text)) {
             QMessageBox::warning(this, "XMind", "Could not parse text file:\n" + filePath);
@@ -1359,48 +1490,73 @@ void MainWindow::connectUndoStack() {
 // Toolbar
 // ---------------------------------------------------------------------------
 void MainWindow::setupToolBar() {
-    auto* toolbar = addToolBar("Main");
-    toolbar->setMovable(false);
-    toolbar->setIconSize(QSize(24, 24));
-    toolbar->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+    m_toolbarWidget = new QWidget(this);
+    m_toolbarWidget->setObjectName("inlineToolbar");
 
-    auto* addChildAct = toolbar->addAction(makeToolIcon("add-child"), "Add Child");
-    addChildAct->setToolTip("Add a child node (Enter)");
-    connect(addChildAct, &QAction::triggered, this, [this]() { m_scene->addChildToSelected(); });
+    auto* layout = new QHBoxLayout(m_toolbarWidget);
+    layout->setContentsMargins(4, 2, 4, 2);
+    layout->setSpacing(2);
+    layout->addStretch();
 
-    auto* addSiblingAct = toolbar->addAction(makeToolIcon("add-sibling"), "Add Sibling");
-    addSiblingAct->setToolTip("Add a sibling node (Ctrl+Enter)");
-    connect(addSiblingAct, &QAction::triggered, this,
+    auto addButton = [&](const QString& iconName, const QString& text,
+                         const QString& tooltip) -> QToolButton* {
+        auto* btn = new QToolButton(m_toolbarWidget);
+        btn->setIcon(makeToolIcon(iconName));
+        btn->setText(text);
+        btn->setToolTip(tooltip);
+        btn->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+        btn->setAutoRaise(true);
+        btn->setIconSize(QSize(24, 24));
+        layout->addWidget(btn);
+        return btn;
+    };
+
+    auto addSeparator = [&]() {
+        auto* sep = new QFrame(m_toolbarWidget);
+        sep->setFrameShape(QFrame::VLine);
+        sep->setFrameShadow(QFrame::Sunken);
+        sep->setFixedHeight(28);
+        layout->addWidget(sep);
+    };
+
+    auto* addChildBtn = addButton("add-child", "Add Child", "Add a child node (Enter)");
+    connect(addChildBtn, &QToolButton::clicked, this,
+            [this]() { m_scene->addChildToSelected(); });
+
+    auto* addSiblingBtn = addButton("add-sibling", "Add Sibling", "Add a sibling node (Ctrl+Enter)");
+    connect(addSiblingBtn, &QToolButton::clicked, this,
             [this]() { m_scene->addSiblingToSelected(); });
 
-    auto* deleteAct = toolbar->addAction(makeToolIcon("delete"), "Delete");
-    deleteAct->setToolTip("Delete selected node (Del)");
-    connect(deleteAct, &QAction::triggered, this, [this]() { m_scene->deleteSelected(); });
+    auto* deleteBtn = addButton("delete", "Delete", "Delete selected node (Del)");
+    connect(deleteBtn, &QToolButton::clicked, this,
+            [this]() { m_scene->deleteSelected(); });
 
-    toolbar->addSeparator();
+    addSeparator();
 
-    auto* layoutAct = toolbar->addAction(makeToolIcon("auto-layout"), "Auto Layout");
-    layoutAct->setToolTip("Automatically arrange all nodes (Ctrl+L)");
-    connect(layoutAct, &QAction::triggered, this, [this]() { m_scene->autoLayout(); });
+    auto* layoutBtn = addButton("auto-layout", "Auto Layout", "Automatically arrange all nodes (Ctrl+L)");
+    connect(layoutBtn, &QToolButton::clicked, this,
+            [this]() { m_scene->autoLayout(); });
 
-    toolbar->addSeparator();
+    addSeparator();
 
-    auto* zoomAct = toolbar->addAction(makeToolIcon("zoom"), "Zoom");
-    zoomAct->setToolTip("Zoom in (Ctrl++)");
-    connect(zoomAct, &QAction::triggered, this, [this]() { m_view->zoomIn(); });
+    auto* zoomBtn = addButton("zoom", "Zoom", "Zoom in (Ctrl++)");
+    connect(zoomBtn, &QToolButton::clicked, this,
+            [this]() { m_view->zoomIn(); });
 
-    auto* fitAct = toolbar->addAction(makeToolIcon("fit-view"), "Fit View");
-    fitAct->setToolTip("Fit all nodes in view (Ctrl+0)");
-    connect(fitAct, &QAction::triggered, this, [this]() { m_view->zoomToFit(); });
+    auto* fitBtn = addButton("fit-view", "Fit View", "Fit all nodes in view (Ctrl+0)");
+    connect(fitBtn, &QToolButton::clicked, this,
+            [this]() { m_view->zoomToFit(); });
 
-    toolbar->addSeparator();
+    addSeparator();
 
-    auto* exportBtn = new QToolButton(this);
+    auto* exportBtn = new QToolButton(m_toolbarWidget);
     exportBtn->setIcon(makeToolIcon("export"));
     exportBtn->setText("Export");
     exportBtn->setToolTip("Export mind map");
     exportBtn->setPopupMode(QToolButton::InstantPopup);
     exportBtn->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+    exportBtn->setAutoRaise(true);
+    exportBtn->setIconSize(QSize(24, 24));
     auto* exportBtnMenu = new QMenu(exportBtn);
     exportBtnMenu->addAction("As Text...", this, &MainWindow::exportAsText);
     exportBtnMenu->addAction("As Markdown...", this, &MainWindow::exportAsMarkdown);
@@ -1409,7 +1565,23 @@ void MainWindow::setupToolBar() {
     exportBtnMenu->addAction("As SVG...", this, &MainWindow::exportAsSvg);
     exportBtnMenu->addAction("As PDF...", this, &MainWindow::exportAsPdf);
     exportBtn->setMenu(exportBtnMenu);
-    toolbar->addWidget(exportBtn);
+    layout->addWidget(exportBtn);
+
+    layout->addStretch();
+
+    // Close button at right end of toolbar
+    auto* closeBtn = new QToolButton(m_toolbarWidget);
+    closeBtn->setIcon(makeToolIcon("close-panel"));
+    closeBtn->setToolTip("Hide Toolbar");
+    closeBtn->setAutoRaise(true);
+    closeBtn->setFixedSize(20, 20);
+    closeBtn->setIconSize(QSize(14, 14));
+    closeBtn->setObjectName("closePanelBtn");
+    connect(closeBtn, &QToolButton::clicked, this, [this]() {
+        if (m_toggleToolbarAct)
+            m_toggleToolbarAct->setChecked(false);
+    });
+    layout->addWidget(closeBtn);
 }
 
 // ---------------------------------------------------------------------------
@@ -1446,7 +1618,7 @@ void MainWindow::setupMenuBar() {
     auto* closeTabAct = fileMenu->addAction("&Close Tab");
     closeTabAct->setShortcut(QKeySequence("Ctrl+W"));
     connect(closeTabAct, &QAction::triggered, this,
-            [this]() { closeTab(m_tabWidget->currentIndex()); });
+            [this]() { closeTab(m_tabBar->currentIndex()); });
 
     fileMenu->addSeparator();
 
@@ -1505,7 +1677,40 @@ void MainWindow::setupMenuBar() {
     connect(fitAct, &QAction::triggered, this, [this]() { m_view->zoomToFit(); });
 
     viewMenu->addSeparator();
-    // Sidebar toggle will be added after setupSidebar()
+
+    m_toggleToolbarAct = viewMenu->addAction("&Toolbar");
+    m_toggleToolbarAct->setCheckable(true);
+    m_toggleToolbarAct->setChecked(true);
+    connect(m_toggleToolbarAct, &QAction::toggled, this, [this](bool checked) {
+        {
+            QSignalBlocker blocker(m_toggleToolbarBtn);
+            m_toggleToolbarBtn->setChecked(checked);
+        }
+        updateContentVisibility();
+    });
+
+    m_toggleOutlineAct = viewMenu->addAction("&Outline");
+    m_toggleOutlineAct->setCheckable(true);
+    m_toggleOutlineAct->setChecked(true);
+    connect(m_toggleOutlineAct, &QAction::toggled, this, [this](bool checked) {
+        {
+            QSignalBlocker blocker(m_toggleOutlineBtn);
+            m_toggleOutlineBtn->setChecked(checked);
+        }
+        updateContentVisibility();
+    });
+
+    // Bidirectional sync: tab bar toggle buttons → View menu actions
+    connect(m_toggleOutlineBtn, &QToolButton::toggled, this, [this](bool checked) {
+        QSignalBlocker blocker(m_toggleOutlineAct);
+        m_toggleOutlineAct->setChecked(checked);
+        updateContentVisibility();
+    });
+    connect(m_toggleToolbarBtn, &QToolButton::toggled, this, [this](bool checked) {
+        QSignalBlocker blocker(m_toggleToolbarAct);
+        m_toggleToolbarAct->setChecked(checked);
+        updateContentVisibility();
+    });
 
     // ---- Layout menu ----
     auto* layoutMenu = menuBar()->addMenu("&Layout");
@@ -1517,13 +1722,13 @@ void MainWindow::setupMenuBar() {
     // ---- Insert menu ----
     auto* insertMenu = menuBar()->addMenu("&Insert");
 
-    auto* addChildAct = insertMenu->addAction("Add &Child");
-    addChildAct->setToolTip("Add a child node (Enter)");
-    connect(addChildAct, &QAction::triggered, this, [this]() { m_scene->addChildToSelected(); });
+    m_addChildAct = insertMenu->addAction("Add &Child");
+    m_addChildAct->setToolTip("Add a child node (Enter)");
+    connect(m_addChildAct, &QAction::triggered, this, [this]() { m_scene->addChildToSelected(); });
 
-    auto* addSiblingAct = insertMenu->addAction("Add &Sibling");
-    addSiblingAct->setToolTip("Add a sibling node (Ctrl+Enter)");
-    connect(addSiblingAct, &QAction::triggered, this,
+    m_addSiblingAct = insertMenu->addAction("Add &Sibling");
+    m_addSiblingAct->setToolTip("Add a sibling node (Ctrl+Enter)");
+    connect(m_addSiblingAct, &QAction::triggered, this,
             [this]() { m_scene->addSiblingToSelected(); });
 
     // ---- Style menu ----
@@ -1535,27 +1740,43 @@ void MainWindow::setupMenuBar() {
 }
 
 // ---------------------------------------------------------------------------
-// Sidebar
+// Outline panel (embedded in content splitter)
 // ---------------------------------------------------------------------------
-void MainWindow::setupSidebar() {
-    m_sidebarDock = new QDockWidget(this);
-    m_sidebarDock->setWindowTitle("Sidebar");
-    m_sidebarDock->setFeatures(QDockWidget::NoDockWidgetFeatures);
-    m_sidebarDock->setTitleBarWidget(new QWidget()); // hide title bar
-    m_sidebarDock->setMinimumWidth(180);
-    m_sidebarDock->setMaximumWidth(260);
+void MainWindow::setupOutlinePanel() {
+    m_outlinePanel = new QWidget(this);
+    m_outlinePanel->setMinimumWidth(120);
 
-    auto* container = new QWidget();
-    auto* layout = new QVBoxLayout(container);
+    auto* layout = new QVBoxLayout(m_outlinePanel);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
 
-    // Outline section header
-    auto* outlineLabel = new QLabel("Outline");
-    outlineLabel->setObjectName("sectionHeader");
-    layout->addWidget(outlineLabel);
+    // Header row with label + close button
+    auto* header = new QWidget();
+    header->setObjectName("sectionHeader");
+    auto* headerLayout = new QHBoxLayout(header);
+    headerLayout->setContentsMargins(10, 6, 4, 6);
+    headerLayout->setSpacing(0);
 
-    // Outline tree
+    auto* outlineLabel = new QLabel("Outline");
+    outlineLabel->setStyleSheet("background: transparent; border: none; font-weight: bold; font-size: 12px;");
+    headerLayout->addWidget(outlineLabel);
+    headerLayout->addStretch();
+
+    auto* closeBtn = new QToolButton();
+    closeBtn->setIcon(makeToolIcon("close-panel"));
+    closeBtn->setToolTip("Hide Outline");
+    closeBtn->setAutoRaise(true);
+    closeBtn->setFixedSize(20, 20);
+    closeBtn->setIconSize(QSize(14, 14));
+    closeBtn->setObjectName("closePanelBtn");
+    connect(closeBtn, &QToolButton::clicked, this, [this]() {
+        if (m_toggleOutlineAct)
+            m_toggleOutlineAct->setChecked(false);
+    });
+    headerLayout->addWidget(closeBtn);
+
+    layout->addWidget(header);
+
     m_outlineTree = new QTreeWidget();
     m_outlineTree->setHeaderHidden(true);
     m_outlineTree->setAnimated(true);
@@ -1563,23 +1784,6 @@ void MainWindow::setupSidebar() {
     m_outlineTree->setExpandsOnDoubleClick(false);
     connect(m_outlineTree, &QTreeWidget::itemClicked, this, &MainWindow::onOutlineItemClicked);
     layout->addWidget(m_outlineTree, 1);
-
-    m_sidebarDock->setWidget(container);
-    addDockWidget(Qt::LeftDockWidgetArea, m_sidebarDock);
-
-    // Add sidebar toggle to View menu
-    auto* viewMenu = menuBar()->findChild<QMenu*>(QString(), Qt::FindDirectChildrenOnly);
-    // Find the View menu by iterating
-    for (auto* action : menuBar()->actions()) {
-        if (action->text() == "&View") {
-            if (auto* menu = action->menu()) {
-                auto* toggleAct = m_sidebarDock->toggleViewAction();
-                toggleAct->setText("&Sidebar");
-                menu->addAction(toggleAct);
-            }
-            break;
-        }
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1632,14 +1836,14 @@ void MainWindow::onOutlineItemClicked(QTreeWidgetItem* item, int /*column*/) {
 // Template loading
 // ---------------------------------------------------------------------------
 void MainWindow::loadTemplate(int index) {
-    int tabIdx = m_tabWidget->currentIndex();
+    int tabIdx = m_tabBar->currentIndex();
     if (tabIdx < 0)
         return;
 
     // If current tab is not empty (already has content), create a new tab first
     if (!isTabEmpty(tabIdx)) {
         addNewTab();
-        tabIdx = m_tabWidget->currentIndex();
+        tabIdx = m_tabBar->currentIndex();
     }
 
     m_currentFile.clear();
@@ -1686,6 +1890,7 @@ void MainWindow::loadTemplate(int index) {
     updateWindowTitle();
     refreshOutline();
     m_view->zoomToFit();
+    updateContentVisibility();
 
     statusBar()->showMessage("Template loaded", 3000);
 }
@@ -1694,7 +1899,7 @@ void MainWindow::loadTemplate(int index) {
 // Blank canvas
 // ---------------------------------------------------------------------------
 void MainWindow::activateBlankCanvas() {
-    int tabIdx = m_tabWidget->currentIndex();
+    int tabIdx = m_tabBar->currentIndex();
     if (tabIdx < 0)
         return;
 
@@ -1705,4 +1910,35 @@ void MainWindow::activateBlankCanvas() {
     updateTabText(tabIdx);
     updateWindowTitle();
     refreshOutline();
+    updateContentVisibility();
+}
+
+// ---------------------------------------------------------------------------
+// Content visibility (toolbar + outline hidden on start page)
+// ---------------------------------------------------------------------------
+void MainWindow::updateContentVisibility() {
+    int idx = m_tabBar->currentIndex();
+    bool onStartPage = false;
+    if (idx >= 0 && idx < m_tabs.size() && m_tabs[idx].stack) {
+        QWidget* current = m_tabs[idx].stack->currentWidget();
+        onStartPage = current && current->objectName() == "startPage";
+    }
+
+    bool showToolbar = !onStartPage && m_toggleToolbarAct && m_toggleToolbarAct->isChecked();
+    bool showOutline = !onStartPage && m_toggleOutlineAct && m_toggleOutlineAct->isChecked();
+
+    m_toolbarWidget->setVisible(showToolbar);
+    m_outlinePanel->setVisible(showOutline);
+
+    // Hide/show tab bar toggle buttons on start page
+    if (m_toggleOutlineBtn)
+        m_toggleOutlineBtn->setVisible(!onStartPage);
+    if (m_toggleToolbarBtn)
+        m_toggleToolbarBtn->setVisible(!onStartPage);
+
+    // Disable/enable Insert actions on start page
+    if (m_addChildAct)
+        m_addChildAct->setEnabled(!onStartPage);
+    if (m_addSiblingAct)
+        m_addSiblingAct->setEnabled(!onStartPage);
 }
