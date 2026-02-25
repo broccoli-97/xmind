@@ -9,16 +9,19 @@
 #include <QApplication>
 #include <QCloseEvent>
 #include <QDockWidget>
+#include <QEvent>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QHBoxLayout>
 #include <QKeySequence>
 #include <QLabel>
-#include <QListWidget>
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QPainter>
+#include <QPushButton>
 #include <QSignalBlocker>
+#include <QStackedWidget>
 #include <QStatusBar>
 #include <QTabBar>
 #include <QTabWidget>
@@ -117,6 +120,18 @@ static const char* kDarkStyleSheet = R"(
     QTabBar::close-button:hover {
         background-color: #3F3F46;
         border-radius: 3px;
+    }
+    QToolButton#newTabBtn {
+        background-color: transparent;
+        color: #969696;
+        border: none;
+        border-radius: 4px;
+        font-size: 16px;
+        font-weight: bold;
+    }
+    QToolButton#newTabBtn:hover {
+        background-color: #3F3F46;
+        color: #D4D4D4;
     }
     QDockWidget {
         background-color: #252526;
@@ -294,6 +309,86 @@ static const char* kDarkStyleSheet = R"(
         border: 1px solid #3F3F46;
         padding: 4px;
     }
+    QPushButton#templateCard {
+        background-color: #2D2D30;
+        border: 2px solid #3F3F46;
+        color: #D4D4D4;
+    }
+    QPushButton#templateCard:hover {
+        border-color: #007ACC;
+        background-color: #333337;
+    }
+    QPushButton#templateCard:pressed {
+        background-color: #094771;
+    }
+    QPushButton#blankCanvasBtn {
+        border-color: #3F3F46;
+        color: #D4D4D4;
+    }
+    QPushButton#blankCanvasBtn:hover {
+        border-color: #007ACC;
+        background-color: #2D2D30;
+    }
+    QPushButton#blankCanvasBtn:pressed {
+        background-color: #094771;
+    }
+)";
+
+// ---------------------------------------------------------------------------
+// Light stylesheet (tab bar + start page only; rest uses Qt defaults)
+// ---------------------------------------------------------------------------
+static const char* kLightStyleSheet = R"(
+    QTabWidget::pane {
+        border: none;
+        background-color: #FFFFFF;
+    }
+    QTabBar {
+        background-color: #E8E8E8;
+    }
+    QTabBar::tab {
+        background-color: #D6D6D6;
+        color: #666666;
+        border: none;
+        border-right: 1px solid #C8C8C8;
+        padding: 6px 12px;
+        min-width: 100px;
+        max-width: 200px;
+    }
+    QTabBar::tab:selected {
+        background-color: #FFFFFF;
+        color: #1E1E1E;
+        border-bottom: 2px solid #007ACC;
+    }
+    QTabBar::tab:hover:!selected {
+        background-color: #E0E0E0;
+        color: #333333;
+    }
+    QTabBar::close-button {
+        image: none;
+        subcontrol-position: right;
+        border: none;
+        padding: 2px;
+        margin: 2px;
+        background: transparent;
+        width: 14px;
+        height: 14px;
+    }
+    QTabBar::close-button:hover {
+        background-color: #C8C8C8;
+        border-radius: 3px;
+    }
+    QToolButton#newTabBtn {
+        background-color: transparent;
+        color: #666666;
+        border: none;
+        border-radius: 4px;
+        font-size: 16px;
+        font-weight: bold;
+    }
+    QToolButton#newTabBtn:hover {
+        background-color: #D0D0D0;
+        color: #333333;
+    }
 )";
 
 // ---------------------------------------------------------------------------
@@ -374,11 +469,16 @@ QIcon MainWindow::makeToolIcon(const QString& name) {
 // ---------------------------------------------------------------------------
 // Template preview factory
 // ---------------------------------------------------------------------------
-QPixmap MainWindow::makeTemplatePreview(int index) {
-    QPixmap pix(120, 80);
+QPixmap MainWindow::makeTemplatePreview(int index, int width, int height) {
+    QPixmap pix(width, height);
     pix.fill(QColor("#1E1E1E"));
     QPainter p(&pix);
     p.setRenderHint(QPainter::Antialiasing);
+
+    // Scale drawing to requested size (reference size is 120x80)
+    qreal sx = width / 120.0;
+    qreal sy = height / 80.0;
+    p.scale(sx, sy);
 
     QPen linePen(QColor("#555555"), 1.5);
     QPen nodePen(QColor("#007ACC"), 1.5);
@@ -441,7 +541,7 @@ QPixmap MainWindow::makeTemplatePreview(int index) {
         p.drawLine(72, 58, 84, 67);
     }
 
-    // Label at bottom
+    // Label at bottom (drawn in reference 120x80 coordinates, scaling handles the rest)
     p.setPen(QColor("#888888"));
     p.setFont(QFont("sans-serif", 7));
     QStringList names = {"Mind Map", "Org Chart", "Project Plan"};
@@ -451,6 +551,101 @@ QPixmap MainWindow::makeTemplatePreview(int index) {
 
     p.end();
     return pix;
+}
+
+// ---------------------------------------------------------------------------
+// Start page factory
+// ---------------------------------------------------------------------------
+QWidget* MainWindow::createStartPage() {
+    auto* page = new QWidget();
+    page->setObjectName("startPage");
+
+    auto* outer = new QVBoxLayout(page);
+    outer->setAlignment(Qt::AlignCenter);
+
+    // Title
+    auto* title = new QLabel("Create a New Mind Map");
+    title->setObjectName("startPageTitle");
+    title->setAlignment(Qt::AlignCenter);
+    title->setStyleSheet("font-size: 24px; font-weight: bold; margin-bottom: 4px;"
+                         " background: transparent; border: none;");
+    outer->addWidget(title);
+
+    // Subtitle
+    auto* subtitle = new QLabel("Choose a template to get started");
+    subtitle->setObjectName("startPageSubtitle");
+    subtitle->setAlignment(Qt::AlignCenter);
+    subtitle->setStyleSheet("font-size: 14px; color: #888888; margin-bottom: 24px;"
+                            " background: transparent; border: none;");
+    outer->addWidget(subtitle);
+
+    // Template cards row
+    auto* cardRow = new QWidget();
+    auto* cardLayout = new QHBoxLayout(cardRow);
+    cardLayout->setAlignment(Qt::AlignCenter);
+    cardLayout->setSpacing(24);
+
+    QStringList templateNames = {"Mind Map", "Org Chart", "Project Plan"};
+    for (int i = 0; i < 3; ++i) {
+        auto* card = new QPushButton();
+        card->setObjectName("templateCard");
+        card->setFixedSize(180, 140);
+        card->setIconSize(QSize(160, 106));
+        card->setIcon(QIcon(makeTemplatePreview(i, 160, 106)));
+        card->setText(templateNames[i]);
+        card->setToolTip(templateNames[i]);
+        card->setStyleSheet(
+            "QPushButton#templateCard {"
+            "  background-color: #F0F0F0;"
+            "  border: 2px solid #D0D0D0;"
+            "  border-radius: 8px;"
+            "  padding: 8px;"
+            "  font-size: 13px;"
+            "  color: #333333;"
+            "  text-align: bottom;"
+            "}"
+            "QPushButton#templateCard:hover {"
+            "  border-color: #007ACC;"
+            "  background-color: #E8E8E8;"
+            "}"
+            "QPushButton#templateCard:pressed {"
+            "  background-color: #D0E8FF;"
+            "}");
+        connect(card, &QPushButton::clicked, this, [this, i]() { loadTemplate(i); });
+        cardLayout->addWidget(card);
+    }
+    outer->addWidget(cardRow);
+
+    // Spacing
+    outer->addSpacing(16);
+
+    // Blank Canvas button
+    auto* blankBtn = new QPushButton("Blank Canvas");
+    blankBtn->setObjectName("blankCanvasBtn");
+    blankBtn->setFixedSize(160, 36);
+    blankBtn->setStyleSheet(
+        "QPushButton#blankCanvasBtn {"
+        "  background-color: transparent;"
+        "  border: 1px solid #D0D0D0;"
+        "  border-radius: 6px;"
+        "  font-size: 13px;"
+        "  color: #333333;"
+        "}"
+        "QPushButton#blankCanvasBtn:hover {"
+        "  border-color: #007ACC;"
+        "  background-color: #F0F0F0;"
+        "}"
+        "QPushButton#blankCanvasBtn:pressed {"
+        "  background-color: #D0E8FF;"
+        "}");
+    connect(blankBtn, &QPushButton::clicked, this, &MainWindow::activateBlankCanvas);
+
+    auto* blankRow = new QHBoxLayout();
+    blankRow->setAlignment(Qt::AlignCenter);
+    blankRow->addWidget(blankBtn);
+    outer->addLayout(blankRow);
+
+    return page;
 }
 
 // ---------------------------------------------------------------------------
@@ -493,13 +688,17 @@ void MainWindow::setupTabWidget() {
     m_tabWidget->setMovable(true);
     m_tabWidget->setDocumentMode(true);
 
-    // "+" button as corner widget for new tab
-    auto* newTabBtn = new QToolButton(this);
-    newTabBtn->setText("+");
-    newTabBtn->setToolTip("New Tab (Ctrl+T)");
-    newTabBtn->setAutoRaise(true);
-    m_tabWidget->setCornerWidget(newTabBtn, Qt::TopRightCorner);
-    connect(newTabBtn, &QToolButton::clicked, this, &MainWindow::addNewTab);
+    // "+" button lives on the tab bar, repositioned via event filter
+    m_newTabBtn = new QToolButton(m_tabWidget->tabBar());
+    m_newTabBtn->setText("+");
+    m_newTabBtn->setToolTip("New Tab (Ctrl+T)");
+    m_newTabBtn->setAutoRaise(true);
+    m_newTabBtn->setFixedSize(28, 28);
+    m_newTabBtn->setObjectName("newTabBtn");
+    connect(m_newTabBtn, &QToolButton::clicked, this, &MainWindow::addNewTab);
+
+    // Watch tab bar for any geometry/layout changes
+    m_tabWidget->tabBar()->installEventFilter(this);
 
     // Tab switching and closing
     connect(m_tabWidget, &QTabWidget::currentChanged, this, &MainWindow::switchToTab);
@@ -513,6 +712,34 @@ void MainWindow::setupTabWidget() {
     setCentralWidget(m_tabWidget);
 }
 
+void MainWindow::repositionNewTabBtn() {
+    QTabBar* bar = m_tabWidget->tabBar();
+    if (bar->count() == 0) {
+        m_newTabBtn->move(4, qMax(0, (bar->height() - m_newTabBtn->height()) / 2));
+        return;
+    }
+    QRect lastTabRect = bar->tabRect(bar->count() - 1);
+    int x = lastTabRect.right() + 4;
+    int y = qMax(0, (bar->height() - m_newTabBtn->height()) / 2);
+    m_newTabBtn->move(x, y);
+}
+
+bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
+    if (obj == m_tabWidget->tabBar()) {
+        switch (event->type()) {
+        case QEvent::Resize:
+        case QEvent::LayoutRequest:
+        case QEvent::Show:
+            // Defer so the tab bar finishes its own layout first
+            QTimer::singleShot(0, this, &MainWindow::repositionNewTabBtn);
+            break;
+        default:
+            break;
+        }
+    }
+    return QMainWindow::eventFilter(obj, event);
+}
+
 // ---------------------------------------------------------------------------
 // Tab management
 // ---------------------------------------------------------------------------
@@ -520,13 +747,21 @@ void MainWindow::addNewTab() {
     auto* scene = new MindMapScene(this);
     auto* view = new MindMapView(this);
     view->setScene(scene);
-    addTab(scene, view, QString());
+
+    auto* stack = new QStackedWidget(this);
+    stack->addWidget(createStartPage()); // index 0 — start page
+    stack->addWidget(view);              // index 1 — mind map view
+    stack->setCurrentIndex(0);           // show start page
+
+    addTab(scene, view, stack, QString());
 }
 
-void MainWindow::addTab(MindMapScene* scene, MindMapView* view, const QString& filePath) {
+void MainWindow::addTab(MindMapScene* scene, MindMapView* view, QStackedWidget* stack,
+                        const QString& filePath) {
     TabState tab;
     tab.scene = scene;
     tab.view = view;
+    tab.stack = stack;
     tab.filePath = filePath;
 
     connectSceneSignals(scene);
@@ -535,7 +770,7 @@ void MainWindow::addTab(MindMapScene* scene, MindMapView* view, const QString& f
         QSignalBlocker blocker(m_tabWidget);
         m_tabs.append(tab);
         QString label = filePath.isEmpty() ? "Untitled" : QFileInfo(filePath).fileName();
-        m_tabWidget->addTab(view, label);
+        m_tabWidget->addTab(stack, label);
     }
 
     // Now switch to the new tab (triggers switchToTab)
@@ -611,6 +846,9 @@ bool MainWindow::isTabEmpty(int index) const {
     if (index < 0 || index >= m_tabs.size())
         return false;
     const auto& tab = m_tabs[index];
+    // Tab is empty if showing start page, or if untitled and unmodified
+    if (tab.stack && tab.stack->currentIndex() == 0)
+        return true;
     return tab.filePath.isEmpty() && !tab.scene->isModified();
 }
 
@@ -676,7 +914,8 @@ void MainWindow::closeTab(int index) {
     m_tabWidget->removeTab(index);
 
     delete tab.scene;
-    // view is deleted by removeTab since it's a child widget of the tab widget
+    // stack (and its children including view and start page) is deleted by removeTab
+    // since it's a child widget of the tab widget
 
     // Always keep at least one tab
     if (m_tabs.isEmpty())
@@ -779,6 +1018,9 @@ void MainWindow::openFile() {
         }
         m_currentFile = filePath;
         m_tabs[cur].filePath = filePath;
+        // Switch from start page to mind map view
+        if (m_tabs[cur].stack)
+            m_tabs[cur].stack->setCurrentIndex(1);
         updateTabText(cur);
         updateWindowTitle();
         m_view->zoomToFit();
@@ -796,7 +1038,12 @@ void MainWindow::openFile() {
             return;
         }
 
-        addTab(scene, view, filePath);
+        // Create stack showing view directly (no start page needed)
+        auto* stack = new QStackedWidget(this);
+        stack->addWidget(view);
+        stack->setCurrentIndex(0);
+
+        addTab(scene, view, stack, filePath);
         m_view->zoomToFit();
         refreshOutline();
     }
@@ -954,6 +1201,9 @@ void MainWindow::importFromText() {
             return;
         }
         m_currentFile.clear();
+        // Switch from start page to mind map view
+        if (m_tabs[cur].stack)
+            m_tabs[cur].stack->setCurrentIndex(1);
         updateWindowTitle();
         m_view->zoomToFit();
         refreshOutline();
@@ -969,7 +1219,11 @@ void MainWindow::importFromText() {
             return;
         }
 
-        addTab(scene, view, QString());
+        auto* stack = new QStackedWidget(this);
+        stack->addWidget(view);
+        stack->setCurrentIndex(0);
+
+        addTab(scene, view, stack, QString());
         m_view->zoomToFit();
         refreshOutline();
     }
@@ -1037,7 +1291,7 @@ void MainWindow::applyTheme() {
     if (dark) {
         qApp->setStyleSheet(kDarkStyleSheet);
     } else {
-        qApp->setStyleSheet(QString());
+        qApp->setStyleSheet(kLightStyleSheet);
     }
 
     // Invalidate caches on ALL open scenes
@@ -1310,34 +1564,6 @@ void MainWindow::setupSidebar() {
     connect(m_outlineTree, &QTreeWidget::itemClicked, this, &MainWindow::onOutlineItemClicked);
     layout->addWidget(m_outlineTree, 1);
 
-    // Templates section header
-    auto* templatesLabel = new QLabel("Templates");
-    templatesLabel->setObjectName("sectionHeader");
-    layout->addWidget(templatesLabel);
-
-    // Templates list
-    m_templateList = new QListWidget();
-    m_templateList->setViewMode(QListView::IconMode);
-    m_templateList->setIconSize(QSize(120, 80));
-    m_templateList->setGridSize(QSize(130, 100));
-    m_templateList->setResizeMode(QListView::Adjust);
-    m_templateList->setMovement(QListView::Static);
-    m_templateList->setWrapping(true);
-
-    // Add template items
-    QStringList templateNames = {"Mind Map", "Org Chart", "Project Plan"};
-    for (int i = 0; i < templateNames.size(); ++i) {
-        auto* item = new QListWidgetItem(QIcon(makeTemplatePreview(i)), templateNames[i]);
-        m_templateList->addItem(item);
-    }
-
-    connect(m_templateList, &QListWidget::itemDoubleClicked, this, [this](QListWidgetItem* item) {
-        int idx = m_templateList->row(item);
-        loadTemplate(idx);
-    });
-
-    layout->addWidget(m_templateList, 1);
-
     m_sidebarDock->setWidget(container);
     addDockWidget(Qt::LeftDockWidgetArea, m_sidebarDock);
 
@@ -1406,39 +1632,18 @@ void MainWindow::onOutlineItemClicked(QTreeWidgetItem* item, int /*column*/) {
 // Template loading
 // ---------------------------------------------------------------------------
 void MainWindow::loadTemplate(int index) {
-    // If current tab is not empty, create a new tab
-    int cur = m_tabWidget->currentIndex();
-    if (cur >= 0 && !isTabEmpty(cur)) {
+    int tabIdx = m_tabWidget->currentIndex();
+    if (tabIdx < 0)
+        return;
+
+    // If current tab is not empty (already has content), create a new tab first
+    if (!isTabEmpty(tabIdx)) {
         addNewTab();
+        tabIdx = m_tabWidget->currentIndex();
     }
 
     m_currentFile.clear();
-    int tabIdx = m_tabWidget->currentIndex();
-    if (tabIdx >= 0)
-        m_tabs[tabIdx].filePath.clear();
-
-    // Replace the scene within the current tab
-    auto* oldScene = m_scene;
-    m_scene = new MindMapScene(this);
-    m_view->setScene(m_scene);
-
-    if (tabIdx >= 0)
-        m_tabs[tabIdx].scene = m_scene;
-
-    connectSceneSignals(m_scene);
-
-    // Disconnect old undo stack connections from the old scene (already replaced)
-    if (oldScene) {
-        auto* oldStack = oldScene->undoStack();
-        disconnect(oldStack, nullptr, m_undoAct, nullptr);
-        disconnect(oldStack, nullptr, m_redoAct, nullptr);
-        disconnect(oldStack, &QUndoStack::undoTextChanged, this, nullptr);
-        disconnect(oldStack, &QUndoStack::redoTextChanged, this, nullptr);
-        disconnect(oldStack, &QUndoStack::indexChanged, this, nullptr);
-        delete oldScene;
-    }
-
-    connectUndoStack();
+    m_tabs[tabIdx].filePath.clear();
 
     auto* root = m_scene->rootNode();
 
@@ -1473,11 +1678,31 @@ void MainWindow::loadTemplate(int index) {
     m_scene->undoStack()->clear();
     m_scene->setModified(false);
 
+    // Switch from start page to mind map view
+    if (m_tabs[tabIdx].stack)
+        m_tabs[tabIdx].stack->setCurrentIndex(1);
+
     updateTabText(tabIdx);
     updateWindowTitle();
-    applyTheme();
     refreshOutline();
     m_view->zoomToFit();
 
     statusBar()->showMessage("Template loaded", 3000);
+}
+
+// ---------------------------------------------------------------------------
+// Blank canvas
+// ---------------------------------------------------------------------------
+void MainWindow::activateBlankCanvas() {
+    int tabIdx = m_tabWidget->currentIndex();
+    if (tabIdx < 0)
+        return;
+
+    // Switch from start page to mind map view (scene already has default "Central Topic")
+    if (m_tabs[tabIdx].stack)
+        m_tabs[tabIdx].stack->setCurrentIndex(1);
+
+    updateTabText(tabIdx);
+    updateWindowTitle();
+    refreshOutline();
 }

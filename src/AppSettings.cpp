@@ -15,12 +15,12 @@ AppSettings::AppSettings() : QObject(nullptr) {
 AppSettings::~AppSettings() = default;
 
 AppTheme AppSettings::theme() const {
-    int val = m_settings->value("appearance/theme", 1).toInt();
+    int val = m_settings->value("appearance/theme", 0).toInt();
     return (val == 1) ? AppTheme::Dark : AppTheme::Light;
 }
 
 void AppSettings::setTheme(AppTheme theme) {
-    int old = m_settings->value("appearance/theme", 1).toInt();
+    int old = m_settings->value("appearance/theme", 0).toInt();
     int val = (theme == AppTheme::Dark) ? 1 : 0;
     if (old != val) {
         m_settings->setValue("appearance/theme", val);

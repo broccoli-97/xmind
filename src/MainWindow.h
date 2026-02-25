@@ -11,13 +11,14 @@ class QTimer;
 class QDockWidget;
 class QTreeWidget;
 class QTreeWidgetItem;
-class QListWidget;
 class QTabWidget;
 class QToolButton;
+class QStackedWidget;
 
 struct TabState {
     MindMapScene* scene = nullptr;
     MindMapView* view = nullptr;
+    QStackedWidget* stack = nullptr;
     QString filePath;
 };
 
@@ -29,12 +30,14 @@ public:
 
 protected:
     void closeEvent(QCloseEvent* event) override;
+    bool eventFilter(QObject* obj, QEvent* event) override;
 
 private:
     // Tab management
     void setupTabWidget();
     void addNewTab();
-    void addTab(MindMapScene* scene, MindMapView* view, const QString& filePath);
+    void addTab(MindMapScene* scene, MindMapView* view, QStackedWidget* stack,
+                const QString& filePath);
     void closeTab(int index);
     void switchToTab(int index);
     void updateTabText(int index);
@@ -44,6 +47,7 @@ private:
     bool isTabEmpty(int index) const;
     int findTabByFilePath(const QString& filePath) const;
     void onTabBarContextMenu(const QPoint& pos);
+    void repositionNewTabBtn();
 
     void setupActions();
     void setupToolBar();
@@ -76,9 +80,11 @@ private:
     void buildOutlineSubtree(NodeItem* node, QTreeWidgetItem* parentItem);
     void onOutlineItemClicked(QTreeWidgetItem* item, int column);
     void loadTemplate(int index);
+    QWidget* createStartPage();
+    void activateBlankCanvas();
 
     static QIcon makeToolIcon(const QString& name);
-    static QPixmap makeTemplatePreview(int index);
+    static QPixmap makeTemplatePreview(int index, int width = 120, int height = 80);
 
     // Cached active-tab pointers
     MindMapView* m_view = nullptr;
@@ -87,6 +93,7 @@ private:
 
     // Tab infrastructure
     QTabWidget* m_tabWidget = nullptr;
+    QToolButton* m_newTabBtn = nullptr;
     QList<TabState> m_tabs;
 
     QAction* m_undoAct = nullptr;
@@ -94,7 +101,6 @@ private:
 
     QDockWidget* m_sidebarDock = nullptr;
     QTreeWidget* m_outlineTree = nullptr;
-    QListWidget* m_templateList = nullptr;
 
     QTimer* m_autoSaveTimer = nullptr;
 };
