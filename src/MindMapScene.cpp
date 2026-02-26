@@ -17,13 +17,14 @@
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QPageSize>
-#include <QParallelAnimationGroup>
 #include <QPainter>
-#include <QtPrintSupport/QPrinter>
+#include <QParallelAnimationGroup>
 #include <QPropertyAnimation>
-#include <QtSvg/QSvgGenerator>
 #include <QTextStream>
 #include <QUndoStack>
+#include <QtPrintSupport/QPrinter>
+#include <QtSvg/QSvgGenerator>
+
 
 MindMapScene::MindMapScene(QObject* parent) : QGraphicsScene(parent) {
     m_undoStack = new QUndoStack(this);
@@ -704,8 +705,8 @@ void MindMapScene::calculatePositions(NodeItem* node, qreal x, qreal y, int dire
                 qreal gcY = lockedPos.y() - gcTotalH / 2;
                 for (auto* gc : grandchildren) {
                     qreal gcH = subtreeHeight(gc);
-                    calculatePositions(gc, lockedPos.x() + direction * kHSpacing,
-                                       gcY + gcH / 2, direction, positions);
+                    calculatePositions(gc, lockedPos.x() + direction * kHSpacing, gcY + gcH / 2,
+                                       direction, positions);
                     gcY += gcH + kVSpacing;
                 }
             }
@@ -790,8 +791,8 @@ void MindMapScene::layoutBilateral(QMap<NodeItem*, QPointF>& positions) {
                     qreal gcY = child->pos().y() - gcTotalH / 2;
                     for (auto* gc : grandchildren) {
                         qreal gcH = subtreeHeight(gc);
-                        calculatePositions(gc, child->pos().x() + kHSpacing,
-                                           gcY + gcH / 2, 1, positions);
+                        calculatePositions(gc, child->pos().x() + kHSpacing, gcY + gcH / 2, 1,
+                                           positions);
                         gcY += gcH + kVSpacing;
                     }
                 }
@@ -827,8 +828,8 @@ void MindMapScene::layoutBilateral(QMap<NodeItem*, QPointF>& positions) {
                     qreal gcY = child->pos().y() - gcTotalH / 2;
                     for (auto* gc : grandchildren) {
                         qreal gcH = subtreeHeight(gc);
-                        calculatePositions(gc, child->pos().x() - kHSpacing,
-                                           gcY + gcH / 2, -1, positions);
+                        calculatePositions(gc, child->pos().x() - kHSpacing, gcY + gcH / 2, -1,
+                                           positions);
                         gcY += gcH + kVSpacing;
                     }
                 }
@@ -869,8 +870,8 @@ void MindMapScene::layoutRightTree(QMap<NodeItem*, QPointF>& positions) {
                 qreal gcY = child->pos().y() - gcTotalH / 2;
                 for (auto* gc : grandchildren) {
                     qreal gcH = subtreeHeight(gc);
-                    calculatePositions(gc, child->pos().x() + kHSpacing,
-                                       gcY + gcH / 2, 1, positions);
+                    calculatePositions(gc, child->pos().x() + kHSpacing, gcY + gcH / 2, 1,
+                                       positions);
                     gcY += gcH + kVSpacing;
                 }
             }
@@ -940,7 +941,7 @@ void MindMapScene::calculatePositionsTopDown(NodeItem* node, qreal x, qreal y,
                 for (auto* gc : grandchildren) {
                     qreal gcW = subtreeWidth(gc);
                     calculatePositionsTopDown(gc, gcX + gcW / 2,
-                                             child->pos().y() + kTopDownLevelSpacing, positions);
+                                              child->pos().y() + kTopDownLevelSpacing, positions);
                     gcX += gcW + kVSpacing;
                 }
             }

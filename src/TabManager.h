@@ -1,7 +1,8 @@
 #pragma once
 
-#include <QObject>
 #include <QList>
+#include <QObject>
+
 
 class MindMapScene;
 class MindMapView;
@@ -22,12 +23,11 @@ class TabManager : public QObject {
 public:
     explicit TabManager(QWidget* parent);
 
-    void init(QTabBar* tabBar, QStackedWidget* contentStack,
-              QAction* undoAct, QAction* redoAct);
+    void init(QTabBar* tabBar, QStackedWidget* contentStack, QAction* undoAct, QAction* redoAct);
 
     void addNewTab();
-    void addTab(MindMapScene* scene, MindMapView* view,
-                QStackedWidget* stack, const QString& filePath);
+    void addTab(MindMapScene* scene, MindMapView* view, QStackedWidget* stack,
+                const QString& filePath);
     void closeTab(int index);
     void switchToTab(int index);
     void updateTabText(int index);

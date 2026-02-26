@@ -14,8 +14,8 @@
 
 TabManager::TabManager(QWidget* parent) : QObject(parent), m_parentWidget(parent) {}
 
-void TabManager::init(QTabBar* tabBar, QStackedWidget* contentStack,
-                      QAction* undoAct, QAction* redoAct) {
+void TabManager::init(QTabBar* tabBar, QStackedWidget* contentStack, QAction* undoAct,
+                      QAction* redoAct) {
     m_tabBar = tabBar;
     m_contentStack = contentStack;
     m_undoAct = undoAct;
@@ -28,7 +28,8 @@ void TabManager::addNewTab() {
     view->setScene(scene);
 
     auto* stack = new QStackedWidget(m_parentWidget);
-    auto* startPage = StartPage::create(this,
+    auto* startPage = StartPage::create(
+        this,
         [this](int index) {
             int tabIdx = m_tabBar->currentIndex();
             if (tabIdx < 0)
@@ -61,9 +62,9 @@ void TabManager::addNewTab() {
             updateTabText(tabIdx);
             emit currentTabChanged(tabIdx);
         });
-    stack->addWidget(startPage);   // index 0 — start page
-    stack->addWidget(view);        // index 1 — mind map view
-    stack->setCurrentIndex(0);     // show start page
+    stack->addWidget(startPage); // index 0 — start page
+    stack->addWidget(view);      // index 1 — mind map view
+    stack->setCurrentIndex(0);   // show start page
 
     addTab(scene, view, stack, QString());
 }

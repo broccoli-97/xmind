@@ -139,8 +139,7 @@ void EdgeItem::drawLockIcon(QPainter* painter, const QPointF& center, bool locke
         QPainterPath shackle;
         shackle.moveTo(center.x() - 3, center.y() - 1);
         shackle.lineTo(center.x() - 3, center.y() - 5);
-        shackle.cubicTo(center.x() - 3, center.y() - 8,
-                        center.x() + 3, center.y() - 8,
+        shackle.cubicTo(center.x() - 3, center.y() - 8, center.x() + 3, center.y() - 8,
                         center.x() + 3, center.y() - 5);
         shackle.lineTo(center.x() + 3, center.y() - 1);
         painter->drawPath(shackle);
@@ -149,8 +148,7 @@ void EdgeItem::drawLockIcon(QPainter* painter, const QPointF& center, bool locke
         QPainterPath shackle;
         shackle.moveTo(center.x() - 3, center.y() - 1);
         shackle.lineTo(center.x() - 3, center.y() - 5);
-        shackle.cubicTo(center.x() - 3, center.y() - 8,
-                        center.x() + 3, center.y() - 8,
+        shackle.cubicTo(center.x() - 3, center.y() - 8, center.x() + 3, center.y() - 8,
                         center.x() + 3, center.y() - 6);
         painter->drawPath(shackle);
     }

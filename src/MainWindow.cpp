@@ -4,9 +4,9 @@
 #include "MindMapScene.h"
 #include "MindMapView.h"
 #include "OutlineWidget.h"
+#include "SettingsDialog.h"
 #include "TabManager.h"
 #include "ThemeManager.h"
-#include "SettingsDialog.h"
 
 #include <QAction>
 #include <QApplication>
@@ -43,8 +43,6 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     // Initialize TabManager with UI widgets
     m_tabManager->init(m_tabBar, m_contentStack, m_undoAct, m_redoAct);
 
-    m_tabManager->addNewTab();
-
     // Wire cross-module signals
     connect(m_tabManager, &TabManager::currentTabChanged, this, [this](int) {
         updateWindowTitle();
@@ -60,9 +58,12 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
         if (scene) {
             // Disconnect previous connections to avoid duplicates
             disconnect(scene->undoStack(), &QUndoStack::indexChanged, this, nullptr);
-            connect(scene->undoStack(), &QUndoStack::indexChanged, this, &MainWindow::refreshOutline);
+            connect(scene->undoStack(), &QUndoStack::indexChanged, this,
+                    &MainWindow::refreshOutline);
         }
     });
+
+    m_tabManager->addNewTab();
 
     // Auto-save timer
     m_autoSaveTimer = new QTimer(this);
@@ -252,7 +253,8 @@ void MainWindow::setupToolBar() {
     connect(addChildBtn, &QToolButton::clicked, this,
             [this]() { m_tabManager->currentScene()->addChildToSelected(); });
 
-    auto* addSiblingBtn = addButton("add-sibling", "Add Sibling", "Add a sibling node (Ctrl+Enter)");
+    auto* addSiblingBtn =
+        addButton("add-sibling", "Add Sibling", "Add a sibling node (Ctrl+Enter)");
     connect(addSiblingBtn, &QToolButton::clicked, this,
             [this]() { m_tabManager->currentScene()->addSiblingToSelected(); });
 
@@ -262,7 +264,8 @@ void MainWindow::setupToolBar() {
 
     addSeparator();
 
-    auto* layoutBtn = addButton("auto-layout", "Auto Layout", "Automatically arrange all nodes (Ctrl+L)");
+    auto* layoutBtn =
+        addButton("auto-layout", "Auto Layout", "Automatically arrange all nodes (Ctrl+L)");
     connect(layoutBtn, &QToolButton::clicked, this,
             [this]() { m_tabManager->currentScene()->autoLayout(); });
 

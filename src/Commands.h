@@ -5,7 +5,6 @@
 #include <QString>
 #include <QUndoCommand>
 
-
 class MindMapScene;
 class NodeItem;
 class EdgeItem;

@@ -25,7 +25,8 @@ OutlineWidget::OutlineWidget(QWidget* parent) : QWidget(parent) {
     headerLayout->setSpacing(0);
 
     auto* outlineLabel = new QLabel("Outline");
-    outlineLabel->setStyleSheet("background: transparent; border: none; font-weight: bold; font-size: 12px;");
+    outlineLabel->setStyleSheet(
+        "background: transparent; border: none; font-weight: bold; font-size: 12px;");
     headerLayout->addWidget(outlineLabel);
     headerLayout->addStretch();
 
