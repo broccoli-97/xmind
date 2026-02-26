@@ -13,6 +13,11 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets Svg PrintSupport)
 set(SOURCES
     src/main.cpp
     src/MainWindow.cpp
+    src/ThemeManager.cpp
+    src/TabManager.cpp
+    src/FileManager.cpp
+    src/OutlineWidget.cpp
+    src/StartPage.cpp
     src/MindMapScene.cpp
     src/MindMapView.cpp
     src/NodeItem.cpp
@@ -24,6 +29,11 @@ set(SOURCES
 
 set(HEADERS
     src/MainWindow.h
+    src/ThemeManager.h
+    src/TabManager.h
+    src/FileManager.h
+    src/OutlineWidget.h
+    src/StartPage.h
     src/MindMapScene.h
     src/MindMapView.h
     src/NodeItem.h
