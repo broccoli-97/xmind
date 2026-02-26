@@ -1,5 +1,6 @@
 #include "SettingsDialog.h"
 #include "AppSettings.h"
+#include "ThemeManager.h"
 
 #include <QCheckBox>
 #include <QComboBox>
@@ -7,6 +8,7 @@
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QLabel>
+#include <QPushButton>
 #include <QSpinBox>
 #include <QVBoxLayout>
 
@@ -23,6 +25,11 @@ SettingsDialog::SettingsDialog(QWidget* parent) : QDialog(parent) {
     m_themeCombo->addItem("Light", 0);
     m_themeCombo->addItem("Dark", 1);
     appearanceLayout->addRow("Theme:", m_themeCombo);
+
+    m_syncSystemThemeBtn = new QPushButton("Sync with System Theme");
+    connect(m_syncSystemThemeBtn, &QPushButton::clicked, this, &SettingsDialog::onSyncSystemTheme);
+    appearanceLayout->addRow("", m_syncSystemThemeBtn);
+
     mainLayout->addWidget(appearanceGroup);
 
     // Auto-save group
@@ -70,6 +77,12 @@ void SettingsDialog::loadCurrentSettings() {
     m_autoSaveIntervalSpin->setValue(s.autoSaveIntervalMinutes());
     m_autoSaveIntervalSpin->setEnabled(s.autoSaveEnabled());
     m_fontSizeSpin->setValue(s.defaultFontSize());
+}
+
+void SettingsDialog::onSyncSystemTheme() {
+    // Detect system theme and update combo box
+    bool isDarkMode = ThemeManager::isSystemDarkMode();
+    m_themeCombo->setCurrentIndex(isDarkMode ? 1 : 0);
 }
 
 void SettingsDialog::apply() {

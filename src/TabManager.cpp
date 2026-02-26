@@ -2,6 +2,7 @@
 #include "MindMapScene.h"
 #include "MindMapView.h"
 #include "StartPage.h"
+#include "ThemeManager.h"
 
 #include <QAction>
 #include <QFileInfo>
@@ -10,6 +11,8 @@
 #include <QSignalBlocker>
 #include <QStackedWidget>
 #include <QTabBar>
+#include <QTimer>
+#include <QToolButton>
 #include <QUndoStack>
 
 TabManager::TabManager(QWidget* parent) : QObject(parent), m_parentWidget(parent) {}
@@ -45,8 +48,15 @@ void TabManager::addNewTab() {
 
             StartPage::loadTemplate(index, m_tabs[tabIdx].scene);
 
+            // switch to view first
             if (m_tabs[tabIdx].stack)
                 m_tabs[tabIdx].stack->setCurrentIndex(1);
+
+            // defer zoomToFit until after layout/resize completes
+            if (m_tabs[tabIdx].view) {
+                QTimer::singleShot(0, m_tabs[tabIdx].view,
+                                   [view = m_tabs[tabIdx].view]() { view->zoomToFit(); });
+            }
 
             updateTabText(tabIdx);
             emit currentTabChanged(tabIdx);

@@ -9,7 +9,11 @@
 #include <QGraphicsItem>
 #include <QGraphicsView>
 #include <QPainter>
+#include <QPalette>
+#include <QSettings>
 #include <QTimer>
+#include <cmath>
+#include <windows.h>
 
 // ---------------------------------------------------------------------------
 // Dark stylesheet
@@ -315,14 +319,60 @@ static const char* kDarkStyleSheet = R"(
 // Light stylesheet
 // ---------------------------------------------------------------------------
 static const char* kLightStyleSheet = R"(
+    QMainWindow, QDialog {
+        background-color: #FFFFFF;
+        color: #1E1E1E;
+    }
+    QMenuBar {
+        background-color: #F8F8F8;
+        color: #1E1E1E;
+        border-bottom: 1px solid #D0D0D0;
+    }
+    QMenuBar::item:selected {
+        background-color: #E1E4E8;
+    }
+    QMenu {
+        background-color: #FFFFFF;
+        color: #1E1E1E;
+        border: 1px solid #D0D0D0;
+    }
+    QMenu::item:selected {
+        background-color: #E1E4E8;
+    }
+    QMenu::separator {
+        height: 1px;
+        background: #D0D0D0;
+        margin: 4px 8px;
+    }
+    QToolBar {
+        background-color: #F8F8F8;
+        border-bottom: 1px solid #D0D0D0;
+        spacing: 2px;
+        padding: 4px;
+    }
+    QToolButton {
+        background-color: transparent;
+        color: #1E1E1E;
+        border: 1px solid transparent;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+    QToolButton:hover {
+        background-color: #E1E4E8;
+        border-color: #E1E4E8;
+    }
+    QToolButton:pressed {
+        background-color: #D0D0D0;
+    }
     QTabBar {
-        background-color: #E8E8E8;
+        background-color: #EEEEEE;
     }
     QTabBar::tab {
-        background-color: #D6D6D6;
-        color: #666666;
+        background-color: #E0E0E0;
+        color: #1E1E1E;
         border: none;
-        border-right: 1px solid #C8C8C8;
+        border-right: 1px solid #D0D0D0;
         padding: 6px 12px;
         min-width: 100px;
         max-width: 200px;
@@ -333,8 +383,8 @@ static const char* kLightStyleSheet = R"(
         border-bottom: 2px solid #007ACC;
     }
     QTabBar::tab:hover:!selected {
-        background-color: #E0E0E0;
-        color: #333333;
+        background-color: #F0F0F0;
+        color: #1E1E1E;
     }
     QTabBar::close-button {
         image: none;
@@ -347,43 +397,43 @@ static const char* kLightStyleSheet = R"(
         height: 14px;
     }
     QTabBar::close-button:hover {
-        background-color: #C8C8C8;
+        background-color: #D0D0D0;
         border-radius: 3px;
     }
     QToolButton#newTabBtn {
         background-color: transparent;
-        color: #666666;
+        color: #1E1E1E;
         border: none;
         border-radius: 4px;
         font-size: 16px;
         font-weight: bold;
     }
     QToolButton#newTabBtn:hover {
-        background-color: #D0D0D0;
-        color: #333333;
+        background-color: #E1E4E8;
+        color: #1E1E1E;
     }
     QWidget#inlineToolbar {
-        background-color: #F3F3F3;
+        background-color: #F8F8F8;
         border-bottom: 1px solid #D0D0D0;
     }
     QWidget#inlineToolbar QToolButton {
         background-color: transparent;
-        color: #333333;
+        color: #1E1E1E;
         border: 1px solid transparent;
         border-radius: 4px;
         padding: 4px 8px;
         font-size: 11px;
     }
     QWidget#inlineToolbar QToolButton:hover {
-        background-color: #D0D0D0;
-        border-color: #D0D0D0;
+        background-color: #E1E4E8;
+        border-color: #E1E4E8;
     }
     QWidget#inlineToolbar QToolButton:pressed {
         background-color: #B8D4F0;
     }
     QLabel#sectionHeader, QWidget#sectionHeader {
         background-color: #F0F0F0;
-        color: #333333;
+        color: #1E1E1E;
         font-weight: bold;
         font-size: 12px;
         padding: 6px 10px;
@@ -391,14 +441,14 @@ static const char* kLightStyleSheet = R"(
     }
     QToolButton#togglePanelBtn {
         background-color: transparent;
-        color: #666666;
+        color: #1E1E1E;
         border: none;
         border-radius: 4px;
         padding: 4px;
     }
     QToolButton#togglePanelBtn:hover {
-        background-color: #D0D0D0;
-        color: #333333;
+        background-color: #E1E4E8;
+        color: #1E1E1E;
     }
     QToolButton#togglePanelBtn:checked {
         background-color: #CCE4F7;
@@ -406,14 +456,14 @@ static const char* kLightStyleSheet = R"(
     }
     QToolButton#closePanelBtn {
         background-color: transparent;
-        color: #666666;
+        color: #1E1E1E;
         border: none;
         border-radius: 3px;
         padding: 2px;
     }
     QToolButton#closePanelBtn:hover {
-        background-color: #D0D0D0;
-        color: #333333;
+        background-color: #E1E4E8;
+        color: #1E1E1E;
     }
     QTreeWidget {
         background-color: #FFFFFF;
@@ -426,7 +476,7 @@ static const char* kLightStyleSheet = R"(
         padding: 3px 0px;
     }
     QTreeWidget::item:hover {
-        background-color: #E8E8E8;
+        background-color: #F0F0F0;
     }
     QTreeWidget::item:selected {
         background-color: #CCE4F7;
@@ -456,7 +506,11 @@ QIcon ThemeManager::makeToolIcon(const QString& name) {
     pix.fill(Qt::transparent);
     QPainter p(&pix);
     p.setRenderHint(QPainter::Antialiasing);
-    QPen pen(QColor("#D4D4D4"), 2.0);
+
+    // choose base color depending on current theme
+    QColor baseColor =
+        (AppSettings::instance().theme() == AppTheme::Dark) ? QColor("#FFFFFF") : QColor("#D4D4D4");
+    QPen pen(baseColor, 2.0);
     p.setPen(pen);
     p.setBrush(Qt::NoBrush);
 
@@ -491,6 +545,33 @@ QIcon ThemeManager::makeToolIcon(const QString& name) {
         QPen thickPen(QColor("#D4D4D4"), 3.0);
         p.setPen(thickPen);
         p.drawLine(21, 20, 27, 27);
+    } else if (name == "zoom-in") {
+        p.drawEllipse(6, 4, 18, 18);
+        p.drawLine(15, 9, 15, 17);
+        p.drawLine(11, 13, 19, 13);
+        QPen thickPen(QColor("#D4D4D4"), 3.0);
+        p.setPen(thickPen);
+        p.drawLine(22, 21, 28, 27);
+    } else if (name == "zoom-out") {
+        p.drawEllipse(6, 4, 18, 18);
+        p.drawLine(11, 13, 19, 13);
+        QPen thickPen(QColor("#D4D4D4"), 3.0);
+        p.setPen(thickPen);
+        p.drawLine(22, 21, 28, 27);
+    } else if (name == "undo") {
+        p.drawPath(QPainterPath());
+        p.setPen(pen);
+        // Curved arrow pointing left
+        p.drawArc(8, 8, 14, 14, 0, 180 * 16);
+        p.drawLine(8, 15, 4, 11);
+        p.drawLine(8, 15, 6, 20);
+    } else if (name == "redo") {
+        p.drawPath(QPainterPath());
+        p.setPen(pen);
+        // Curved arrow pointing right
+        p.drawArc(10, 8, 14, 14, 180 * 16, 180 * 16);
+        p.drawLine(24, 15, 28, 11);
+        p.drawLine(24, 15, 26, 20);
     } else if (name == "fit-view") {
         p.drawLine(4, 10, 4, 4);
         p.drawLine(4, 4, 10, 4);
@@ -604,6 +685,8 @@ QPixmap ThemeManager::makeTemplatePreview(int index, int width, int height) {
 // ---------------------------------------------------------------------------
 void ThemeManager::applyTheme(const QList<TabState>& tabs) {
     bool dark = (AppSettings::instance().theme() == AppTheme::Dark);
+
+    // Apply stylesheet only (no fixed palette to allow system theme to work)
     if (dark) {
         qApp->setStyleSheet(kDarkStyleSheet);
     } else {
@@ -629,4 +712,71 @@ void ThemeManager::applyTheme(const QList<TabState>& tabs) {
             }
         }
     });
+}
+
+// ---------------------------------------------------------------------------
+// Calculate the relative luminance of a color (WCAG formula)
+// ---------------------------------------------------------------------------
+static double getRelativeLuminance(const QColor& color) {
+    double r = color.redF();
+    double g = color.greenF();
+    double b = color.blueF();
+
+    // Apply gamma correction
+    auto linearize = [](double c) {
+        return c <= 0.03928 ? c / 12.92 : std::pow((c + 0.055) / 1.055, 2.4);
+    };
+
+    r = linearize(r);
+    g = linearize(g);
+    b = linearize(b);
+
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+// ---------------------------------------------------------------------------
+// Calculate contrast ratio between two colors (WCAG formula)
+// Range: 1.0 (no contrast) to 21.0 (maximum contrast)
+// Minimum 4.5:1 recommended for normal text, 7:1 for AAA compliance
+// ---------------------------------------------------------------------------
+double ThemeManager::colorContrast(const QColor& color1, const QColor& color2) {
+    double l1 = getRelativeLuminance(color1);
+    double l2 = getRelativeLuminance(color2);
+
+    double lighter = std::max(l1, l2);
+    double darker = std::min(l1, l2);
+
+    return (lighter + 0.05) / (darker + 0.05);
+}
+
+// ---------------------------------------------------------------------------
+// Detect if Windows is in dark mode
+// ---------------------------------------------------------------------------
+bool ThemeManager::isSystemDarkMode() {
+#if _WIN32
+    try {
+        DWORD value = 0;
+        DWORD size = sizeof(value);
+        LONG result = RegGetValueA(
+            HKEY_CURRENT_USER, R"(Software\Microsoft\Windows\CurrentVersion\Themes\Personalize)",
+            "AppsUseLightTheme", RRF_RT_REG_DWORD, nullptr, &value, &size);
+
+        if (result == ERROR_SUCCESS) {
+            // AppsUseLightTheme: 1 = light mode, 0 = dark mode
+            return value == 0;
+        }
+    } catch (...) {
+    }
+#endif
+    return false;
+}
+
+// ---------------------------------------------------------------------------
+// Setup monitoring for system theme changes (future enhancement)
+// Currently called from MainWindow constructor
+// ---------------------------------------------------------------------------
+void ThemeManager::setupSystemThemeMonitoring() {
+    // This can be expanded to monitor Windows theme changes
+    // and automatically apply the corresponding app theme
+    // For now, users can manually switch themes in Settings
 }

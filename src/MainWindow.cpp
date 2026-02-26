@@ -226,6 +226,8 @@ void MainWindow::setupToolBar() {
     auto* layout = new QHBoxLayout(m_toolbarWidget);
     layout->setContentsMargins(4, 2, 4, 2);
     layout->setSpacing(2);
+
+    // Add stretch at the beginning to center buttons
     layout->addStretch();
 
     auto addButton = [&](const QString& iconName, const QString& text,
@@ -249,6 +251,23 @@ void MainWindow::setupToolBar() {
         layout->addWidget(sep);
     };
 
+    // Undo/Redo at the very left
+    auto* undoBtn = addButton("undo", "Undo", "Undo last action (Ctrl+Z)");
+    connect(undoBtn, &QToolButton::clicked, this, [this]() {
+        auto* scene = m_tabManager->currentScene();
+        if (scene)
+            scene->undoStack()->undo();
+    });
+
+    auto* redoBtn = addButton("redo", "Redo", "Redo last action (Ctrl+Y)");
+    connect(redoBtn, &QToolButton::clicked, this, [this]() {
+        auto* scene = m_tabManager->currentScene();
+        if (scene)
+            scene->undoStack()->redo();
+    });
+
+    addSeparator();
+
     auto* addChildBtn = addButton("add-child", "Add Child", "Add a child node (Enter)");
     connect(addChildBtn, &QToolButton::clicked, this,
             [this]() { m_tabManager->currentScene()->addChildToSelected(); });
@@ -271,9 +290,13 @@ void MainWindow::setupToolBar() {
 
     addSeparator();
 
-    auto* zoomBtn = addButton("zoom", "Zoom", "Zoom in (Ctrl++)");
-    connect(zoomBtn, &QToolButton::clicked, this,
+    auto* zoomInBtn = addButton("zoom-in", "Zoom In", "Zoom in (Ctrl++)");
+    connect(zoomInBtn, &QToolButton::clicked, this,
             [this]() { m_tabManager->currentView()->zoomIn(); });
+
+    auto* zoomOutBtn = addButton("zoom-out", "Zoom Out", "Zoom out (Ctrl+-)");
+    connect(zoomOutBtn, &QToolButton::clicked, this,
+            [this]() { m_tabManager->currentView()->zoomOut(); });
 
     auto* fitBtn = addButton("fit-view", "Fit View", "Fit all nodes in view (Ctrl+0)");
     connect(fitBtn, &QToolButton::clicked, this,
@@ -299,6 +322,7 @@ void MainWindow::setupToolBar() {
     exportBtn->setMenu(exportBtnMenu);
     layout->addWidget(exportBtn);
 
+    // Add stretch at the end to center buttons and push close button to the right
     layout->addStretch();
 
     // Close button at right end of toolbar
