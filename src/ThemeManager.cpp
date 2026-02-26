@@ -743,8 +743,8 @@ double ThemeManager::colorContrast(const QColor& color1, const QColor& color2) {
     double l1 = getRelativeLuminance(color1);
     double l2 = getRelativeLuminance(color2);
 
-    double lighter = std::max(l1, l2);
-    double darker = std::min(l1, l2);
+    double lighter = (l1 > l2) ? l1 : l2;
+    double darker = (l1 > l2) ? l2 : l1;
 
     return (lighter + 0.05) / (darker + 0.05);
 }
