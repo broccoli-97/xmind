@@ -30,6 +30,7 @@ OutlineWidget::OutlineWidget(QWidget* parent) : QWidget(parent) {
 
     auto* closeBtn = new QToolButton();
     closeBtn->setIcon(ThemeManager::makeToolIcon("close-panel"));
+    closeBtn->setProperty("iconName", "close-panel");
     closeBtn->setToolTip("Hide Outline");
     closeBtn->setAutoRaise(true);
     closeBtn->setFixedSize(20, 20);

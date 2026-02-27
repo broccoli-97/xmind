@@ -33,7 +33,7 @@ static const ThemeColors kLightColors = {
     /* editorBackground */ QColor("white"),
     /* editorBorder     */ QColor("#1565C0"),
     /* editorText       */ QColor("#333333"),
-    /* iconBaseColor    */ QColor("#D4D4D4"),
+    /* iconBaseColor    */ QColor("#3b3838"),
 };
 
 static const ThemeColors kDarkColors = {
@@ -283,6 +283,13 @@ static const char* kDarkStyleSheet = R"(
     QSpinBox:hover {
         border-color: #007ACC;
     }
+    QLineEdit {
+        background-color: #2A2A4A;
+        color: #D4D4D4;
+        border: 2px solid #42A5F5;
+        border-radius: 6px;
+        padding: 4px 8px;
+    }
     QCheckBox {
         color: #D4D4D4;
         spacing: 8px;
@@ -324,6 +331,12 @@ static const char* kDarkStyleSheet = R"(
         subcontrol-origin: margin;
         left: 10px;
         padding: 0 4px;
+    }
+    QLabel {
+        color: #D4D4D4;
+    }
+    QGroupBox QCheckBox {
+        color: #D4D4D4;
     }
     QToolTip {
         background-color: #2D2D30;
@@ -550,6 +563,40 @@ static const char* kLightStyleSheet = R"(
     QTreeWidget::branch {
         background-color: #FFFFFF;
     }
+    QScrollBar:vertical {
+        background-color: #F8F8F8;
+        width: 12px;
+        margin: 0;
+    }
+    QScrollBar::handle:vertical {
+        background-color: #CCCCCC;
+        min-height: 20px;
+        border-radius: 4px;
+        margin: 2px;
+    }
+    QScrollBar::handle:vertical:hover {
+        background-color: #BBBBBB;
+    }
+    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+        height: 0;
+    }
+    QScrollBar:horizontal {
+        background-color: #F8F8F8;
+        height: 12px;
+        margin: 0;
+    }
+    QScrollBar::handle:horizontal {
+        background-color: #CCCCCC;
+        min-width: 20px;
+        border-radius: 4px;
+        margin: 2px;
+    }
+    QScrollBar::handle:horizontal:hover {
+        background-color: #BBBBBB;
+    }
+    QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+        width: 0;
+    }
     QLabel#startPageTitle {
         font-size: 24px;
         font-weight: bold;
@@ -593,6 +640,32 @@ static const char* kLightStyleSheet = R"(
     }
     QPushButton#blankCanvasBtn:pressed {
         background-color: #D0E8FF;
+    }
+    QGroupBox {
+        color: #1E1E1E;
+        border: 1px solid #D0D0D0;
+        border-radius: 4px;
+        margin-top: 8px;
+        padding-top: 16px;
+        font-weight: bold;
+    }
+    QGroupBox::title {
+        subcontrol-origin: margin;
+        left: 10px;
+        padding: 0 4px;
+    }
+    QLabel {
+        color: #1E1E1E;
+    }
+    QGroupBox QCheckBox {
+        color: #1E1E1E;
+    }
+    QLineEdit {
+        background-color: #FFFFFF;
+        color: #1E1E1E;
+        border: 2px solid #1565C0;
+        border-radius: 6px;
+        padding: 4px 8px;
     }
     QLabel#settingsHint {
         color: gray;

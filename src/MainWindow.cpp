@@ -110,6 +110,7 @@ void MainWindow::setupCentralLayout() {
     // Toggle buttons at right end of tab bar row
     m_toggleOutlineBtn = new QToolButton(this);
     m_toggleOutlineBtn->setIcon(ThemeManager::makeToolIcon("sidebar"));
+    m_toggleOutlineBtn->setProperty("iconName", "sidebar");
     m_toggleOutlineBtn->setToolTip("Toggle Outline Panel");
     m_toggleOutlineBtn->setCheckable(true);
     m_toggleOutlineBtn->setChecked(true);
@@ -121,6 +122,7 @@ void MainWindow::setupCentralLayout() {
 
     m_toggleToolbarBtn = new QToolButton(this);
     m_toggleToolbarBtn->setIcon(ThemeManager::makeToolIcon("toolbar"));
+    m_toggleToolbarBtn->setProperty("iconName", "toolbar");
     m_toggleToolbarBtn->setToolTip("Toggle Toolbar");
     m_toggleToolbarBtn->setCheckable(true);
     m_toggleToolbarBtn->setChecked(true);
@@ -207,6 +209,7 @@ void MainWindow::setupToolBar() {
     auto addButton = [&](const QString& iconName, const QString& text,
                          const QString& tooltip) -> QToolButton* {
         auto* btn = new QToolButton(m_toolbarWidget);
+        btn->setProperty("iconName", iconName);
         btn->setIcon(ThemeManager::makeToolIcon(iconName));
         btn->setText(text);
         btn->setToolTip(tooltip);
@@ -597,4 +600,22 @@ void MainWindow::onAutoSaveSettingsChanged() {
 // ---------------------------------------------------------------------------
 void MainWindow::applyTheme() {
     ThemeManager::applyTheme(m_tabManager->tabs());
+
+    // Refresh icons that are generated dynamically so they match the new theme
+    // Update toggle buttons
+    if (m_toggleOutlineBtn)
+        m_toggleOutlineBtn->setIcon(ThemeManager::makeToolIcon("sidebar"));
+    if (m_toggleToolbarBtn)
+        m_toggleToolbarBtn->setIcon(ThemeManager::makeToolIcon("toolbar"));
+
+    // Update all tool buttons that expose an "iconName" property
+    const auto btns = this->findChildren<QToolButton*>();
+    for (auto* btn : btns) {
+        QVariant prop = btn->property("iconName");
+        if (prop.isValid() && prop.canConvert<QString>()) {
+            QString iconName = prop.toString();
+            if (!iconName.isEmpty())
+                btn->setIcon(ThemeManager::makeToolIcon(iconName));
+        }
+    }
 }

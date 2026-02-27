@@ -202,18 +202,8 @@ void MindMapScene::startEditing(NodeItem* node) {
     m_editLineEdit->selectAll();
     m_editLineEdit->setAttribute(Qt::WA_InputMethodEnabled, true);
 
-    const auto& c = ThemeManager::colors();
-    int fontSize = node->font().pointSize();
-    m_editLineEdit->setStyleSheet(QStringLiteral("QLineEdit {"
-                                                 "  background: %1;"
-                                                 "  border: 2px solid %2;"
-                                                 "  border-radius: 6px;"
-                                                 "  padding: 4px 8px;"
-                                                 "  font-size: %3pt;"
-                                                 "  color: %4;"
-                                                 "}")
-                                      .arg(c.editorBackground.name(), c.editorBorder.name(),
-                                           QString::number(fontSize), c.editorText.name()));
+    // Use theme-controlled global stylesheet; apply node's font locally
+    m_editLineEdit->setFont(node->font());
 
     m_editProxy = addWidget(m_editLineEdit);
     m_editProxy->setZValue(100);
