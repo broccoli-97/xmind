@@ -36,12 +36,19 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     m_tabManager = new TabManager(this);
     m_fileManager = new FileManager(this, m_tabManager, this);
 
+    // Apply theme before creating any tabs so that QTabBar computes
+    // tab geometry with the stylesheet already in effect.  Otherwise the
+    // first tab is sized using the default style and a visible gap appears
+    // between the tab and the "+" button.
+    applyTheme();
+
     setupActions();
+
+    // Initialize TabManager (creates tab bar, "+" button, content stack)
+    m_tabManager->init(m_undoAct, m_redoAct);
+
     setupCentralLayout();
     setupMenuBar();
-
-    // Initialize TabManager with UI widgets
-    m_tabManager->init(m_tabBar, m_contentStack, m_undoAct, m_redoAct);
 
     // Wire cross-module signals
     connect(m_tabManager, &TabManager::currentTabChanged, this, [this](int) {
@@ -76,7 +83,6 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     connect(&AppSettings::instance(), &AppSettings::themeChanged, this, &MainWindow::applyTheme);
 
     restoreWindowState();
-    applyTheme();
 
     statusBar()->showMessage("Enter: Add Child  |  Ctrl+Enter: Add Sibling  |  Del: Delete  |  "
                              "F2/Double-click: Edit  |  Ctrl+L: Auto Layout  |  Scroll: Zoom  |  "
@@ -97,23 +103,8 @@ void MainWindow::setupCentralLayout() {
     tabBarRow->setContentsMargins(0, 0, 0, 0);
     tabBarRow->setSpacing(0);
 
-    m_tabBar = new QTabBar(this);
-    m_tabBar->setTabsClosable(true);
-    m_tabBar->setMovable(true);
-    m_tabBar->setDocumentMode(true);
-    m_tabBar->setDrawBase(false);
-    m_tabBar->setExpanding(false);
-    m_tabBar->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
-    tabBarRow->addWidget(m_tabBar);
-
-    m_newTabBtn = new QToolButton(this);
-    m_newTabBtn->setText("+");
-    m_newTabBtn->setToolTip("New Tab (Ctrl+T)");
-    m_newTabBtn->setAutoRaise(true);
-    m_newTabBtn->setFixedSize(28, 28);
-    m_newTabBtn->setObjectName("newTabBtn");
-    connect(m_newTabBtn, &QToolButton::clicked, m_tabManager, &TabManager::addNewTab);
-    tabBarRow->addWidget(m_newTabBtn);
+    tabBarRow->addWidget(m_tabManager->tabBar());
+    tabBarRow->addWidget(m_tabManager->newTabButton());
     tabBarRow->addStretch();
 
     // Toggle buttons at right end of tab bar row
@@ -161,8 +152,7 @@ void MainWindow::setupCentralLayout() {
     rightLayout->setSpacing(0);
     rightLayout->addWidget(m_toolbarWidget);
 
-    m_contentStack = new QStackedWidget(this);
-    rightLayout->addWidget(m_contentStack, 1);
+    rightLayout->addWidget(m_tabManager->contentStack(), 1);
 
     m_contentSplitter->addWidget(m_rightPanel);
 
@@ -175,24 +165,6 @@ void MainWindow::setupCentralLayout() {
     mainLayout->addWidget(m_contentSplitter, 1);
 
     setCentralWidget(centralW);
-
-    // ---- Tab bar signals ----
-    connect(m_tabBar, &QTabBar::currentChanged, m_tabManager, &TabManager::switchToTab);
-    connect(m_tabBar, &QTabBar::tabCloseRequested, m_tabManager, &TabManager::closeTab);
-    connect(m_tabBar, &QTabBar::tabMoved, this, [this](int from, int to) {
-        // Keep m_tabs list in sync with visual tab order
-        auto& tabs = const_cast<QList<TabState>&>(m_tabManager->tabs());
-        tabs.move(from, to);
-        QWidget* w = m_contentStack->widget(from);
-        QSignalBlocker blocker(m_contentStack);
-        m_contentStack->removeWidget(w);
-        m_contentStack->insertWidget(to, w);
-        m_contentStack->setCurrentIndex(m_tabBar->currentIndex());
-    });
-
-    m_tabBar->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(m_tabBar, &QWidget::customContextMenuRequested, m_tabManager,
-            &TabManager::onTabBarContextMenu);
 }
 
 // ---------------------------------------------------------------------------

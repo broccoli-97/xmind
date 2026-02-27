@@ -6,8 +6,6 @@ class TabManager;
 class FileManager;
 class OutlineWidget;
 class QTimer;
-class QTabBar;
-class QStackedWidget;
 class QSplitter;
 class QToolButton;
 
@@ -47,9 +45,6 @@ private:
     QWidget* m_toolbarWidget = nullptr;
     QSplitter* m_contentSplitter = nullptr;
     QWidget* m_rightPanel = nullptr;
-    QTabBar* m_tabBar = nullptr;
-    QStackedWidget* m_contentStack = nullptr;
-    QToolButton* m_newTabBtn = nullptr;
 
     QToolButton* m_toggleOutlineBtn = nullptr;
     QToolButton* m_toggleToolbarBtn = nullptr;

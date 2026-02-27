@@ -17,12 +17,48 @@
 
 TabManager::TabManager(QWidget* parent) : QObject(parent), m_parentWidget(parent) {}
 
-void TabManager::init(QTabBar* tabBar, QStackedWidget* contentStack, QAction* undoAct,
-                      QAction* redoAct) {
-    m_tabBar = tabBar;
-    m_contentStack = contentStack;
+void TabManager::init(QAction* undoAct, QAction* redoAct) {
     m_undoAct = undoAct;
     m_redoAct = redoAct;
+
+    // Create tab bar
+    m_tabBar = new QTabBar(m_parentWidget);
+    m_tabBar->setTabsClosable(true);
+    m_tabBar->setMovable(true);
+    m_tabBar->setDocumentMode(true);
+    m_tabBar->setDrawBase(false);
+    m_tabBar->setExpanding(false);
+    m_tabBar->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
+    m_tabBar->setContextMenuPolicy(Qt::CustomContextMenu);
+
+    // Create "+" button
+    m_newTabBtn = new QToolButton(m_parentWidget);
+    m_newTabBtn->setText("+");
+    m_newTabBtn->setToolTip("New Tab (Ctrl+T)");
+    m_newTabBtn->setAutoRaise(true);
+    m_newTabBtn->setFixedSize(28, 28);
+    m_newTabBtn->setObjectName("newTabBtn");
+
+    // Create content stack
+    m_contentStack = new QStackedWidget(m_parentWidget);
+
+    // Connect tab bar signals
+    connect(m_tabBar, &QTabBar::currentChanged, this, &TabManager::switchToTab);
+    connect(m_tabBar, &QTabBar::tabCloseRequested, this, &TabManager::closeTab);
+    connect(m_tabBar, &QTabBar::tabMoved, this, &TabManager::onTabMoved);
+    connect(m_tabBar, &QWidget::customContextMenuRequested, this, &TabManager::onTabBarContextMenu);
+
+    // Connect "+" button
+    connect(m_newTabBtn, &QToolButton::clicked, this, &TabManager::addNewTab);
+}
+
+void TabManager::onTabMoved(int from, int to) {
+    m_tabs.move(from, to);
+    QWidget* w = m_contentStack->widget(from);
+    QSignalBlocker blocker(m_contentStack);
+    m_contentStack->removeWidget(w);
+    m_contentStack->insertWidget(to, w);
+    m_contentStack->setCurrentIndex(m_tabBar->currentIndex());
 }
 
 void TabManager::addNewTab() {
@@ -327,4 +363,16 @@ void TabManager::setCurrentFilePath(const QString& path) {
     int cur = m_tabBar->currentIndex();
     if (cur >= 0 && cur < m_tabs.size())
         m_tabs[cur].filePath = path;
+}
+
+QTabBar* TabManager::tabBar() const {
+    return m_tabBar;
+}
+
+QToolButton* TabManager::newTabButton() const {
+    return m_newTabBtn;
+}
+
+QStackedWidget* TabManager::contentStack() const {
+    return m_contentStack;
 }

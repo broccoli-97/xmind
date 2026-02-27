@@ -23,7 +23,7 @@ class TabManager : public QObject {
 public:
     explicit TabManager(QWidget* parent);
 
-    void init(QTabBar* tabBar, QStackedWidget* contentStack, QAction* undoAct, QAction* redoAct);
+    void init(QAction* undoAct, QAction* redoAct);
 
     void addNewTab();
     void addTab(MindMapScene* scene, MindMapView* view, QStackedWidget* stack,
@@ -47,10 +47,17 @@ public:
     QString currentFilePath() const;
     void setCurrentFilePath(const QString& path);
 
+    QTabBar* tabBar() const;
+    QToolButton* newTabButton() const;
+    QStackedWidget* contentStack() const;
+
 signals:
     void currentTabChanged(int index);
     void tabTextUpdated(int index);
     void saveRequested();
+
+private slots:
+    void onTabMoved(int from, int to);
 
 private:
     void connectSceneSignals(MindMapScene* scene);
@@ -60,6 +67,7 @@ private:
     QWidget* m_parentWidget;
     QTabBar* m_tabBar = nullptr;
     QStackedWidget* m_contentStack = nullptr;
+    QToolButton* m_newTabBtn = nullptr;
     QAction* m_undoAct = nullptr;
     QAction* m_redoAct = nullptr;
 
