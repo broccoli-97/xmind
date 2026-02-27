@@ -101,7 +101,9 @@ void MainWindow::setupCentralLayout() {
     m_tabBar->setTabsClosable(true);
     m_tabBar->setMovable(true);
     m_tabBar->setDocumentMode(true);
+    m_tabBar->setDrawBase(false);
     m_tabBar->setExpanding(false);
+    m_tabBar->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
     tabBarRow->addWidget(m_tabBar);
 
     m_newTabBtn = new QToolButton(this);

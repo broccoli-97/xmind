@@ -77,7 +77,7 @@ static const char* kDarkStyleSheet = R"(
         background-color: #2D2D30;
         color: #969696;
         border: none;
-        border-right: 1px solid #252526;
+        border-right: 1px solid #3F3F46;
         padding: 6px 12px;
         min-width: 100px;
         max-width: 200px;
@@ -370,7 +370,7 @@ static const char* kLightStyleSheet = R"(
         background-color: #D0D0D0;
     }
     QTabBar {
-        background-color: #EEEEEE;
+        background-color: transparent;
     }
     QTabBar::tab {
         background-color: #E0E0E0;
