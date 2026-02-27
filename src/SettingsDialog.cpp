@@ -52,7 +52,7 @@ SettingsDialog::SettingsDialog(QWidget* parent) : QDialog(parent) {
     m_fontSizeSpin->setSuffix(" pt");
     editorLayout->addRow("Default font size:", m_fontSizeSpin);
     auto* hint = new QLabel("Applies to newly created nodes only");
-    hint->setStyleSheet("color: gray; font-size: 9pt;");
+    hint->setObjectName("settingsHint");
     editorLayout->addRow(hint);
     mainLayout->addWidget(editorGroup);
 

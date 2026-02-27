@@ -3,6 +3,8 @@
 #include "Commands.h"
 #include "EdgeItem.h"
 #include "NodeItem.h"
+#include "ThemeManager.h"
+#include "ThemeManager.h"
 
 #include <QEasingCurve>
 #include <QFile>
@@ -200,7 +202,7 @@ void MindMapScene::startEditing(NodeItem* node) {
     m_editLineEdit->selectAll();
     m_editLineEdit->setAttribute(Qt::WA_InputMethodEnabled, true);
 
-    bool dark = AppSettings::instance().theme() == AppTheme::Dark;
+    const auto& c = ThemeManager::colors();
     int fontSize = node->font().pointSize();
     m_editLineEdit->setStyleSheet(QStringLiteral("QLineEdit {"
                                                  "  background: %1;"
@@ -210,8 +212,8 @@ void MindMapScene::startEditing(NodeItem* node) {
                                                  "  font-size: %3pt;"
                                                  "  color: %4;"
                                                  "}")
-                                      .arg(dark ? "#2A2A4A" : "white", dark ? "#42A5F5" : "#1565C0",
-                                           QString::number(fontSize), dark ? "#E0E0E0" : "#333"));
+                                      .arg(c.editorBackground.name(), c.editorBorder.name(),
+                                           QString::number(fontSize), c.editorText.name()));
 
     m_editProxy = addWidget(m_editLineEdit);
     m_editProxy->setZValue(100);

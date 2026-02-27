@@ -22,16 +22,12 @@ QWidget* StartPage::create(QObject* /*receiver*/, std::function<void(int)> onTem
     auto* title = new QLabel("Create a New Mind Map");
     title->setObjectName("startPageTitle");
     title->setAlignment(Qt::AlignCenter);
-    title->setStyleSheet("font-size: 24px; font-weight: bold; margin-bottom: 4px;"
-                         " background: transparent; border: none;");
     outer->addWidget(title);
 
     // Subtitle
     auto* subtitle = new QLabel("Choose a template to get started");
     subtitle->setObjectName("startPageSubtitle");
     subtitle->setAlignment(Qt::AlignCenter);
-    subtitle->setStyleSheet("font-size: 14px; color: #888888; margin-bottom: 24px;"
-                            " background: transparent; border: none;");
     outer->addWidget(subtitle);
 
     // Template cards row
@@ -49,22 +45,6 @@ QWidget* StartPage::create(QObject* /*receiver*/, std::function<void(int)> onTem
         card->setIcon(QIcon(ThemeManager::makeTemplatePreview(i, 160, 106)));
         card->setText(templateNames[i]);
         card->setToolTip(templateNames[i]);
-        card->setStyleSheet("QPushButton#templateCard {"
-                            "  background-color: #F0F0F0;"
-                            "  border: 2px solid #D0D0D0;"
-                            "  border-radius: 8px;"
-                            "  padding: 8px;"
-                            "  font-size: 13px;"
-                            "  color: #333333;"
-                            "  text-align: bottom;"
-                            "}"
-                            "QPushButton#templateCard:hover {"
-                            "  border-color: #007ACC;"
-                            "  background-color: #E8E8E8;"
-                            "}"
-                            "QPushButton#templateCard:pressed {"
-                            "  background-color: #D0E8FF;"
-                            "}");
         QObject::connect(card, &QPushButton::clicked, page, [onTemplate, i]() { onTemplate(i); });
         cardLayout->addWidget(card);
     }
@@ -77,20 +57,6 @@ QWidget* StartPage::create(QObject* /*receiver*/, std::function<void(int)> onTem
     auto* blankBtn = new QPushButton("Blank Canvas");
     blankBtn->setObjectName("blankCanvasBtn");
     blankBtn->setFixedSize(160, 36);
-    blankBtn->setStyleSheet("QPushButton#blankCanvasBtn {"
-                            "  background-color: transparent;"
-                            "  border: 1px solid #D0D0D0;"
-                            "  border-radius: 6px;"
-                            "  font-size: 13px;"
-                            "  color: #333333;"
-                            "}"
-                            "QPushButton#blankCanvasBtn:hover {"
-                            "  border-color: #007ACC;"
-                            "  background-color: #F0F0F0;"
-                            "}"
-                            "QPushButton#blankCanvasBtn:pressed {"
-                            "  background-color: #D0E8FF;"
-                            "}");
     QObject::connect(blankBtn, &QPushButton::clicked, page, [onBlankCanvas]() { onBlankCanvas(); });
 
     auto* blankRow = new QHBoxLayout();

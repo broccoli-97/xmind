@@ -21,6 +21,43 @@
 #endif
 
 // ---------------------------------------------------------------------------
+// Centralized color definitions
+// ---------------------------------------------------------------------------
+static const ThemeColors kLightColors = {
+    /* canvasBackground */ QColor("#F8F9FA"),
+    /* canvasGridDot    */ QColor("#D8D8D8"),
+    /* nodePalette      */
+    {QColor("#1565C0"), QColor("#2E7D32"), QColor("#E65100"), QColor("#6A1B9A"), QColor("#C62828"),
+     QColor("#00838F")},
+    /* edgeLightenFactor */ 140,
+    /* editorBackground */ QColor("white"),
+    /* editorBorder     */ QColor("#1565C0"),
+    /* editorText       */ QColor("#333333"),
+    /* iconBaseColor    */ QColor("#D4D4D4"),
+};
+
+static const ThemeColors kDarkColors = {
+    /* canvasBackground */ QColor("#1A1A2E"),
+    /* canvasGridDot    */ QColor("#2A2A4A"),
+    /* nodePalette      */
+    {QColor("#42A5F5"), QColor("#66BB6A"), QColor("#FFA726"), QColor("#AB47BC"), QColor("#EF5350"),
+     QColor("#26C6DA")},
+    /* edgeLightenFactor */ 120,
+    /* editorBackground */ QColor("#2A2A4A"),
+    /* editorBorder     */ QColor("#42A5F5"),
+    /* editorText       */ QColor("#E0E0E0"),
+    /* iconBaseColor    */ QColor("#FFFFFF"),
+};
+
+bool ThemeManager::isDark() {
+    return AppSettings::instance().theme() == AppTheme::Dark;
+}
+
+const ThemeColors& ThemeManager::colors() {
+    return isDark() ? kDarkColors : kLightColors;
+}
+
+// ---------------------------------------------------------------------------
 // Dark stylesheet
 // ---------------------------------------------------------------------------
 static const char* kDarkStyleSheet = R"(
@@ -297,7 +334,11 @@ static const char* kDarkStyleSheet = R"(
     QPushButton#templateCard {
         background-color: #2D2D30;
         border: 2px solid #3F3F46;
+        border-radius: 8px;
+        padding: 8px;
+        font-size: 13px;
         color: #D4D4D4;
+        text-align: bottom;
     }
     QPushButton#templateCard:hover {
         border-color: #007ACC;
@@ -307,7 +348,10 @@ static const char* kDarkStyleSheet = R"(
         background-color: #094771;
     }
     QPushButton#blankCanvasBtn {
-        border-color: #3F3F46;
+        background-color: transparent;
+        border: 1px solid #3F3F46;
+        border-radius: 6px;
+        font-size: 13px;
         color: #D4D4D4;
     }
     QPushButton#blankCanvasBtn:hover {
@@ -316,6 +360,24 @@ static const char* kDarkStyleSheet = R"(
     }
     QPushButton#blankCanvasBtn:pressed {
         background-color: #094771;
+    }
+    QLabel#startPageTitle {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 4px;
+        background: transparent;
+        border: none;
+    }
+    QLabel#startPageSubtitle {
+        font-size: 14px;
+        color: #999999;
+        margin-bottom: 24px;
+        background: transparent;
+        border: none;
+    }
+    QLabel#settingsHint {
+        color: #888888;
+        font-size: 9pt;
     }
 )";
 
@@ -488,6 +550,54 @@ static const char* kLightStyleSheet = R"(
     QTreeWidget::branch {
         background-color: #FFFFFF;
     }
+    QLabel#startPageTitle {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 4px;
+        background: transparent;
+        border: none;
+    }
+    QLabel#startPageSubtitle {
+        font-size: 14px;
+        color: #888888;
+        margin-bottom: 24px;
+        background: transparent;
+        border: none;
+    }
+    QPushButton#templateCard {
+        background-color: #F0F0F0;
+        border: 2px solid #D0D0D0;
+        border-radius: 8px;
+        padding: 8px;
+        font-size: 13px;
+        color: #333333;
+        text-align: bottom;
+    }
+    QPushButton#templateCard:hover {
+        border-color: #007ACC;
+        background-color: #E8E8E8;
+    }
+    QPushButton#templateCard:pressed {
+        background-color: #D0E8FF;
+    }
+    QPushButton#blankCanvasBtn {
+        background-color: transparent;
+        border: 1px solid #D0D0D0;
+        border-radius: 6px;
+        font-size: 13px;
+        color: #333333;
+    }
+    QPushButton#blankCanvasBtn:hover {
+        border-color: #007ACC;
+        background-color: #F0F0F0;
+    }
+    QPushButton#blankCanvasBtn:pressed {
+        background-color: #D0E8FF;
+    }
+    QLabel#settingsHint {
+        color: gray;
+        font-size: 9pt;
+    }
 )";
 
 // ---------------------------------------------------------------------------
@@ -511,8 +621,7 @@ QIcon ThemeManager::makeToolIcon(const QString& name) {
     p.setRenderHint(QPainter::Antialiasing);
 
     // choose base color depending on current theme
-    QColor baseColor =
-        (AppSettings::instance().theme() == AppTheme::Dark) ? QColor("#FFFFFF") : QColor("#D4D4D4");
+    QColor baseColor = colors().iconBaseColor;
     QPen pen(baseColor, 2.0);
     p.setPen(pen);
     p.setBrush(Qt::NoBrush);
@@ -545,20 +654,20 @@ QIcon ThemeManager::makeToolIcon(const QString& name) {
         p.drawLine(26, 14, 26, 22);
     } else if (name == "zoom") {
         p.drawEllipse(8, 6, 16, 16);
-        QPen thickPen(QColor("#D4D4D4"), 3.0);
+        QPen thickPen(colors().iconBaseColor, 3.0);
         p.setPen(thickPen);
         p.drawLine(21, 20, 27, 27);
     } else if (name == "zoom-in") {
         p.drawEllipse(6, 4, 18, 18);
         p.drawLine(15, 9, 15, 17);
         p.drawLine(11, 13, 19, 13);
-        QPen thickPen(QColor("#D4D4D4"), 3.0);
+        QPen thickPen(colors().iconBaseColor, 3.0);
         p.setPen(thickPen);
         p.drawLine(22, 21, 28, 27);
     } else if (name == "zoom-out") {
         p.drawEllipse(6, 4, 18, 18);
         p.drawLine(11, 13, 19, 13);
-        QPen thickPen(QColor("#D4D4D4"), 3.0);
+        QPen thickPen(colors().iconBaseColor, 3.0);
         p.setPen(thickPen);
         p.drawLine(22, 21, 28, 27);
     } else if (name == "undo") {

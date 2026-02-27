@@ -3,30 +3,12 @@
 #include "Commands.h"
 #include "EdgeItem.h"
 #include "MindMapScene.h"
+#include "ThemeManager.h"
 
 #include <QFontMetricsF>
 #include <QGraphicsSceneMouseEvent>
 #include <QPainter>
 #include <QStyleOptionGraphicsItem>
-
-static const QColor kPalette[] = {
-    QColor("#1565C0"), // Root - Blue
-    QColor("#2E7D32"), // Level 1 - Green
-    QColor("#E65100"), // Level 2 - Orange
-    QColor("#6A1B9A"), // Level 3 - Purple
-    QColor("#C62828"), // Level 4 - Red
-    QColor("#00838F"), // Level 5 - Teal
-};
-
-static const QColor kDarkPalette[] = {
-    QColor("#42A5F5"), // Root - Blue
-    QColor("#66BB6A"), // Level 1 - Green
-    QColor("#FFA726"), // Level 2 - Orange
-    QColor("#AB47BC"), // Level 3 - Purple
-    QColor("#EF5350"), // Level 4 - Red
-    QColor("#26C6DA"), // Level 5 - Teal
-};
-static constexpr int kPaletteSize = sizeof(kPalette) / sizeof(kPalette[0]);
 
 NodeItem::NodeItem(const QString& text, QGraphicsItem* parent)
     : QGraphicsObject(parent), m_text(text) {
@@ -128,9 +110,7 @@ int NodeItem::level() const {
 }
 
 QColor NodeItem::nodeColor() const {
-    if (AppSettings::instance().theme() == AppTheme::Dark)
-        return kDarkPalette[level() % kPaletteSize];
-    return kPalette[level() % kPaletteSize];
+    return ThemeManager::colors().nodePalette[level() % 6];
 }
 
 QFont NodeItem::font() const {

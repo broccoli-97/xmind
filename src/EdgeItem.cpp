@@ -1,8 +1,8 @@
 #include "EdgeItem.h"
-#include "AppSettings.h"
 #include "Commands.h"
 #include "MindMapScene.h"
 #include "NodeItem.h"
+#include "ThemeManager.h"
 
 #include <QCursor>
 #include <QGraphicsScene>
@@ -27,7 +27,7 @@ QRectF EdgeItem::boundingRect() const {
 void EdgeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/,
                      QWidget* /*widget*/) {
     painter->setRenderHint(QPainter::Antialiasing);
-    int lighten = (AppSettings::instance().theme() == AppTheme::Dark) ? 120 : 140;
+    int lighten = ThemeManager::colors().edgeLightenFactor;
     QColor color = m_target->nodeColor().lighter(lighten);
     painter->setPen(QPen(color, 2.5, Qt::SolidLine, Qt::RoundCap));
     painter->setBrush(Qt::NoBrush);
