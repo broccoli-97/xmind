@@ -6,14 +6,19 @@
 #include "TabManager.h"
 
 #include <QApplication>
+#include <QDir>
+#include <QFile>
 #include <QGraphicsItem>
 #include <QGraphicsView>
 #include <QPainter>
 #include <QPalette>
 #include <QSettings>
+#include <QStandardPaths>
 #include <QTimer>
 #include <cmath>
+#ifdef _WIN32
 #include <windows.h>
+#endif
 
 // ---------------------------------------------------------------------------
 // Dark stylesheet
@@ -87,7 +92,6 @@ static const char* kDarkStyleSheet = R"(
         color: #D4D4D4;
     }
     QTabBar::close-button {
-        image: none;
         subcontrol-position: right;
         border: none;
         padding: 2px;
@@ -387,7 +391,6 @@ static const char* kLightStyleSheet = R"(
         color: #1E1E1E;
     }
     QTabBar::close-button {
-        image: none;
         subcontrol-position: right;
         border: none;
         padding: 2px;
@@ -681,17 +684,44 @@ QPixmap ThemeManager::makeTemplatePreview(int index, int width, int height) {
 }
 
 // ---------------------------------------------------------------------------
+// Generate a close-button icon for the tab bar and return its file path
+// ---------------------------------------------------------------------------
+static QString generateCloseIcon(bool dark) {
+    QString tempDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+    QDir().mkpath(tempDir);
+    QString path = tempDir + (dark ? "/xmind-tab-close-dark.png" : "/xmind-tab-close-light.png");
+
+    const int sz = 16;
+    QPixmap pix(sz, sz);
+    pix.fill(Qt::transparent);
+    QPainter p(&pix);
+    p.setRenderHint(QPainter::Antialiasing);
+    QColor color = dark ? QColor("#CCCCCC") : QColor("#5A5A5A");
+    QPen pen(color, 1.5);
+    pen.setCapStyle(Qt::RoundCap);
+    p.setPen(pen);
+    p.drawLine(4, 4, sz - 5, sz - 5);
+    p.drawLine(sz - 5, 4, 4, sz - 5);
+    p.end();
+
+    pix.save(path, "PNG");
+    return path;
+}
+
+// ---------------------------------------------------------------------------
 // Apply theme to application and invalidate caches on all scenes
 // ---------------------------------------------------------------------------
 void ThemeManager::applyTheme(const QList<TabState>& tabs) {
     bool dark = (AppSettings::instance().theme() == AppTheme::Dark);
 
-    // Apply stylesheet only (no fixed palette to allow system theme to work)
-    if (dark) {
-        qApp->setStyleSheet(kDarkStyleSheet);
-    } else {
-        qApp->setStyleSheet(kLightStyleSheet);
-    }
+    QString stylesheet = dark ? QString(kDarkStyleSheet) : QString(kLightStyleSheet);
+
+    // Generate a close-button icon matching the theme and inject into stylesheet
+    QString iconPath = generateCloseIcon(dark);
+    iconPath.replace("\\", "/"); // Qt URL paths require forward slashes
+    stylesheet += QString("\nQTabBar::close-button { image: url(%1); }").arg(iconPath);
+
+    qApp->setStyleSheet(stylesheet);
 
     // Invalidate caches on ALL open scenes
     for (const auto& tab : tabs) {
