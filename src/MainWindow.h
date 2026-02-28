@@ -48,6 +48,8 @@ private:
 
     QToolButton* m_toggleOutlineBtn = nullptr;
     QToolButton* m_toggleToolbarBtn = nullptr;
+    QToolButton* m_undoBtn = nullptr;
+    QToolButton* m_redoBtn = nullptr;
 
     QAction* m_toggleToolbarAct = nullptr;
     QAction* m_toggleOutlineAct = nullptr;

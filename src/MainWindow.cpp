@@ -229,18 +229,26 @@ void MainWindow::setupToolBar() {
     };
 
     // Undo/Redo at the very left
-    auto* undoBtn = addButton("undo", "Undo", "Undo last action (Ctrl+Z)");
-    connect(undoBtn, &QToolButton::clicked, this, [this]() {
+    m_undoBtn = addButton("undo", "Undo", "Undo last action (Ctrl+Z)");
+    m_undoBtn->setEnabled(false);
+    connect(m_undoBtn, &QToolButton::clicked, this, [this]() {
         auto* scene = m_tabManager->currentScene();
         if (scene)
             scene->undoStack()->undo();
     });
+    connect(m_undoAct, &QAction::changed, m_undoBtn, [this]() {
+        m_undoBtn->setEnabled(m_undoAct->isEnabled());
+    });
 
-    auto* redoBtn = addButton("redo", "Redo", "Redo last action (Ctrl+Y)");
-    connect(redoBtn, &QToolButton::clicked, this, [this]() {
+    m_redoBtn = addButton("redo", "Redo", "Redo last action (Ctrl+Y)");
+    m_redoBtn->setEnabled(false);
+    connect(m_redoBtn, &QToolButton::clicked, this, [this]() {
         auto* scene = m_tabManager->currentScene();
         if (scene)
             scene->undoStack()->redo();
+    });
+    connect(m_redoAct, &QAction::changed, m_redoBtn, [this]() {
+        m_redoBtn->setEnabled(m_redoAct->isEnabled());
     });
 
     addSeparator();

@@ -109,6 +109,9 @@ static const char* kDarkStyleSheet = R"(
     QMenu::item:selected {
         background-color: #094771;
     }
+    QMenu::item:disabled {
+        color: #5A5A5A;
+    }
     QMenu::separator {
         height: 1px;
         background: #3F3F46;
@@ -134,6 +137,9 @@ static const char* kDarkStyleSheet = R"(
     }
     QToolButton:pressed {
         background-color: #094771;
+    }
+    QToolButton:disabled {
+        color: #5A5A5A;
     }
     QTabBar {
         background-color: #252526;
@@ -446,6 +452,9 @@ static const char* kLightStyleSheet = R"(
     QMenu::item:selected {
         background-color: #E1E4E8;
     }
+    QMenu::item:disabled {
+        color: #B0B0B0;
+    }
     QMenu::separator {
         height: 1px;
         background: #D0D0D0;
@@ -471,6 +480,9 @@ static const char* kLightStyleSheet = R"(
     }
     QToolButton:pressed {
         background-color: #D0D0D0;
+    }
+    QToolButton:disabled {
+        color: #B0B0B0;
     }
     QTabBar {
         background-color: transparent;
@@ -536,6 +548,9 @@ static const char* kLightStyleSheet = R"(
     }
     QWidget#inlineToolbar QToolButton:pressed {
         background-color: #B8D4F0;
+    }
+    QWidget#inlineToolbar QToolButton:disabled {
+        color: #B0B0B0;
     }
     QWidget#inlineToolbar QToolButton#closePanelBtn {
         background-color: transparent;
@@ -827,7 +842,19 @@ QIcon ThemeManager::makeToolIcon(const QString& name) {
     }
 
     p.end();
-    return QIcon(pix);
+
+    // Build a disabled pixmap with reduced opacity
+    QPixmap disabledPix(32, 32);
+    disabledPix.fill(Qt::transparent);
+    QPainter dp(&disabledPix);
+    dp.setOpacity(0.3);
+    dp.drawPixmap(0, 0, pix);
+    dp.end();
+
+    QIcon icon;
+    icon.addPixmap(pix, QIcon::Normal);
+    icon.addPixmap(disabledPix, QIcon::Disabled);
+    return icon;
 }
 
 // ---------------------------------------------------------------------------
