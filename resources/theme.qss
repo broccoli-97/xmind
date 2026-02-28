@@ -1,0 +1,526 @@
+/* ==========================================================================
+   XMind Theme Stylesheet Template
+   ==========================================================================
+   Color placeholders use {{variableName}} syntax.
+   StyleSheetGenerator substitutes them at runtime for dark/light themes.
+   ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   Window / Dialog
+   --------------------------------------------------------------------------- */
+QMainWindow, QDialog {
+    background-color: {{windowBg}};
+    color: {{windowFg}};
+}
+
+/* ---------------------------------------------------------------------------
+   Menu Bar
+   --------------------------------------------------------------------------- */
+QMenuBar {
+    background-color: {{menuBarBg}};
+    color: {{windowFg}};
+    border-bottom: 1px solid {{menuBarBorder}};
+}
+
+QMenuBar::item:selected {
+    background-color: {{menuBarSelBg}};
+}
+
+/* ---------------------------------------------------------------------------
+   Menu
+   --------------------------------------------------------------------------- */
+QMenu {
+    background-color: {{menuBg}};
+    color: {{windowFg}};
+    border: 1px solid {{menuBorder}};
+}
+
+QMenu::item:selected {
+    background-color: {{menuSelBg}};
+}
+
+QMenu::item:disabled {
+    color: {{menuDisabledFg}};
+}
+
+QMenu::separator {
+    height: 1px;
+    background: {{menuSepColor}};
+    margin: 4px 8px;
+}
+
+/* ---------------------------------------------------------------------------
+   Toolbar
+   --------------------------------------------------------------------------- */
+QToolBar {
+    background-color: {{toolBarBg}};
+    border-bottom: 1px solid {{toolBarBorder}};
+    spacing: 2px;
+    padding: 4px;
+}
+
+QToolButton {
+    background-color: transparent;
+    color: {{windowFg}};
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 11px;
+}
+
+QToolButton:hover {
+    background-color: {{toolBtnHoverBg}};
+    border-color: {{toolBtnHoverBg}};
+}
+
+QToolButton:pressed {
+    background-color: {{toolBtnPressedBg}};
+}
+
+QToolButton:disabled {
+    color: {{toolBtnDisabledFg}};
+}
+
+/* ---------------------------------------------------------------------------
+   Tab Bar
+   --------------------------------------------------------------------------- */
+QTabBar {
+    background-color: {{tabBarBg}};
+}
+
+QTabBar::tab {
+    background-color: {{tabBg}};
+    color: {{tabFg}};
+    border: none;
+    border-right: 1px solid {{tabBorder}};
+    padding: 6px 12px;
+    min-width: 100px;
+    max-width: 200px;
+}
+
+QTabBar::tab:selected {
+    background-color: {{tabSelBg}};
+    color: {{tabSelFg}};
+    border-bottom: 2px solid #007ACC;
+}
+
+QTabBar::tab:hover:!selected {
+    background-color: {{tabHoverBg}};
+    color: {{tabHoverFg}};
+}
+
+/* Tab close button */
+QTabBar::close-button {
+    subcontrol-position: right;
+    border: none;
+    padding: 2px;
+    margin: 2px;
+    background: transparent;
+    width: 14px;
+    height: 14px;
+}
+
+QTabBar::close-button:hover {
+    background-color: {{tabCloseBtnHoverBg}};
+    border-radius: 3px;
+}
+
+/* ---------------------------------------------------------------------------
+   New Tab Button
+   --------------------------------------------------------------------------- */
+QToolButton#newTabBtn {
+    background-color: transparent;
+    color: {{newTabFg}};
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+QToolButton#newTabBtn:hover {
+    background-color: {{newTabHoverBg}};
+    color: {{newTabHoverFg}};
+}
+
+/* ---------------------------------------------------------------------------
+   Inline Toolbar
+   --------------------------------------------------------------------------- */
+QWidget#inlineToolbar {
+    background-color: {{inlineToolbarBg}};
+    border-bottom: 1px solid {{inlineToolbarBorder}};
+}
+
+QWidget#inlineToolbar QToolButton {
+    background-color: transparent;
+    color: {{inlineToolBtnFg}};
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 11px;
+}
+
+QWidget#inlineToolbar QToolButton:hover {
+    background-color: {{inlineToolBtnHoverBg}};
+    border-color: {{inlineToolBtnHoverBg}};
+}
+
+QWidget#inlineToolbar QToolButton:pressed {
+    background-color: {{inlineToolBtnPressedBg}};
+}
+
+QWidget#inlineToolbar QToolButton:disabled {
+    color: {{inlineToolBtnDisabledFg}};
+}
+
+QWidget#inlineToolbar QToolButton#closePanelBtn {
+    background-color: transparent;
+    color: {{inlineCloseBtnFg}};
+    border: none;
+    border-radius: 3px;
+    padding: 2px;
+}
+
+QWidget#inlineToolbar QToolButton#closePanelBtn:hover {
+    background-color: {{inlineCloseBtnHoverBg}};
+    color: {{inlineCloseBtnFg}};
+}
+
+/* ---------------------------------------------------------------------------
+   Section Header
+   --------------------------------------------------------------------------- */
+QLabel#sectionHeader, QWidget#sectionHeader {
+    background-color: {{headerBg}};
+    color: {{headerFg}};
+    font-weight: bold;
+    font-size: 12px;
+    padding: 6px 10px;
+    border-bottom: 1px solid {{headerBorder}};
+}
+
+/* ---------------------------------------------------------------------------
+   Toggle Panel Button
+   --------------------------------------------------------------------------- */
+QToolButton#togglePanelBtn {
+    background-color: transparent;
+    color: {{toggleBtnFg}};
+    border: none;
+    border-radius: 4px;
+    padding: 4px;
+}
+
+QToolButton#togglePanelBtn:hover {
+    background-color: {{toggleBtnHoverBg}};
+    color: {{toggleBtnHoverFg}};
+}
+
+QToolButton#togglePanelBtn:checked {
+    background-color: {{toggleBtnCheckedBg}};
+    color: {{toggleBtnCheckedFg}};
+}
+
+/* ---------------------------------------------------------------------------
+   Close Panel Button
+   --------------------------------------------------------------------------- */
+QToolButton#closePanelBtn {
+    background-color: transparent;
+    color: {{closeBtnFg}};
+    border: none;
+    border-radius: 3px;
+    padding: 2px;
+}
+
+QToolButton#closePanelBtn:hover {
+    background-color: {{closeBtnHoverBg}};
+    color: {{closeBtnHoverFg}};
+}
+
+/* ---------------------------------------------------------------------------
+   Tree Widget (Outline)
+   --------------------------------------------------------------------------- */
+QTreeWidget {
+    background-color: {{treeBg}};
+    color: {{treeFg}};
+    border: none;
+    outline: none;
+    font-size: 12px;
+}
+
+QTreeWidget::item {
+    padding: 3px 0px;
+}
+
+QTreeWidget::item:hover {
+    background-color: {{treeHoverBg}};
+}
+
+QTreeWidget::item:selected {
+    background-color: {{treeSelBg}};
+    color: {{treeSelFg}};
+}
+
+QTreeWidget::branch {
+    background-color: {{treeBranchBg}};
+}
+
+/* ---------------------------------------------------------------------------
+   Status Bar
+   --------------------------------------------------------------------------- */
+QStatusBar {
+    background-color: {{statusBarBg}};
+    color: {{statusBarFg}};
+    font-size: 12px;
+}
+
+QStatusBar::item {
+    border: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Scrollbars (Vertical)
+   --------------------------------------------------------------------------- */
+QScrollBar:vertical {
+    background-color: {{scrollBg}};
+    width: 12px;
+    margin: 0;
+}
+
+QScrollBar::handle:vertical {
+    background-color: {{scrollHandleBg}};
+    min-height: 20px;
+    border-radius: 4px;
+    margin: 2px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background-color: {{scrollHandleHover}};
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Scrollbars (Horizontal)
+   --------------------------------------------------------------------------- */
+QScrollBar:horizontal {
+    background-color: {{scrollBg}};
+    height: 12px;
+    margin: 0;
+}
+
+QScrollBar::handle:horizontal {
+    background-color: {{scrollHandleBg}};
+    min-width: 20px;
+    border-radius: 4px;
+    margin: 2px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background-color: {{scrollHandleHover}};
+}
+
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+    width: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Combo Box
+   --------------------------------------------------------------------------- */
+QComboBox {
+    background-color: {{comboBg}};
+    color: {{comboFg}};
+    border: 1px solid {{comboBorder}};
+    border-radius: 4px;
+    padding: 4px 8px;
+}
+
+QComboBox:hover {
+    border-color: {{comboHoverBorder}};
+}
+
+QComboBox::drop-down {
+    border: none;
+    width: 20px;
+}
+
+QComboBox QAbstractItemView {
+    background-color: {{comboDropBg}};
+    color: {{comboFg}};
+    selection-background-color: {{comboDropSelBg}};
+    border: 1px solid {{comboBorder}};
+}
+
+/* ---------------------------------------------------------------------------
+   Spin Box
+   --------------------------------------------------------------------------- */
+QSpinBox {
+    background-color: {{spinBg}};
+    color: {{spinFg}};
+    border: 1px solid {{spinBorder}};
+    border-radius: 4px;
+    padding: 4px;
+}
+
+QSpinBox:hover {
+    border-color: {{spinHoverBorder}};
+}
+
+/* ---------------------------------------------------------------------------
+   Line Edit
+   --------------------------------------------------------------------------- */
+QLineEdit {
+    background-color: {{lineEditBg}};
+    color: {{lineEditFg}};
+    border: 2px solid {{lineEditBorder}};
+    border-radius: 6px;
+    padding: 4px 8px;
+}
+
+/* ---------------------------------------------------------------------------
+   Checkbox
+   --------------------------------------------------------------------------- */
+QCheckBox {
+    color: {{checkboxFg}};
+    spacing: 8px;
+}
+
+QCheckBox::indicator {
+    width: 16px;
+    height: 16px;
+    border: 1px solid {{checkboxBorder}};
+    border-radius: 3px;
+    background-color: {{checkboxBg}};
+}
+
+QCheckBox::indicator:checked {
+    background-color: {{checkboxCheckedBg}};
+    border-color: {{checkboxCheckedBorder}};
+}
+
+/* ---------------------------------------------------------------------------
+   Push Button
+   --------------------------------------------------------------------------- */
+QPushButton {
+    background-color: {{pushBtnBg}};
+    color: {{pushBtnFg}};
+    border: none;
+    border-radius: 4px;
+    padding: 6px 16px;
+    font-size: 12px;
+}
+
+QPushButton:hover {
+    background-color: {{pushBtnHoverBg}};
+}
+
+QPushButton:pressed {
+    background-color: {{pushBtnPressedBg}};
+}
+
+/* ---------------------------------------------------------------------------
+   Group Box
+   --------------------------------------------------------------------------- */
+QGroupBox {
+    color: {{groupBoxFg}};
+    border: 1px solid {{groupBoxBorder}};
+    border-radius: 4px;
+    margin-top: 8px;
+    padding-top: 16px;
+    font-weight: bold;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    left: 10px;
+    padding: 0 4px;
+}
+
+/* ---------------------------------------------------------------------------
+   Label
+   --------------------------------------------------------------------------- */
+QLabel {
+    color: {{labelFg}};
+}
+
+QGroupBox QCheckBox {
+    color: {{labelFg}};
+}
+
+/* ---------------------------------------------------------------------------
+   Tooltip
+   --------------------------------------------------------------------------- */
+QToolTip {
+    background-color: {{tooltipBg}};
+    color: {{tooltipFg}};
+    border: 1px solid {{tooltipBorder}};
+    padding: 4px;
+}
+
+/* ---------------------------------------------------------------------------
+   Template Card (Start Page)
+   --------------------------------------------------------------------------- */
+QPushButton#templateCard {
+    background-color: {{cardBg}};
+    border: 2px solid {{cardBorder}};
+    border-radius: 8px;
+    padding: 8px;
+    font-size: 13px;
+    color: {{cardFg}};
+    text-align: bottom;
+}
+
+QPushButton#templateCard:hover {
+    border-color: {{cardHoverBorder}};
+    background-color: {{cardHoverBg}};
+}
+
+QPushButton#templateCard:pressed {
+    background-color: {{cardPressedBg}};
+}
+
+/* ---------------------------------------------------------------------------
+   Blank Canvas Button (Start Page)
+   --------------------------------------------------------------------------- */
+QPushButton#blankCanvasBtn {
+    background-color: transparent;
+    border: 1px solid {{blankBtnBorder}};
+    border-radius: 6px;
+    font-size: 13px;
+    color: {{blankBtnFg}};
+}
+
+QPushButton#blankCanvasBtn:hover {
+    border-color: {{blankBtnHoverBorder}};
+    background-color: {{blankBtnHoverBg}};
+}
+
+QPushButton#blankCanvasBtn:pressed {
+    background-color: {{blankBtnPressedBg}};
+}
+
+/* ---------------------------------------------------------------------------
+   Start Page Labels
+   --------------------------------------------------------------------------- */
+QLabel#startPageTitle {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 4px;
+    background: transparent;
+    border: none;
+}
+
+QLabel#startPageSubtitle {
+    font-size: 14px;
+    color: {{subtitleFg}};
+    margin-bottom: 24px;
+    background: transparent;
+    border: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Settings Hint
+   --------------------------------------------------------------------------- */
+QLabel#settingsHint {
+    color: {{settingsHintFg}};
+    font-size: 9pt;
+}

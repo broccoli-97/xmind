@@ -4,6 +4,7 @@ project(xmind VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(BUILD_STATIC "Build a fully static executable" OFF)
@@ -50,11 +51,15 @@ set(HEADERS
     src/SettingsDialog.h
 )
 
+set(RESOURCES
+    resources/resources.qrc
+)
+
 if(WIN32)
     # WIN32 flag prevents console window from appearing
-    add_executable(xmind WIN32 ${SOURCES} ${HEADERS})
+    add_executable(xmind WIN32 ${SOURCES} ${HEADERS} ${RESOURCES})
 else()
-    add_executable(xmind ${SOURCES} ${HEADERS})
+    add_executable(xmind ${SOURCES} ${HEADERS} ${RESOURCES})
 endif()
 
 target_link_libraries(xmind PRIVATE Qt6::Widgets Qt6::Svg Qt6::PrintSupport)

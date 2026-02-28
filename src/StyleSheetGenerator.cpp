@@ -1,489 +1,299 @@
 #include "StyleSheetGenerator.h"
 
+#include <QFile>
+#include <QHash>
 #include <QString>
 
 // ---------------------------------------------------------------------------
-// Color maps for dark and light themes.
-// Each map defines the values to substitute into the shared CSS template.
+// Color definitions for each theme.
+// Keys must match {{placeholders}} in resources/theme.qss.
 // ---------------------------------------------------------------------------
 
-struct ThemeColorMap {
-    // Window / dialog
-    const char* windowBg;
-    const char* windowFg;
-    // Menu bar
-    const char* menuBarBg;
-    const char* menuBarBorder;
-    const char* menuBarSelBg;
-    // Menu
-    const char* menuBg;
-    const char* menuBorder;
-    const char* menuSelBg;
-    const char* menuDisabledFg;
-    const char* menuSepColor;
-    // Toolbar
-    const char* toolBarBg;
-    const char* toolBarBorder;
-    const char* toolBtnHoverBg;
-    const char* toolBtnPressedBg;
-    const char* toolBtnDisabledFg;
-    // Tab bar
-    const char* tabBarBg;
-    const char* tabBg;
-    const char* tabFg;
-    const char* tabBorder;
-    const char* tabSelBg;
-    const char* tabSelFg;
-    const char* tabHoverBg;
-    const char* tabHoverFg;
-    const char* tabCloseBtnHoverBg;
-    // New tab button
-    const char* newTabFg;
-    const char* newTabHoverBg;
-    const char* newTabHoverFg;
-    // Inline toolbar
-    const char* inlineToolbarBg;
-    const char* inlineToolbarBorder;
-    // Inline toolbar buttons (light theme overrides)
-    const char* inlineToolBtnFg;
-    const char* inlineToolBtnHoverBg;
-    const char* inlineToolBtnPressedBg;
-    const char* inlineToolBtnDisabledFg;
-    const char* inlineCloseBtnFg;
-    const char* inlineCloseBtnHoverBg;
-    // Section header
-    const char* headerBg;
-    const char* headerFg;
-    const char* headerBorder;
-    // Toggle panel button
-    const char* toggleBtnFg;
-    const char* toggleBtnHoverBg;
-    const char* toggleBtnHoverFg;
-    const char* toggleBtnCheckedBg;
-    const char* toggleBtnCheckedFg;
-    // Close panel button
-    const char* closeBtnFg;
-    const char* closeBtnHoverBg;
-    const char* closeBtnHoverFg;
-    // Tree widget
-    const char* treeBg;
-    const char* treeFg;
-    const char* treeHoverBg;
-    const char* treeSelBg;
-    const char* treeSelFg;
-    const char* treeBranchBg;
-    // Status bar
-    const char* statusBarBg;
-    const char* statusBarFg;
-    // Scrollbar
-    const char* scrollBg;
-    const char* scrollHandleBg;
-    const char* scrollHandleHover;
-    // Combo box
-    const char* comboBg;
-    const char* comboFg;
-    const char* comboBorder;
-    const char* comboHoverBorder;
-    const char* comboDropBg;
-    const char* comboDropSelBg;
-    // Spin box
-    const char* spinBg;
-    const char* spinFg;
-    const char* spinBorder;
-    const char* spinHoverBorder;
-    // Line edit
-    const char* lineEditBg;
-    const char* lineEditFg;
-    const char* lineEditBorder;
-    // Checkbox
-    const char* checkboxFg;
-    const char* checkboxBorder;
-    const char* checkboxBg;
-    const char* checkboxCheckedBg;
-    const char* checkboxCheckedBorder;
-    // Push button
-    const char* pushBtnBg;
-    const char* pushBtnFg;
-    const char* pushBtnHoverBg;
-    const char* pushBtnPressedBg;
-    // Group box
-    const char* groupBoxFg;
-    const char* groupBoxBorder;
-    // Label
-    const char* labelFg;
-    // Tooltip
-    const char* tooltipBg;
-    const char* tooltipFg;
-    const char* tooltipBorder;
-    // Template card
-    const char* cardBg;
-    const char* cardBorder;
-    const char* cardFg;
-    const char* cardHoverBorder;
-    const char* cardHoverBg;
-    const char* cardPressedBg;
-    // Blank canvas button
-    const char* blankBtnBorder;
-    const char* blankBtnFg;
-    const char* blankBtnHoverBorder;
-    const char* blankBtnHoverBg;
-    const char* blankBtnPressedBg;
-    // Start page
-    const char* subtitleFg;
-    // Settings hint
-    const char* settingsHintFg;
-};
+using ColorMap = QHash<QString, QString>;
 
 // clang-format off
-static const ThemeColorMap kDarkMap = {
-    "#2D2D30", "#D4D4D4",               // window
-    "#2D2D30", "#3F3F46", "#3F3F46",    // menu bar
-    "#2D2D30", "#3F3F46", "#094771", "#5A5A5A", "#3F3F46", // menu
-    "#2D2D30", "#3F3F46", "#3F3F46", "#094771", "#5A5A5A", // toolbar
-    "#252526",                           // tab bar bg
-    "#2D2D30", "#969696", "#3F3F46",     // tab bg/fg/border
-    "#1E1E1E", "#D4D4D4",               // tab selected
-    "#2D2D30", "#D4D4D4",               // tab hover
-    "#3F3F46",                           // tab close hover bg
-    "#969696", "#3F3F46", "#D4D4D4",     // new tab
-    "#2D2D30", "#3F3F46",               // inline toolbar
-    "#D4D4D4", "#3F3F46", "#094771", "#5A5A5A", // inline toolbar buttons
-    "#969696", "#3F3F46",               // inline close btn
-    "#2D2D30", "#D4D4D4", "#3F3F46",    // section header
-    "#969696", "#3F3F46", "#D4D4D4", "#094771", "#D4D4D4", // toggle panel
-    "#969696", "#3F3F46", "#D4D4D4",     // close panel
-    "#252526", "#D4D4D4", "#2A2D2E", "#094771", "#FFFFFF", "#252526", // tree
-    "#007ACC", "#FFFFFF",               // status bar
-    "#2D2D30", "#424242", "#4F4F4F",     // scroll
-    "#3C3C3C", "#D4D4D4", "#3F3F46", "#007ACC", "#2D2D30", "#094771", // combo
-    "#3C3C3C", "#D4D4D4", "#3F3F46", "#007ACC", // spin
-    "#2A2A4A", "#D4D4D4", "#42A5F5",     // line edit
-    "#D4D4D4", "#3F3F46", "#3C3C3C", "#007ACC", "#007ACC", // checkbox
-    "#0E639C", "#FFFFFF", "#1177BB", "#094771", // push button
-    "#D4D4D4", "#3F3F46",               // group box
-    "#D4D4D4",                           // label
-    "#2D2D30", "#D4D4D4", "#3F3F46",     // tooltip
-    "#2D2D30", "#3F3F46", "#D4D4D4", "#007ACC", "#333337", "#094771", // template card
-    "#3F3F46", "#D4D4D4", "#007ACC", "#2D2D30", "#094771", // blank canvas
-    "#999999",                           // subtitle
-    "#888888",                           // settings hint
-};
+static ColorMap darkColors() {
+    return {
+        // Window / Dialog
+        {"windowBg",             "#2D2D30"},
+        {"windowFg",             "#D4D4D4"},
+        // Menu bar
+        {"menuBarBg",            "#2D2D30"},
+        {"menuBarBorder",        "#3F3F46"},
+        {"menuBarSelBg",         "#3F3F46"},
+        // Menu
+        {"menuBg",               "#2D2D30"},
+        {"menuBorder",           "#3F3F46"},
+        {"menuSelBg",            "#094771"},
+        {"menuDisabledFg",       "#5A5A5A"},
+        {"menuSepColor",         "#3F3F46"},
+        // Toolbar
+        {"toolBarBg",            "#2D2D30"},
+        {"toolBarBorder",        "#3F3F46"},
+        {"toolBtnHoverBg",       "#3F3F46"},
+        {"toolBtnPressedBg",     "#094771"},
+        {"toolBtnDisabledFg",    "#5A5A5A"},
+        // Tab bar
+        {"tabBarBg",             "#252526"},
+        {"tabBg",                "#2D2D30"},
+        {"tabFg",                "#969696"},
+        {"tabBorder",            "#3F3F46"},
+        {"tabSelBg",             "#1E1E1E"},
+        {"tabSelFg",             "#D4D4D4"},
+        {"tabHoverBg",           "#2D2D30"},
+        {"tabHoverFg",           "#D4D4D4"},
+        {"tabCloseBtnHoverBg",   "#3F3F46"},
+        // New tab button
+        {"newTabFg",             "#969696"},
+        {"newTabHoverBg",        "#3F3F46"},
+        {"newTabHoverFg",        "#D4D4D4"},
+        // Inline toolbar
+        {"inlineToolbarBg",      "#2D2D30"},
+        {"inlineToolbarBorder",  "#3F3F46"},
+        {"inlineToolBtnFg",      "#D4D4D4"},
+        {"inlineToolBtnHoverBg", "#3F3F46"},
+        {"inlineToolBtnPressedBg","#094771"},
+        {"inlineToolBtnDisabledFg","#5A5A5A"},
+        {"inlineCloseBtnFg",     "#969696"},
+        {"inlineCloseBtnHoverBg","#3F3F46"},
+        // Section header
+        {"headerBg",             "#2D2D30"},
+        {"headerFg",             "#D4D4D4"},
+        {"headerBorder",         "#3F3F46"},
+        // Toggle panel button
+        {"toggleBtnFg",          "#969696"},
+        {"toggleBtnHoverBg",     "#3F3F46"},
+        {"toggleBtnHoverFg",     "#D4D4D4"},
+        {"toggleBtnCheckedBg",   "#094771"},
+        {"toggleBtnCheckedFg",   "#D4D4D4"},
+        // Close panel button
+        {"closeBtnFg",           "#969696"},
+        {"closeBtnHoverBg",      "#3F3F46"},
+        {"closeBtnHoverFg",      "#D4D4D4"},
+        // Tree widget
+        {"treeBg",               "#252526"},
+        {"treeFg",               "#D4D4D4"},
+        {"treeHoverBg",          "#2A2D2E"},
+        {"treeSelBg",            "#094771"},
+        {"treeSelFg",            "#FFFFFF"},
+        {"treeBranchBg",         "#252526"},
+        // Status bar
+        {"statusBarBg",          "#007ACC"},
+        {"statusBarFg",          "#FFFFFF"},
+        // Scrollbar
+        {"scrollBg",             "#2D2D30"},
+        {"scrollHandleBg",       "#424242"},
+        {"scrollHandleHover",    "#4F4F4F"},
+        // Combo box
+        {"comboBg",              "#3C3C3C"},
+        {"comboFg",              "#D4D4D4"},
+        {"comboBorder",          "#3F3F46"},
+        {"comboHoverBorder",     "#007ACC"},
+        {"comboDropBg",          "#2D2D30"},
+        {"comboDropSelBg",       "#094771"},
+        // Spin box
+        {"spinBg",               "#3C3C3C"},
+        {"spinFg",               "#D4D4D4"},
+        {"spinBorder",           "#3F3F46"},
+        {"spinHoverBorder",      "#007ACC"},
+        // Line edit
+        {"lineEditBg",           "#2A2A4A"},
+        {"lineEditFg",           "#D4D4D4"},
+        {"lineEditBorder",       "#42A5F5"},
+        // Checkbox
+        {"checkboxFg",           "#D4D4D4"},
+        {"checkboxBorder",       "#3F3F46"},
+        {"checkboxBg",           "#3C3C3C"},
+        {"checkboxCheckedBg",    "#007ACC"},
+        {"checkboxCheckedBorder","#007ACC"},
+        // Push button
+        {"pushBtnBg",            "#0E639C"},
+        {"pushBtnFg",            "#FFFFFF"},
+        {"pushBtnHoverBg",       "#1177BB"},
+        {"pushBtnPressedBg",     "#094771"},
+        // Group box
+        {"groupBoxFg",           "#D4D4D4"},
+        {"groupBoxBorder",       "#3F3F46"},
+        // Label
+        {"labelFg",              "#D4D4D4"},
+        // Tooltip
+        {"tooltipBg",            "#2D2D30"},
+        {"tooltipFg",            "#D4D4D4"},
+        {"tooltipBorder",        "#3F3F46"},
+        // Template card
+        {"cardBg",               "#2D2D30"},
+        {"cardBorder",           "#3F3F46"},
+        {"cardFg",               "#D4D4D4"},
+        {"cardHoverBorder",      "#007ACC"},
+        {"cardHoverBg",          "#333337"},
+        {"cardPressedBg",        "#094771"},
+        // Blank canvas button
+        {"blankBtnBorder",       "#3F3F46"},
+        {"blankBtnFg",           "#D4D4D4"},
+        {"blankBtnHoverBorder",  "#007ACC"},
+        {"blankBtnHoverBg",      "#2D2D30"},
+        {"blankBtnPressedBg",    "#094771"},
+        // Start page
+        {"subtitleFg",           "#999999"},
+        // Settings hint
+        {"settingsHintFg",       "#888888"},
+    };
+}
 
-static const ThemeColorMap kLightMap = {
-    "#FFFFFF", "#1E1E1E",               // window
-    "#F8F8F8", "#D0D0D0", "#E1E4E8",    // menu bar
-    "#FFFFFF", "#D0D0D0", "#E1E4E8", "#B0B0B0", "#D0D0D0", // menu
-    "#F8F8F8", "#D0D0D0", "#E1E4E8", "#D0D0D0", "#B0B0B0", // toolbar
-    "transparent",                       // tab bar bg
-    "#E0E0E0", "#1E1E1E", "#D0D0D0",     // tab bg/fg/border
-    "#FFFFFF", "#1E1E1E",               // tab selected
-    "#F0F0F0", "#1E1E1E",               // tab hover
-    "#D0D0D0",                           // tab close hover bg
-    "#1E1E1E", "#E1E4E8", "#1E1E1E",     // new tab
-    "#F8F8F8", "#D0D0D0",               // inline toolbar
-    "#1E1E1E", "#E1E4E8", "#B8D4F0", "#B0B0B0", // inline toolbar buttons
-    "#1E1E1E", "#E1E4E8",               // inline close btn
-    "#F0F0F0", "#1E1E1E", "#D0D0D0",    // section header
-    "#1E1E1E", "#E1E4E8", "#1E1E1E", "#CCE4F7", "#1E1E1E", // toggle panel
-    "#1E1E1E", "#E1E4E8", "#1E1E1E",     // close panel
-    "#FFFFFF", "#1E1E1E", "#F0F0F0", "#CCE4F7", "#1E1E1E", "#FFFFFF", // tree
-    "#007ACC", "#FFFFFF",               // status bar (same as dark)
-    "#F8F8F8", "#CCCCCC", "#BBBBBB",     // scroll
-    "", "", "", "", "", "",              // combo (not in light)
-    "", "", "", "",                      // spin (not in light)
-    "#FFFFFF", "#1E1E1E", "#1565C0",     // line edit
-    "#1E1E1E", "", "", "", "",           // checkbox (not in light)
-    "", "", "", "",                      // push button (not in light)
-    "#1E1E1E", "#D0D0D0",               // group box
-    "#1E1E1E",                           // label
-    "", "", "",                          // tooltip (not in light)
-    "#F0F0F0", "#D0D0D0", "#333333", "#007ACC", "#E8E8E8", "#D0E8FF", // template card
-    "#D0D0D0", "#333333", "#007ACC", "#F0F0F0", "#D0E8FF", // blank canvas
-    "#888888",                           // subtitle
-    "gray",                              // settings hint
-};
+static ColorMap lightColors() {
+    return {
+        // Window / Dialog
+        {"windowBg",             "#FFFFFF"},
+        {"windowFg",             "#1E1E1E"},
+        // Menu bar
+        {"menuBarBg",            "#F8F8F8"},
+        {"menuBarBorder",        "#D0D0D0"},
+        {"menuBarSelBg",         "#E1E4E8"},
+        // Menu
+        {"menuBg",               "#FFFFFF"},
+        {"menuBorder",           "#D0D0D0"},
+        {"menuSelBg",            "#E1E4E8"},
+        {"menuDisabledFg",       "#B0B0B0"},
+        {"menuSepColor",         "#D0D0D0"},
+        // Toolbar
+        {"toolBarBg",            "#F8F8F8"},
+        {"toolBarBorder",        "#D0D0D0"},
+        {"toolBtnHoverBg",       "#E1E4E8"},
+        {"toolBtnPressedBg",     "#D0D0D0"},
+        {"toolBtnDisabledFg",    "#B0B0B0"},
+        // Tab bar
+        {"tabBarBg",             "transparent"},
+        {"tabBg",                "#E0E0E0"},
+        {"tabFg",                "#1E1E1E"},
+        {"tabBorder",            "#D0D0D0"},
+        {"tabSelBg",             "#FFFFFF"},
+        {"tabSelFg",             "#1E1E1E"},
+        {"tabHoverBg",           "#F0F0F0"},
+        {"tabHoverFg",           "#1E1E1E"},
+        {"tabCloseBtnHoverBg",   "#D0D0D0"},
+        // New tab button
+        {"newTabFg",             "#1E1E1E"},
+        {"newTabHoverBg",        "#E1E4E8"},
+        {"newTabHoverFg",        "#1E1E1E"},
+        // Inline toolbar
+        {"inlineToolbarBg",      "#F8F8F8"},
+        {"inlineToolbarBorder",  "#D0D0D0"},
+        {"inlineToolBtnFg",      "#1E1E1E"},
+        {"inlineToolBtnHoverBg", "#E1E4E8"},
+        {"inlineToolBtnPressedBg","#B8D4F0"},
+        {"inlineToolBtnDisabledFg","#B0B0B0"},
+        {"inlineCloseBtnFg",     "#1E1E1E"},
+        {"inlineCloseBtnHoverBg","#E1E4E8"},
+        // Section header
+        {"headerBg",             "#F0F0F0"},
+        {"headerFg",             "#1E1E1E"},
+        {"headerBorder",         "#D0D0D0"},
+        // Toggle panel button
+        {"toggleBtnFg",          "#1E1E1E"},
+        {"toggleBtnHoverBg",     "#E1E4E8"},
+        {"toggleBtnHoverFg",     "#1E1E1E"},
+        {"toggleBtnCheckedBg",   "#CCE4F7"},
+        {"toggleBtnCheckedFg",   "#1E1E1E"},
+        // Close panel button
+        {"closeBtnFg",           "#1E1E1E"},
+        {"closeBtnHoverBg",      "#E1E4E8"},
+        {"closeBtnHoverFg",      "#1E1E1E"},
+        // Tree widget
+        {"treeBg",               "#FFFFFF"},
+        {"treeFg",               "#1E1E1E"},
+        {"treeHoverBg",          "#F0F0F0"},
+        {"treeSelBg",            "#CCE4F7"},
+        {"treeSelFg",            "#1E1E1E"},
+        {"treeBranchBg",         "#FFFFFF"},
+        // Status bar
+        {"statusBarBg",          "#007ACC"},
+        {"statusBarFg",          "#FFFFFF"},
+        // Scrollbar
+        {"scrollBg",             "#F8F8F8"},
+        {"scrollHandleBg",       "#CCCCCC"},
+        {"scrollHandleHover",    "#BBBBBB"},
+        // Combo box
+        {"comboBg",              "#FFFFFF"},
+        {"comboFg",              "#1E1E1E"},
+        {"comboBorder",          "#D0D0D0"},
+        {"comboHoverBorder",     "#007ACC"},
+        {"comboDropBg",          "#FFFFFF"},
+        {"comboDropSelBg",       "#CCE4F7"},
+        // Spin box
+        {"spinBg",               "#FFFFFF"},
+        {"spinFg",               "#1E1E1E"},
+        {"spinBorder",           "#D0D0D0"},
+        {"spinHoverBorder",      "#007ACC"},
+        // Line edit
+        {"lineEditBg",           "#FFFFFF"},
+        {"lineEditFg",           "#1E1E1E"},
+        {"lineEditBorder",       "#1565C0"},
+        // Checkbox
+        {"checkboxFg",           "#1E1E1E"},
+        {"checkboxBorder",       "#D0D0D0"},
+        {"checkboxBg",           "#FFFFFF"},
+        {"checkboxCheckedBg",    "#007ACC"},
+        {"checkboxCheckedBorder","#007ACC"},
+        // Push button
+        {"pushBtnBg",            "#E1E4E8"},
+        {"pushBtnFg",            "#1E1E1E"},
+        {"pushBtnHoverBg",       "#D0D0D0"},
+        {"pushBtnPressedBg",     "#C0C0C0"},
+        // Group box
+        {"groupBoxFg",           "#1E1E1E"},
+        {"groupBoxBorder",       "#D0D0D0"},
+        // Label
+        {"labelFg",              "#1E1E1E"},
+        // Tooltip
+        {"tooltipBg",            "#F5F5F5"},
+        {"tooltipFg",            "#1E1E1E"},
+        {"tooltipBorder",        "#D0D0D0"},
+        // Template card
+        {"cardBg",               "#F0F0F0"},
+        {"cardBorder",           "#D0D0D0"},
+        {"cardFg",               "#333333"},
+        {"cardHoverBorder",      "#007ACC"},
+        {"cardHoverBg",          "#E8E8E8"},
+        {"cardPressedBg",        "#D0E8FF"},
+        // Blank canvas button
+        {"blankBtnBorder",       "#D0D0D0"},
+        {"blankBtnFg",           "#333333"},
+        {"blankBtnHoverBorder",  "#007ACC"},
+        {"blankBtnHoverBg",      "#F0F0F0"},
+        {"blankBtnPressedBg",    "#D0E8FF"},
+        // Start page
+        {"subtitleFg",           "#888888"},
+        // Settings hint
+        {"settingsHintFg",       "gray"},
+    };
+}
 // clang-format on
 
 // ---------------------------------------------------------------------------
-// Build stylesheet string from a color map + template
+// Load the .qss template from Qt resources and substitute {{placeholders}}.
 // ---------------------------------------------------------------------------
-static QString buildStyleSheet(const ThemeColorMap& c) {
-    QString css;
-    css.reserve(4096);
+static QString buildStyleSheet(const ColorMap& colors) {
+    QFile file(":/styles/theme.qss");
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+        return {};
 
-    // Window / Dialog
-    css += QString("QMainWindow, QDialog { background-color: %1; color: %2; }\n")
-               .arg(c.windowBg, c.windowFg);
+    QString css = QString::fromUtf8(file.readAll());
 
-    // Menu bar
-    css += QString("QMenuBar { background-color: %1; color: %2; border-bottom: 1px solid %3; }\n")
-               .arg(c.menuBarBg, c.windowFg, c.menuBarBorder);
-    css += QString("QMenuBar::item:selected { background-color: %1; }\n").arg(c.menuBarSelBg);
-
-    // Menu
-    css += QString("QMenu { background-color: %1; color: %2; border: 1px solid %3; }\n")
-               .arg(c.menuBg, c.windowFg, c.menuBorder);
-    css += QString("QMenu::item:selected { background-color: %1; }\n").arg(c.menuSelBg);
-    css += QString("QMenu::item:disabled { color: %1; }\n").arg(c.menuDisabledFg);
-    css += QString("QMenu::separator { height: 1px; background: %1; margin: 4px 8px; }\n")
-               .arg(c.menuSepColor);
-
-    // Toolbar
-    css += QString(
-               "QToolBar { background-color: %1; border-bottom: 1px solid %2; spacing: 2px; "
-               "padding: 4px; }\n")
-               .arg(c.toolBarBg, c.toolBarBorder);
-    css += QString(
-               "QToolButton { background-color: transparent; color: %1; border: 1px solid "
-               "transparent; border-radius: 4px; padding: 4px 8px; font-size: 11px; }\n")
-               .arg(c.windowFg);
-    css += QString("QToolButton:hover { background-color: %1; border-color: %1; }\n")
-               .arg(c.toolBtnHoverBg);
-    css += QString("QToolButton:pressed { background-color: %1; }\n").arg(c.toolBtnPressedBg);
-    css += QString("QToolButton:disabled { color: %1; }\n").arg(c.toolBtnDisabledFg);
-
-    // Tab bar
-    css += QString("QTabBar { background-color: %1; }\n").arg(c.tabBarBg);
-    css += QString(
-               "QTabBar::tab { background-color: %1; color: %2; border: none; border-right: 1px "
-               "solid %3; padding: 6px 12px; min-width: 100px; max-width: 200px; }\n")
-               .arg(c.tabBg, c.tabFg, c.tabBorder);
-    css += QString(
-               "QTabBar::tab:selected { background-color: %1; color: %2; border-bottom: 2px solid "
-               "#007ACC; }\n")
-               .arg(c.tabSelBg, c.tabSelFg);
-    css += QString("QTabBar::tab:hover:!selected { background-color: %1; color: %2; }\n")
-               .arg(c.tabHoverBg, c.tabHoverFg);
-
-    // Tab close button
-    css += "QTabBar::close-button { subcontrol-position: right; border: none; padding: 2px; "
-           "margin: 2px; background: transparent; width: 14px; height: 14px; }\n";
-    css += QString("QTabBar::close-button:hover { background-color: %1; border-radius: 3px; }\n")
-               .arg(c.tabCloseBtnHoverBg);
-
-    // New tab button
-    css += QString(
-               "QToolButton#newTabBtn { background-color: transparent; color: %1; border: none; "
-               "border-radius: 4px; font-size: 16px; font-weight: bold; }\n")
-               .arg(c.newTabFg);
-    css += QString("QToolButton#newTabBtn:hover { background-color: %1; color: %2; }\n")
-               .arg(c.newTabHoverBg, c.newTabHoverFg);
-
-    // Inline toolbar
-    css += QString("QWidget#inlineToolbar { background-color: %1; border-bottom: 1px solid %2; }\n")
-               .arg(c.inlineToolbarBg, c.inlineToolbarBorder);
-
-    // Light theme adds specific inline toolbar button overrides
-    if (c.inlineToolBtnFg[0] != '\0') {
-        css += QString(
-                   "QWidget#inlineToolbar QToolButton { background-color: transparent; color: %1; "
-                   "border: 1px solid transparent; border-radius: 4px; padding: 4px 8px; "
-                   "font-size: 11px; }\n")
-                   .arg(c.inlineToolBtnFg);
-        css += QString(
-                   "QWidget#inlineToolbar QToolButton:hover { background-color: %1; border-color: "
-                   "%1; }\n")
-                   .arg(c.inlineToolBtnHoverBg);
-        css +=
-            QString("QWidget#inlineToolbar QToolButton:pressed { background-color: %1; }\n")
-                .arg(c.inlineToolBtnPressedBg);
-        css +=
-            QString("QWidget#inlineToolbar QToolButton:disabled { color: %1; }\n")
-                .arg(c.inlineToolBtnDisabledFg);
-        css += QString(
-                   "QWidget#inlineToolbar QToolButton#closePanelBtn { background-color: "
-                   "transparent; color: %1; border: none; border-radius: 3px; padding: 2px; }\n")
-                   .arg(c.inlineCloseBtnFg);
-        css += QString(
-                   "QWidget#inlineToolbar QToolButton#closePanelBtn:hover { background-color: %1; "
-                   "color: %2; }\n")
-                   .arg(c.inlineCloseBtnHoverBg, c.inlineCloseBtnFg);
+    for (auto it = colors.cbegin(); it != colors.cend(); ++it) {
+        css.replace(QLatin1String("{{") + it.key() + QLatin1String("}}"), it.value());
     }
-
-    // Section header
-    css += QString(
-               "QLabel#sectionHeader, QWidget#sectionHeader { background-color: %1; color: %2; "
-               "font-weight: bold; font-size: 12px; padding: 6px 10px; border-bottom: 1px solid "
-               "%3; }\n")
-               .arg(c.headerBg, c.headerFg, c.headerBorder);
-
-    // Toggle panel button
-    css += QString(
-               "QToolButton#togglePanelBtn { background-color: transparent; color: %1; border: "
-               "none; border-radius: 4px; padding: 4px; }\n")
-               .arg(c.toggleBtnFg);
-    css += QString("QToolButton#togglePanelBtn:hover { background-color: %1; color: %2; }\n")
-               .arg(c.toggleBtnHoverBg, c.toggleBtnHoverFg);
-    css += QString("QToolButton#togglePanelBtn:checked { background-color: %1; color: %2; }\n")
-               .arg(c.toggleBtnCheckedBg, c.toggleBtnCheckedFg);
-
-    // Close panel button
-    css += QString(
-               "QToolButton#closePanelBtn { background-color: transparent; color: %1; border: "
-               "none; border-radius: 3px; padding: 2px; }\n")
-               .arg(c.closeBtnFg);
-    css += QString("QToolButton#closePanelBtn:hover { background-color: %1; color: %2; }\n")
-               .arg(c.closeBtnHoverBg, c.closeBtnHoverFg);
-
-    // Tree widget
-    css += QString(
-               "QTreeWidget { background-color: %1; color: %2; border: none; outline: none; "
-               "font-size: 12px; }\n")
-               .arg(c.treeBg, c.treeFg);
-    css += "QTreeWidget::item { padding: 3px 0px; }\n";
-    css += QString("QTreeWidget::item:hover { background-color: %1; }\n").arg(c.treeHoverBg);
-    css += QString("QTreeWidget::item:selected { background-color: %1; color: %2; }\n")
-               .arg(c.treeSelBg, c.treeSelFg);
-    css += QString("QTreeWidget::branch { background-color: %1; }\n").arg(c.treeBranchBg);
-
-    // Status bar
-    css += QString("QStatusBar { background-color: %1; color: %2; font-size: 12px; }\n")
-               .arg(c.statusBarBg, c.statusBarFg);
-    css += "QStatusBar::item { border: none; }\n";
-
-    // Scrollbars (vertical)
-    css += QString(
-               "QScrollBar:vertical { background-color: %1; width: 12px; margin: 0; }\n")
-               .arg(c.scrollBg);
-    css += QString(
-               "QScrollBar::handle:vertical { background-color: %1; min-height: 20px; "
-               "border-radius: 4px; margin: 2px; }\n")
-               .arg(c.scrollHandleBg);
-    css += QString("QScrollBar::handle:vertical:hover { background-color: %1; }\n")
-               .arg(c.scrollHandleHover);
-    css += "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }\n";
-
-    // Scrollbars (horizontal)
-    css += QString(
-               "QScrollBar:horizontal { background-color: %1; height: 12px; margin: 0; }\n")
-               .arg(c.scrollBg);
-    css += QString(
-               "QScrollBar::handle:horizontal { background-color: %1; min-width: 20px; "
-               "border-radius: 4px; margin: 2px; }\n")
-               .arg(c.scrollHandleBg);
-    css += QString("QScrollBar::handle:horizontal:hover { background-color: %1; }\n")
-               .arg(c.scrollHandleHover);
-    css += "QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }\n";
-
-    // Combo box (dark theme only provides these; light theme doesn't)
-    if (c.comboBg[0] != '\0') {
-        css += QString(
-                   "QComboBox { background-color: %1; color: %2; border: 1px solid %3; "
-                   "border-radius: 4px; padding: 4px 8px; }\n")
-                   .arg(c.comboBg, c.comboFg, c.comboBorder);
-        css += QString("QComboBox:hover { border-color: %1; }\n").arg(c.comboHoverBorder);
-        css += "QComboBox::drop-down { border: none; width: 20px; }\n";
-        css += QString(
-                   "QComboBox QAbstractItemView { background-color: %1; color: %2; "
-                   "selection-background-color: %3; border: 1px solid %4; }\n")
-                   .arg(c.comboDropBg, c.comboFg, c.comboDropSelBg, c.comboBorder);
-    }
-
-    // Spin box (dark theme only)
-    if (c.spinBg[0] != '\0') {
-        css += QString(
-                   "QSpinBox { background-color: %1; color: %2; border: 1px solid %3; "
-                   "border-radius: 4px; padding: 4px; }\n")
-                   .arg(c.spinBg, c.spinFg, c.spinBorder);
-        css += QString("QSpinBox:hover { border-color: %1; }\n").arg(c.spinHoverBorder);
-    }
-
-    // Line edit
-    css += QString(
-               "QLineEdit { background-color: %1; color: %2; border: 2px solid %3; border-radius: "
-               "6px; padding: 4px 8px; }\n")
-               .arg(c.lineEditBg, c.lineEditFg, c.lineEditBorder);
-
-    // Checkbox (dark theme only provides full spec)
-    if (c.checkboxBorder[0] != '\0') {
-        css += QString("QCheckBox { color: %1; spacing: 8px; }\n").arg(c.checkboxFg);
-        css += QString(
-                   "QCheckBox::indicator { width: 16px; height: 16px; border: 1px solid %1; "
-                   "border-radius: 3px; background-color: %2; }\n")
-                   .arg(c.checkboxBorder, c.checkboxBg);
-        css += QString(
-                   "QCheckBox::indicator:checked { background-color: %1; border-color: %2; }\n")
-                   .arg(c.checkboxCheckedBg, c.checkboxCheckedBorder);
-    }
-
-    // Push button (dark theme only)
-    if (c.pushBtnBg[0] != '\0') {
-        css += QString(
-                   "QPushButton { background-color: %1; color: %2; border: none; border-radius: "
-                   "4px; padding: 6px 16px; font-size: 12px; }\n")
-                   .arg(c.pushBtnBg, c.pushBtnFg);
-        css += QString("QPushButton:hover { background-color: %1; }\n").arg(c.pushBtnHoverBg);
-        css += QString("QPushButton:pressed { background-color: %1; }\n").arg(c.pushBtnPressedBg);
-    }
-
-    // Group box
-    css += QString(
-               "QGroupBox { color: %1; border: 1px solid %2; border-radius: 4px; margin-top: 8px; "
-               "padding-top: 16px; font-weight: bold; }\n")
-               .arg(c.groupBoxFg, c.groupBoxBorder);
-    css += "QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 4px; }\n";
-
-    // Label
-    css += QString("QLabel { color: %1; }\n").arg(c.labelFg);
-    css += QString("QGroupBox QCheckBox { color: %1; }\n").arg(c.labelFg);
-
-    // Tooltip (dark theme only)
-    if (c.tooltipBg[0] != '\0') {
-        css += QString(
-                   "QToolTip { background-color: %1; color: %2; border: 1px solid %3; padding: "
-                   "4px; }\n")
-                   .arg(c.tooltipBg, c.tooltipFg, c.tooltipBorder);
-    }
-
-    // Template card
-    css += QString(
-               "QPushButton#templateCard { background-color: %1; border: 2px solid %2; "
-               "border-radius: 8px; padding: 8px; font-size: 13px; color: %3; text-align: "
-               "bottom; }\n")
-               .arg(c.cardBg, c.cardBorder, c.cardFg);
-    css += QString(
-               "QPushButton#templateCard:hover { border-color: %1; background-color: %2; }\n")
-               .arg(c.cardHoverBorder, c.cardHoverBg);
-    css +=
-        QString("QPushButton#templateCard:pressed { background-color: %1; }\n")
-            .arg(c.cardPressedBg);
-
-    // Blank canvas button
-    css += QString(
-               "QPushButton#blankCanvasBtn { background-color: transparent; border: 1px solid %1; "
-               "border-radius: 6px; font-size: 13px; color: %2; }\n")
-               .arg(c.blankBtnBorder, c.blankBtnFg);
-    css += QString(
-               "QPushButton#blankCanvasBtn:hover { border-color: %1; background-color: %2; }\n")
-               .arg(c.blankBtnHoverBorder, c.blankBtnHoverBg);
-    css +=
-        QString("QPushButton#blankCanvasBtn:pressed { background-color: %1; }\n")
-            .arg(c.blankBtnPressedBg);
-
-    // Start page labels
-    css += "QLabel#startPageTitle { font-size: 24px; font-weight: bold; margin-bottom: 4px; "
-           "background: transparent; border: none; }\n";
-    css += QString(
-               "QLabel#startPageSubtitle { font-size: 14px; color: %1; margin-bottom: 24px; "
-               "background: transparent; border: none; }\n")
-               .arg(c.subtitleFg);
-
-    // Settings hint
-    css += QString("QLabel#settingsHint { color: %1; font-size: 9pt; }\n").arg(c.settingsHintFg);
-
     return css;
 }
 
 // ---------------------------------------------------------------------------
-// Cache the generated stylesheets so we build them only once per call.
-// Using QByteArray for stable const char* pointers.
+// Public API — cached results for stable const char* pointers.
 // ---------------------------------------------------------------------------
 const char* StyleSheetGenerator::darkStyleSheet() {
-    static QByteArray cached = buildStyleSheet(kDarkMap).toUtf8();
+    static QByteArray cached = buildStyleSheet(darkColors()).toUtf8();
     return cached.constData();
 }
 
 const char* StyleSheetGenerator::lightStyleSheet() {
-    static QByteArray cached = buildStyleSheet(kLightMap).toUtf8();
+    static QByteArray cached = buildStyleSheet(lightColors()).toUtf8();
     return cached.constData();
 }
