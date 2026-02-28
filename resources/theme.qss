@@ -91,17 +91,21 @@ QTabBar {
 QTabBar::tab {
     background-color: {{tabBg}};
     color: {{tabFg}};
-    border: none;
-    border-right: 1px solid {{tabBorder}};
+    border: 1px solid {{tabBorder}};
+    border-bottom: none;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
     padding: 6px 12px;
     min-width: 100px;
     max-width: 200px;
+    margin-right: 2px;
+    margin-top: 2px;
 }
 
 QTabBar::tab:selected {
     background-color: {{tabSelBg}};
     color: {{tabSelFg}};
-    border-bottom: 2px solid #007ACC;
+    margin-top: 0px;
 }
 
 QTabBar::tab:hover:!selected {

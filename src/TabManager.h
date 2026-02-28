@@ -31,6 +31,8 @@ public:
     void closeTab(int index);
     void switchToTab(int index);
     void updateTabText(int index);
+    void updateTabIcon(int index);
+    void updateAllTabIcons();
     bool isTabEmpty(int index) const;
     int findTabByFilePath(const QString& filePath) const;
     bool maybeSaveTab(int index);

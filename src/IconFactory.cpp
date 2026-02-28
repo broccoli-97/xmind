@@ -127,6 +127,69 @@ QIcon IconFactory::makeToolIcon(const QString& name) {
     return icon;
 }
 
+QIcon IconFactory::makeTabIcon(int layoutStyleIndex) {
+    QPixmap pix(16, 16);
+    pix.fill(Qt::transparent);
+    QPainter p(&pix);
+    p.setRenderHint(QPainter::Antialiasing);
+
+    QColor base = ThemeManager::colors().iconBaseColor;
+    QPen pen(base, 1.2);
+    p.setPen(pen);
+    p.setBrush(base);
+
+    if (layoutStyleIndex == 0) {
+        // Bilateral / Mind Map: central rect + 4 radiating lines
+        p.drawRect(6, 6, 4, 4);
+        p.setBrush(Qt::NoBrush);
+        p.drawLine(6, 8, 2, 4);
+        p.drawLine(6, 8, 2, 12);
+        p.drawLine(10, 8, 14, 4);
+        p.drawLine(10, 8, 14, 12);
+    } else if (layoutStyleIndex == 1) {
+        // TopDown / Org Chart: top node + connector + 3 child nodes
+        p.drawRect(6, 1, 4, 3);
+        p.drawRect(1, 11, 3, 3);
+        p.drawRect(6, 11, 3, 3);
+        p.drawRect(12, 11, 3, 3);
+        p.setBrush(Qt::NoBrush);
+        p.drawLine(8, 4, 8, 7);
+        p.drawLine(3, 7, 13, 7);
+        p.drawLine(3, 7, 3, 11);
+        p.drawLine(8, 7, 8, 11);
+        p.drawLine(13, 7, 13, 11);
+    } else if (layoutStyleIndex == 2) {
+        // RightTree / Project Plan: left node + branches right to sub-nodes
+        p.drawRect(1, 6, 4, 4);
+        p.drawRect(9, 2, 4, 3);
+        p.drawRect(9, 11, 4, 3);
+        p.setBrush(Qt::NoBrush);
+        p.drawLine(5, 8, 7, 8);
+        p.drawLine(7, 4, 7, 12);
+        p.drawLine(7, 4, 9, 4);
+        p.drawLine(7, 12, 9, 12);
+    } else {
+        // -1 / Start Page: document outline with fold corner + text lines
+        p.setBrush(Qt::NoBrush);
+        // Document outline
+        p.drawLine(3, 1, 10, 1);
+        p.drawLine(10, 1, 13, 4);
+        p.drawLine(13, 4, 13, 14);
+        p.drawLine(13, 14, 3, 14);
+        p.drawLine(3, 14, 3, 1);
+        // Fold corner
+        p.drawLine(10, 1, 10, 4);
+        p.drawLine(10, 4, 13, 4);
+        // Text lines
+        p.drawLine(5, 7, 11, 7);
+        p.drawLine(5, 9, 11, 9);
+        p.drawLine(5, 11, 9, 11);
+    }
+
+    p.end();
+    return QIcon(pix);
+}
+
 QPixmap IconFactory::makeTemplatePreview(int index, int width, int height) {
     const auto& c = ThemeManager::colors();
     QPixmap pix(width, height);

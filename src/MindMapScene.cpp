@@ -141,7 +141,10 @@ LayoutStyle MindMapScene::layoutStyle() const {
 }
 
 void MindMapScene::setLayoutStyle(LayoutStyle style) {
-    m_layoutStyle = style;
+    if (m_layoutStyle != style) {
+        m_layoutStyle = style;
+        emit layoutStyleChanged();
+    }
 }
 
 EdgeItem* MindMapScene::findEdge(NodeItem* parent, NodeItem* child) const {

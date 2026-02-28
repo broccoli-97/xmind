@@ -63,6 +63,7 @@ public:
 signals:
     void modifiedChanged(bool modified);
     void fileLoaded(const QString& filePath);
+    void layoutStyleChanged();
 
 public slots:
     void addChildToSelected();

@@ -634,4 +634,7 @@ void MainWindow::applyTheme() {
                 btn->setIcon(IconFactory::makeToolIcon(iconName));
         }
     }
+
+    // Refresh tab icons for the new theme
+    m_tabManager->updateAllTabIcons();
 }

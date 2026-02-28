@@ -1,4 +1,6 @@
 #include "TabManager.h"
+#include "IconFactory.h"
+#include "LayoutStyle.h"
 #include "MindMapScene.h"
 #include "MindMapView.h"
 #include "StartPage.h"
@@ -28,6 +30,7 @@ void TabManager::init(QAction* undoAct, QAction* redoAct) {
     m_tabBar->setDocumentMode(true);
     m_tabBar->setDrawBase(false);
     m_tabBar->setExpanding(false);
+    m_tabBar->setIconSize(QSize(16, 16));
     m_tabBar->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
     m_tabBar->setContextMenuPolicy(Qt::CustomContextMenu);
 
@@ -95,6 +98,7 @@ void TabManager::addNewTab() {
             }
 
             updateTabText(tabIdx);
+            updateTabIcon(tabIdx);
             emit currentTabChanged(tabIdx);
         },
         [this]() {
@@ -106,6 +110,7 @@ void TabManager::addNewTab() {
                 m_tabs[tabIdx].stack->setCurrentIndex(1);
 
             updateTabText(tabIdx);
+            updateTabIcon(tabIdx);
             emit currentTabChanged(tabIdx);
         });
     stack->addWidget(startPage); // index 0 — start page
@@ -131,6 +136,7 @@ void TabManager::addTab(MindMapScene* scene, MindMapView* view, QStackedWidget* 
         QString label = filePath.isEmpty() ? "Untitled" : QFileInfo(filePath).fileName();
         m_tabBar->addTab(label);
         m_contentStack->addWidget(stack);
+        updateTabIcon(m_tabs.size() - 1);
     }
 
     m_tabBar->setCurrentIndex(m_tabs.size() - 1);
@@ -154,10 +160,20 @@ void TabManager::connectSceneSignals(MindMapScene* scene) {
             if (m_tabs[i].scene == scene) {
                 m_tabs[i].filePath = path;
                 updateTabText(i);
+                updateTabIcon(i);
                 if (i == m_tabBar->currentIndex()) {
                     m_currentFile = path;
                     emit currentTabChanged(i);
                 }
+                break;
+            }
+        }
+    });
+
+    connect(scene, &MindMapScene::layoutStyleChanged, this, [this, scene]() {
+        for (int i = 0; i < m_tabs.size(); ++i) {
+            if (m_tabs[i].scene == scene) {
+                updateTabIcon(i);
                 break;
             }
         }
@@ -215,6 +231,24 @@ void TabManager::updateTabText(int index) {
     if (tab.scene->isModified())
         label.prepend("* ");
     m_tabBar->setTabText(index, label);
+}
+
+void TabManager::updateTabIcon(int index) {
+    if (index < 0 || index >= m_tabs.size())
+        return;
+    const auto& tab = m_tabs[index];
+    bool onStartPage = false;
+    if (tab.stack) {
+        QWidget* current = tab.stack->currentWidget();
+        onStartPage = current && current->objectName() == "startPage";
+    }
+    int styleIndex = onStartPage ? -1 : static_cast<int>(tab.scene->layoutStyle());
+    m_tabBar->setTabIcon(index, IconFactory::makeTabIcon(styleIndex));
+}
+
+void TabManager::updateAllTabIcons() {
+    for (int i = 0; i < m_tabs.size(); ++i)
+        updateTabIcon(i);
 }
 
 bool TabManager::isTabEmpty(int index) const {
