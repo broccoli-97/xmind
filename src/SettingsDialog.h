@@ -4,6 +4,7 @@
 
 class QComboBox;
 class QCheckBox;
+class QFontComboBox;
 class QSpinBox;
 class QPushButton;
 
@@ -24,5 +25,6 @@ private:
     QPushButton* m_syncSystemThemeBtn;
     QCheckBox* m_autoSaveCheck;
     QSpinBox* m_autoSaveIntervalSpin;
+    QFontComboBox* m_fontFamilyCombo;
     QSpinBox* m_fontSizeSpin;
 };

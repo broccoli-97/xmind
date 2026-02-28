@@ -1,7 +1,10 @@
 #include "AppSettings.h"
 
+#include <QFont>
 #include <QSettings>
 #include <algorithm>
+
+static const char* kDefaultFontFamily = "Segoe UI";
 
 AppSettings& AppSettings::instance() {
     static AppSettings s;
@@ -59,6 +62,18 @@ void AppSettings::setDefaultFontSize(int size) {
     if (old != size) {
         m_settings->setValue("editor/defaultFontSize", size);
         emit defaultFontSizeChanged(size);
+    }
+}
+
+QString AppSettings::defaultFontFamily() const {
+    return m_settings->value("editor/defaultFontFamily", kDefaultFontFamily).toString();
+}
+
+void AppSettings::setDefaultFontFamily(const QString& family) {
+    QString old = m_settings->value("editor/defaultFontFamily", kDefaultFontFamily).toString();
+    if (old != family) {
+        m_settings->setValue("editor/defaultFontFamily", family);
+        emit defaultFontFamilyChanged(family);
     }
 }
 

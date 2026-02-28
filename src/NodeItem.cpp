@@ -15,8 +15,7 @@ NodeItem::NodeItem(const QString& text, QGraphicsItem* parent)
     setFlags(ItemIsMovable | ItemIsSelectable | ItemSendsGeometryChanges);
     setCacheMode(DeviceCoordinateCache);
     m_font.setPointSize(AppSettings::instance().defaultFontSize());
-    m_font.setFamilies(
-        {"Segoe UI", "Microsoft YaHei", "Noto Sans CJK SC", "PingFang SC", "sans-serif"});
+    m_font.setFamily(AppSettings::instance().defaultFontFamily());
     updateGeometry();
 }
 
@@ -36,17 +35,18 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
                      QWidget* /*widget*/) {
     painter->setRenderHint(QPainter::Antialiasing);
 
+    const auto& tc = ThemeManager::colors();
     QColor bg = nodeColor();
 
     // Shadow
     painter->setPen(Qt::NoPen);
-    painter->setBrush(QColor(0, 0, 0, 30));
+    painter->setBrush(tc.nodeShadow);
     painter->drawRoundedRect(m_rect.translated(2, 3), kRadius, kRadius);
 
     // Body
     QColor border = bg.darker(120);
     if (option->state & QStyle::State_Selected) {
-        border = QColor("#FF6F00");
+        border = tc.nodeSelectionBorder;
         painter->setPen(QPen(border, 3));
     } else {
         painter->setPen(QPen(border, 1.5));
@@ -55,7 +55,7 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
     painter->drawRoundedRect(m_rect, kRadius, kRadius);
 
     // Text
-    painter->setPen(Qt::white);
+    painter->setPen(tc.nodeText);
     painter->setFont(m_font);
     painter->drawText(m_rect, Qt::AlignCenter, m_text);
 }

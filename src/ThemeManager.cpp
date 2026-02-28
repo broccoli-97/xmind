@@ -24,29 +24,57 @@
 // Centralized color definitions
 // ---------------------------------------------------------------------------
 static const ThemeColors kLightColors = {
-    /* canvasBackground */ QColor("#F8F9FA"),
-    /* canvasGridDot    */ QColor("#D8D8D8"),
-    /* nodePalette      */
+    /* canvasBackground    */ QColor("#F8F9FA"),
+    /* canvasGridDot       */ QColor("#D8D8D8"),
+    /* nodePalette         */
     {QColor("#1565C0"), QColor("#2E7D32"), QColor("#E65100"), QColor("#6A1B9A"), QColor("#C62828"),
      QColor("#00838F")},
-    /* edgeLightenFactor */ 140,
-    /* editorBackground */ QColor("white"),
-    /* editorBorder     */ QColor("#1565C0"),
-    /* editorText       */ QColor("#333333"),
-    /* iconBaseColor    */ QColor("#3b3838"),
+    /* nodeShadow          */ QColor(0, 0, 0, 30),
+    /* nodeSelectionBorder */ QColor("#FF6F00"),
+    /* nodeText            */ QColor("#FFFFFF"),
+    /* edgeLightenFactor   */ 140,
+    /* lockIconBackground  */ QColor(255, 255, 255, 220),
+    /* lockIconLocked      */ QColor("#FF9800"),
+    /* lockIconUnlocked    */ QColor("#9E9E9E"),
+    /* lockIconKeyhole     */ QColor("#FFFFFF"),
+    /* exportBackground    */ QColor("#FFFFFF"),
+    /* editorBackground    */ QColor("white"),
+    /* editorBorder        */ QColor("#1565C0"),
+    /* editorText          */ QColor("#333333"),
+    /* iconBaseColor       */ QColor("#3b3838"),
+    /* previewBackground   */ QColor("#F0F2F5"),
+    /* previewLine         */ QColor("#B0B0B0"),
+    /* previewNodeBorder   */ QColor("#1565C0"),
+    /* previewNodeFill     */ QColor("#DBEAF8"),
+    /* previewText         */ QColor("#666666"),
+    /* closeIconColor      */ QColor("#5A5A5A"),
 };
 
 static const ThemeColors kDarkColors = {
-    /* canvasBackground */ QColor("#1A1A2E"),
-    /* canvasGridDot    */ QColor("#2A2A4A"),
-    /* nodePalette      */
+    /* canvasBackground    */ QColor("#1A1A2E"),
+    /* canvasGridDot       */ QColor("#2A2A4A"),
+    /* nodePalette         */
     {QColor("#42A5F5"), QColor("#66BB6A"), QColor("#FFA726"), QColor("#AB47BC"), QColor("#EF5350"),
      QColor("#26C6DA")},
-    /* edgeLightenFactor */ 120,
-    /* editorBackground */ QColor("#2A2A4A"),
-    /* editorBorder     */ QColor("#42A5F5"),
-    /* editorText       */ QColor("#E0E0E0"),
-    /* iconBaseColor    */ QColor("#FFFFFF"),
+    /* nodeShadow          */ QColor(0, 0, 0, 50),
+    /* nodeSelectionBorder */ QColor("#FFB300"),
+    /* nodeText            */ QColor("#FFFFFF"),
+    /* edgeLightenFactor   */ 120,
+    /* lockIconBackground  */ QColor(30, 30, 46, 220),
+    /* lockIconLocked      */ QColor("#FFB300"),
+    /* lockIconUnlocked    */ QColor("#757575"),
+    /* lockIconKeyhole     */ QColor("#1A1A2E"),
+    /* exportBackground    */ QColor("#1A1A2E"),
+    /* editorBackground    */ QColor("#2A2A4A"),
+    /* editorBorder        */ QColor("#42A5F5"),
+    /* editorText          */ QColor("#E0E0E0"),
+    /* iconBaseColor       */ QColor("#FFFFFF"),
+    /* previewBackground   */ QColor("#1E1E1E"),
+    /* previewLine         */ QColor("#555555"),
+    /* previewNodeBorder   */ QColor("#007ACC"),
+    /* previewNodeFill     */ QColor("#094771"),
+    /* previewText         */ QColor("#888888"),
+    /* closeIconColor      */ QColor("#CCCCCC"),
 };
 
 bool ThemeManager::isDark() {
@@ -509,6 +537,17 @@ static const char* kLightStyleSheet = R"(
     QWidget#inlineToolbar QToolButton:pressed {
         background-color: #B8D4F0;
     }
+    QWidget#inlineToolbar QToolButton#closePanelBtn {
+        background-color: transparent;
+        color: #1E1E1E;
+        border: none;
+        border-radius: 3px;
+        padding: 2px;
+    }
+    QWidget#inlineToolbar QToolButton#closePanelBtn:hover {
+        background-color: #E1E4E8;
+        color: #1E1E1E;
+    }
     QLabel#sectionHeader, QWidget#sectionHeader {
         background-color: #F0F0F0;
         color: #1E1E1E;
@@ -795,8 +834,9 @@ QIcon ThemeManager::makeToolIcon(const QString& name) {
 // Template preview factory
 // ---------------------------------------------------------------------------
 QPixmap ThemeManager::makeTemplatePreview(int index, int width, int height) {
+    const auto& c = colors();
     QPixmap pix(width, height);
-    pix.fill(QColor("#1E1E1E"));
+    pix.fill(c.previewBackground);
     QPainter p(&pix);
     p.setRenderHint(QPainter::Antialiasing);
 
@@ -804,9 +844,9 @@ QPixmap ThemeManager::makeTemplatePreview(int index, int width, int height) {
     qreal sy = height / 80.0;
     p.scale(sx, sy);
 
-    QPen linePen(QColor("#555555"), 1.5);
-    QPen nodePen(QColor("#007ACC"), 1.5);
-    QBrush nodeBrush(QColor("#094771"));
+    QPen linePen(c.previewLine, 1.5);
+    QPen nodePen(c.previewNodeBorder, 1.5);
+    QBrush nodeBrush(c.previewNodeFill);
 
     if (index == 0) {
         p.setPen(nodePen);
@@ -854,7 +894,7 @@ QPixmap ThemeManager::makeTemplatePreview(int index, int width, int height) {
         p.drawLine(72, 58, 84, 67);
     }
 
-    p.setPen(QColor("#888888"));
+    p.setPen(c.previewText);
     p.setFont(QFont("sans-serif", 7));
     QStringList names = {"Mind Map", "Org Chart", "Project Plan"};
     if (index >= 0 && index < names.size()) {
@@ -878,7 +918,7 @@ static QString generateCloseIcon(bool dark) {
     pix.fill(Qt::transparent);
     QPainter p(&pix);
     p.setRenderHint(QPainter::Antialiasing);
-    QColor color = dark ? QColor("#CCCCCC") : QColor("#5A5A5A");
+    QColor color = dark ? kDarkColors.closeIconColor : kLightColors.closeIconColor;
     QPen pen(color, 1.5);
     pen.setCapStyle(Qt::RoundCap);
     p.setPen(pen);

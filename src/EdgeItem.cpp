@@ -119,13 +119,15 @@ QRectF EdgeItem::lockIconRect() const {
 void EdgeItem::drawLockIcon(QPainter* painter, const QPointF& center, bool locked) const {
     painter->save();
 
-    // White circle background
+    const auto& tc = ThemeManager::colors();
+
+    // Circle background
     painter->setPen(Qt::NoPen);
-    painter->setBrush(QColor(255, 255, 255, 220));
+    painter->setBrush(tc.lockIconBackground);
     painter->drawEllipse(center, 10, 10);
 
     // Lock body
-    QColor bodyColor = locked ? QColor(255, 152, 0) : QColor(158, 158, 158);
+    QColor bodyColor = locked ? tc.lockIconLocked : tc.lockIconUnlocked;
     QRectF body(center.x() - 5, center.y() - 1, 10, 8);
     painter->setBrush(bodyColor);
     painter->setPen(Qt::NoPen);
@@ -155,7 +157,7 @@ void EdgeItem::drawLockIcon(QPainter* painter, const QPointF& center, bool locke
 
     // Keyhole dot
     painter->setPen(Qt::NoPen);
-    painter->setBrush(Qt::white);
+    painter->setBrush(tc.lockIconKeyhole);
     painter->drawEllipse(QPointF(center.x(), center.y() + 2), 1.2, 1.2);
 
     painter->restore();

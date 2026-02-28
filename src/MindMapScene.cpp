@@ -1,9 +1,7 @@
 #include "MindMapScene.h"
-#include "AppSettings.h"
 #include "Commands.h"
 #include "EdgeItem.h"
 #include "NodeItem.h"
-#include "ThemeManager.h"
 #include "ThemeManager.h"
 
 #include <QEasingCurve>
@@ -26,7 +24,6 @@
 #include <QUndoStack>
 #include <QtPrintSupport/QPrinter>
 #include <QtSvg/QSvgGenerator>
-
 
 MindMapScene::MindMapScene(QObject* parent) : QGraphicsScene(parent) {
     m_undoStack = new QUndoStack(this);
@@ -541,7 +538,7 @@ bool MindMapScene::exportToPng(const QString& filePath, int scaleFactor) {
                     static_cast<int>(contentRect.height() * scaleFactor));
 
     QImage image(imageSize, QImage::Format_ARGB32_Premultiplied);
-    image.fill(Qt::white);
+    image.fill(ThemeManager::colors().exportBackground);
 
     QPainter painter(&image);
     painter.setRenderHint(QPainter::Antialiasing);

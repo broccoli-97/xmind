@@ -2,6 +2,7 @@
 
 #include <QByteArray>
 #include <QObject>
+#include <QString>
 
 class QSettings;
 
@@ -25,6 +26,9 @@ public:
     int defaultFontSize() const;
     void setDefaultFontSize(int size);
 
+    QString defaultFontFamily() const;
+    void setDefaultFontFamily(const QString& family);
+
     QByteArray windowGeometry() const;
     void setWindowGeometry(const QByteArray& geometry);
 
@@ -35,6 +39,7 @@ signals:
     void themeChanged(AppTheme theme);
     void autoSaveSettingsChanged();
     void defaultFontSizeChanged(int size);
+    void defaultFontFamilyChanged(const QString& family);
 
 private:
     AppSettings();

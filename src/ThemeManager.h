@@ -13,9 +13,19 @@ struct ThemeColors {
 
     // Node palette (6 levels, wraps around)
     QColor nodePalette[6];
+    QColor nodeShadow;
+    QColor nodeSelectionBorder;
+    QColor nodeText;
 
     // Edge
     int edgeLightenFactor;
+    QColor lockIconBackground;
+    QColor lockIconLocked;
+    QColor lockIconUnlocked;
+    QColor lockIconKeyhole;
+
+    // Export
+    QColor exportBackground;
 
     // Inline editor
     QColor editorBackground;
@@ -24,6 +34,16 @@ struct ThemeColors {
 
     // Icons
     QColor iconBaseColor;
+
+    // Template preview
+    QColor previewBackground;
+    QColor previewLine;
+    QColor previewNodeBorder;
+    QColor previewNodeFill;
+    QColor previewText;
+
+    // Tab close button
+    QColor closeIconColor;
 };
 
 class ThemeManager {

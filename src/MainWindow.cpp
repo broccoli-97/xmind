@@ -282,6 +282,7 @@ void MainWindow::setupToolBar() {
     addSeparator();
 
     auto* exportBtn = new QToolButton(m_toolbarWidget);
+    exportBtn->setProperty("iconName", "export");
     exportBtn->setIcon(ThemeManager::makeToolIcon("export"));
     exportBtn->setText("Export");
     exportBtn->setToolTip("Export mind map");
@@ -305,6 +306,7 @@ void MainWindow::setupToolBar() {
     // Close button at right end of toolbar
     auto* closeBtn = new QToolButton(m_toolbarWidget);
     closeBtn->setIcon(ThemeManager::makeToolIcon("close-panel"));
+    closeBtn->setProperty("iconName", "close-panel");
     closeBtn->setToolTip("Hide Toolbar");
     closeBtn->setAutoRaise(true);
     closeBtn->setFixedSize(20, 20);

@@ -5,6 +5,7 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialogButtonBox>
+#include <QFontComboBox>
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QLabel>
@@ -47,6 +48,8 @@ SettingsDialog::SettingsDialog(QWidget* parent) : QDialog(parent) {
     // Editor group
     auto* editorGroup = new QGroupBox("Editor");
     auto* editorLayout = new QFormLayout(editorGroup);
+    m_fontFamilyCombo = new QFontComboBox;
+    editorLayout->addRow("Default font:", m_fontFamilyCombo);
     m_fontSizeSpin = new QSpinBox;
     m_fontSizeSpin->setRange(8, 24);
     m_fontSizeSpin->setSuffix(" pt");
@@ -77,6 +80,7 @@ void SettingsDialog::loadCurrentSettings() {
     m_autoSaveIntervalSpin->setValue(s.autoSaveIntervalMinutes());
     m_autoSaveIntervalSpin->setEnabled(s.autoSaveEnabled());
     m_fontSizeSpin->setValue(s.defaultFontSize());
+    m_fontFamilyCombo->setCurrentFont(QFont(s.defaultFontFamily()));
 }
 
 void SettingsDialog::onSyncSystemTheme() {
@@ -91,4 +95,5 @@ void SettingsDialog::apply() {
     s.setAutoSaveEnabled(m_autoSaveCheck->isChecked());
     s.setAutoSaveIntervalMinutes(m_autoSaveIntervalSpin->value());
     s.setDefaultFontSize(m_fontSizeSpin->value());
+    s.setDefaultFontFamily(m_fontFamilyCombo->currentFont().family());
 }
