@@ -60,17 +60,27 @@ QIcon IconFactory::makeToolIcon(const QString& name) {
         p.setPen(thickPen);
         p.drawLine(22, 21, 28, 27);
     } else if (name == "undo") {
-        p.drawPath(QPainterPath());
-        p.setPen(pen);
-        p.drawArc(8, 8, 14, 14, 0, 180 * 16);
-        p.drawLine(8, 15, 4, 11);
-        p.drawLine(8, 15, 6, 20);
+        QPen curvePen(baseColor, 2.5, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+        p.setPen(curvePen);
+        // Smooth swooping curve from bottom-right up and to the left
+        QPainterPath curve;
+        curve.moveTo(25, 23);
+        curve.cubicTo(27, 5, 14, 12, 7, 12);
+        p.drawPath(curve);
+        // Chevron arrowhead pointing left
+        p.drawLine(7, 12, 12, 7);
+        p.drawLine(7, 12, 12, 17);
     } else if (name == "redo") {
-        p.drawPath(QPainterPath());
-        p.setPen(pen);
-        p.drawArc(10, 8, 14, 14, 180 * 16, 180 * 16);
-        p.drawLine(24, 15, 28, 11);
-        p.drawLine(24, 15, 26, 20);
+        QPen curvePen(baseColor, 2.5, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+        p.setPen(curvePen);
+        // Smooth swooping curve from bottom-left up and to the right
+        QPainterPath curve;
+        curve.moveTo(7, 23);
+        curve.cubicTo(5, 5, 18, 12, 25, 12);
+        p.drawPath(curve);
+        // Chevron arrowhead pointing right
+        p.drawLine(25, 12, 20, 7);
+        p.drawLine(25, 12, 20, 17);
     } else if (name == "fit-view") {
         p.drawLine(4, 10, 4, 4);
         p.drawLine(4, 4, 10, 4);
@@ -120,7 +130,7 @@ QIcon IconFactory::makeToolIcon(const QString& name) {
 QPixmap IconFactory::makeTemplatePreview(int index, int width, int height) {
     const auto& c = ThemeManager::colors();
     QPixmap pix(width, height);
-    pix.fill(c.previewBackground);
+    pix.fill(Qt::transparent);
     QPainter p(&pix);
     p.setRenderHint(QPainter::Antialiasing);
 
@@ -135,47 +145,47 @@ QPixmap IconFactory::makeTemplatePreview(int index, int width, int height) {
     if (index == 0) {
         p.setPen(nodePen);
         p.setBrush(nodeBrush);
-        p.drawRoundedRect(42, 30, 36, 18, 4, 4);
+        p.drawRoundedRect(42, 26, 36, 18, 4, 4);
         p.setPen(linePen);
-        p.drawLine(60, 30, 90, 12);
-        p.drawLine(60, 48, 90, 66);
-        p.drawLine(42, 30, 18, 14);
-        p.drawLine(42, 48, 18, 66);
+        p.drawLine(60, 26, 90, 10);
+        p.drawLine(60, 44, 90, 58);
+        p.drawLine(42, 26, 18, 10);
+        p.drawLine(42, 44, 18, 58);
         p.setPen(nodePen);
-        p.drawRoundedRect(84, 6, 28, 12, 3, 3);
-        p.drawRoundedRect(84, 60, 28, 12, 3, 3);
-        p.drawRoundedRect(4, 8, 28, 12, 3, 3);
-        p.drawRoundedRect(4, 60, 28, 12, 3, 3);
+        p.drawRoundedRect(84, 4, 28, 12, 3, 3);
+        p.drawRoundedRect(84, 52, 28, 12, 3, 3);
+        p.drawRoundedRect(4, 4, 28, 12, 3, 3);
+        p.drawRoundedRect(4, 52, 28, 12, 3, 3);
     } else if (index == 1) {
         p.setPen(nodePen);
         p.setBrush(nodeBrush);
-        p.drawRoundedRect(42, 6, 36, 14, 3, 3);
-        p.drawRoundedRect(8, 50, 28, 14, 3, 3);
-        p.drawRoundedRect(46, 50, 28, 14, 3, 3);
-        p.drawRoundedRect(84, 50, 28, 14, 3, 3);
+        p.drawRoundedRect(42, 4, 36, 14, 3, 3);
+        p.drawRoundedRect(8, 46, 28, 14, 3, 3);
+        p.drawRoundedRect(46, 46, 28, 14, 3, 3);
+        p.drawRoundedRect(84, 46, 28, 14, 3, 3);
         p.setPen(linePen);
-        p.drawLine(60, 20, 60, 32);
-        p.drawLine(22, 32, 98, 32);
-        p.drawLine(22, 32, 22, 50);
-        p.drawLine(60, 32, 60, 50);
-        p.drawLine(98, 32, 98, 50);
+        p.drawLine(60, 18, 60, 28);
+        p.drawLine(22, 28, 98, 28);
+        p.drawLine(22, 28, 22, 46);
+        p.drawLine(60, 28, 60, 46);
+        p.drawLine(98, 28, 98, 46);
     } else if (index == 2) {
         p.setPen(nodePen);
         p.setBrush(nodeBrush);
-        p.drawRoundedRect(4, 30, 28, 14, 3, 3);
-        p.drawRoundedRect(44, 10, 28, 12, 3, 3);
-        p.drawRoundedRect(44, 52, 28, 12, 3, 3);
-        p.drawRoundedRect(84, 4, 28, 10, 2, 2);
-        p.drawRoundedRect(84, 20, 28, 10, 2, 2);
-        p.drawRoundedRect(84, 46, 28, 10, 2, 2);
-        p.drawRoundedRect(84, 62, 28, 10, 2, 2);
+        p.drawRoundedRect(4, 26, 28, 14, 3, 3);
+        p.drawRoundedRect(44, 8, 28, 12, 3, 3);
+        p.drawRoundedRect(44, 46, 28, 12, 3, 3);
+        p.drawRoundedRect(84, 2, 28, 10, 2, 2);
+        p.drawRoundedRect(84, 18, 28, 10, 2, 2);
+        p.drawRoundedRect(84, 40, 28, 10, 2, 2);
+        p.drawRoundedRect(84, 54, 28, 10, 2, 2);
         p.setPen(linePen);
-        p.drawLine(32, 37, 44, 16);
-        p.drawLine(32, 37, 44, 58);
-        p.drawLine(72, 16, 84, 9);
-        p.drawLine(72, 16, 84, 25);
-        p.drawLine(72, 58, 84, 51);
-        p.drawLine(72, 58, 84, 67);
+        p.drawLine(32, 33, 44, 14);
+        p.drawLine(32, 33, 44, 52);
+        p.drawLine(72, 14, 84, 7);
+        p.drawLine(72, 14, 84, 23);
+        p.drawLine(72, 52, 84, 45);
+        p.drawLine(72, 52, 84, 59);
     }
 
     p.setPen(c.previewText);

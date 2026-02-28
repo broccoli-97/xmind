@@ -268,11 +268,17 @@ QTreeWidget::branch {
 QStatusBar {
     background-color: {{statusBarBg}};
     color: {{statusBarFg}};
+    border-top: 1px solid {{statusBarBorder}};
     font-size: 12px;
 }
 
 QStatusBar::item {
     border: none;
+}
+
+QStatusBar QLabel {
+    color: {{statusBarFg}};
+    background: transparent;
 }
 
 /* ---------------------------------------------------------------------------
@@ -464,9 +470,7 @@ QPushButton#templateCard {
     border: 2px solid {{cardBorder}};
     border-radius: 8px;
     padding: 8px;
-    font-size: 13px;
     color: {{cardFg}};
-    text-align: bottom;
 }
 
 QPushButton#templateCard:hover {

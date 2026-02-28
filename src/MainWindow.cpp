@@ -16,6 +16,7 @@
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QKeySequence>
+#include <QLabel>
 #include <QMenu>
 #include <QMenuBar>
 #include <QSignalBlocker>
@@ -85,9 +86,13 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 
     restoreWindowState();
 
-    statusBar()->showMessage("Enter: Add Child  |  Ctrl+Enter: Add Sibling  |  Del: Delete  |  "
-                             "F2/Double-click: Edit  |  Ctrl+L: Auto Layout  |  Scroll: Zoom  |  "
-                             "Middle/Right-drag: Pan");
+    m_statusHelpLabel = new QLabel(
+        "Enter: Add Child  |  Ctrl+Enter: Add Sibling  |  Del: Delete  |  "
+        "F2/Double-click: Edit  |  Ctrl+L: Auto Layout  |  Scroll: Zoom  |  "
+        "Middle/Right-drag: Pan",
+        this);
+    m_statusHelpLabel->setAlignment(Qt::AlignCenter);
+    statusBar()->addWidget(m_statusHelpLabel, 1);
 }
 
 // ---------------------------------------------------------------------------

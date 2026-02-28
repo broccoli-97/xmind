@@ -5,6 +5,7 @@
 class TabManager;
 class FileManager;
 class OutlineWidget;
+class QLabel;
 class QTimer;
 class QSplitter;
 class QToolButton;
@@ -50,6 +51,7 @@ private:
     QToolButton* m_toggleToolbarBtn = nullptr;
     QToolButton* m_undoBtn = nullptr;
     QToolButton* m_redoBtn = nullptr;
+    QLabel* m_statusHelpLabel = nullptr;
 
     QAction* m_toggleToolbarAct = nullptr;
     QAction* m_toggleOutlineAct = nullptr;
