@@ -1,7 +1,7 @@
 #include "StartPage.h"
+#include "IconFactory.h"
 #include "MindMapScene.h"
 #include "NodeItem.h"
-#include "ThemeManager.h"
 
 #include <QUndoStack>
 
@@ -42,7 +42,7 @@ QWidget* StartPage::create(QObject* /*receiver*/, std::function<void(int)> onTem
         card->setObjectName("templateCard");
         card->setFixedSize(180, 140);
         card->setIconSize(QSize(160, 106));
-        card->setIcon(QIcon(ThemeManager::makeTemplatePreview(i, 160, 106)));
+        card->setIcon(QIcon(IconFactory::makeTemplatePreview(i, 160, 106)));
         card->setText(templateNames[i]);
         card->setToolTip(templateNames[i]);
         QObject::connect(card, &QPushButton::clicked, page, [onTemplate, i]() { onTemplate(i); });

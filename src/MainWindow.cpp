@@ -1,6 +1,7 @@
 #include "MainWindow.h"
 #include "AppSettings.h"
 #include "FileManager.h"
+#include "IconFactory.h"
 #include "MindMapScene.h"
 #include "MindMapView.h"
 #include "OutlineWidget.h"
@@ -109,7 +110,7 @@ void MainWindow::setupCentralLayout() {
 
     // Toggle buttons at right end of tab bar row
     m_toggleOutlineBtn = new QToolButton(this);
-    m_toggleOutlineBtn->setIcon(ThemeManager::makeToolIcon("sidebar"));
+    m_toggleOutlineBtn->setIcon(IconFactory::makeToolIcon("sidebar"));
     m_toggleOutlineBtn->setProperty("iconName", "sidebar");
     m_toggleOutlineBtn->setToolTip("Toggle Outline Panel");
     m_toggleOutlineBtn->setCheckable(true);
@@ -121,7 +122,7 @@ void MainWindow::setupCentralLayout() {
     tabBarRow->addWidget(m_toggleOutlineBtn);
 
     m_toggleToolbarBtn = new QToolButton(this);
-    m_toggleToolbarBtn->setIcon(ThemeManager::makeToolIcon("toolbar"));
+    m_toggleToolbarBtn->setIcon(IconFactory::makeToolIcon("toolbar"));
     m_toggleToolbarBtn->setProperty("iconName", "toolbar");
     m_toggleToolbarBtn->setToolTip("Toggle Toolbar");
     m_toggleToolbarBtn->setCheckable(true);
@@ -210,7 +211,7 @@ void MainWindow::setupToolBar() {
                          const QString& tooltip) -> QToolButton* {
         auto* btn = new QToolButton(m_toolbarWidget);
         btn->setProperty("iconName", iconName);
-        btn->setIcon(ThemeManager::makeToolIcon(iconName));
+        btn->setIcon(IconFactory::makeToolIcon(iconName));
         btn->setText(text);
         btn->setToolTip(tooltip);
         btn->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
@@ -255,43 +256,43 @@ void MainWindow::setupToolBar() {
 
     auto* addChildBtn = addButton("add-child", "Add Child", "Add a child node (Enter)");
     connect(addChildBtn, &QToolButton::clicked, this,
-            [this]() { m_tabManager->currentScene()->addChildToSelected(); });
+            [this]() { if (auto* s = m_tabManager->currentScene()) s->addChildToSelected(); });
 
     auto* addSiblingBtn =
         addButton("add-sibling", "Add Sibling", "Add a sibling node (Ctrl+Enter)");
     connect(addSiblingBtn, &QToolButton::clicked, this,
-            [this]() { m_tabManager->currentScene()->addSiblingToSelected(); });
+            [this]() { if (auto* s = m_tabManager->currentScene()) s->addSiblingToSelected(); });
 
     auto* deleteBtn = addButton("delete", "Delete", "Delete selected node (Del)");
     connect(deleteBtn, &QToolButton::clicked, this,
-            [this]() { m_tabManager->currentScene()->deleteSelected(); });
+            [this]() { if (auto* s = m_tabManager->currentScene()) s->deleteSelected(); });
 
     addSeparator();
 
     auto* layoutBtn =
         addButton("auto-layout", "Auto Layout", "Automatically arrange all nodes (Ctrl+L)");
     connect(layoutBtn, &QToolButton::clicked, this,
-            [this]() { m_tabManager->currentScene()->autoLayout(); });
+            [this]() { if (auto* s = m_tabManager->currentScene()) s->autoLayout(); });
 
     addSeparator();
 
     auto* zoomInBtn = addButton("zoom-in", "Zoom In", "Zoom in (Ctrl++)");
     connect(zoomInBtn, &QToolButton::clicked, this,
-            [this]() { m_tabManager->currentView()->zoomIn(); });
+            [this]() { if (auto* v = m_tabManager->currentView()) v->zoomIn(); });
 
     auto* zoomOutBtn = addButton("zoom-out", "Zoom Out", "Zoom out (Ctrl+-)");
     connect(zoomOutBtn, &QToolButton::clicked, this,
-            [this]() { m_tabManager->currentView()->zoomOut(); });
+            [this]() { if (auto* v = m_tabManager->currentView()) v->zoomOut(); });
 
     auto* fitBtn = addButton("fit-view", "Fit View", "Fit all nodes in view (Ctrl+0)");
     connect(fitBtn, &QToolButton::clicked, this,
-            [this]() { m_tabManager->currentView()->zoomToFit(); });
+            [this]() { if (auto* v = m_tabManager->currentView()) v->zoomToFit(); });
 
     addSeparator();
 
     auto* exportBtn = new QToolButton(m_toolbarWidget);
     exportBtn->setProperty("iconName", "export");
-    exportBtn->setIcon(ThemeManager::makeToolIcon("export"));
+    exportBtn->setIcon(IconFactory::makeToolIcon("export"));
     exportBtn->setText("Export");
     exportBtn->setToolTip("Export mind map");
     exportBtn->setPopupMode(QToolButton::InstantPopup);
@@ -313,7 +314,7 @@ void MainWindow::setupToolBar() {
 
     // Close button at right end of toolbar
     auto* closeBtn = new QToolButton(m_toolbarWidget);
-    closeBtn->setIcon(ThemeManager::makeToolIcon("close-panel"));
+    closeBtn->setIcon(IconFactory::makeToolIcon("close-panel"));
     closeBtn->setProperty("iconName", "close-panel");
     closeBtn->setToolTip("Hide Toolbar");
     closeBtn->setAutoRaise(true);
@@ -403,7 +404,7 @@ void MainWindow::setupMenuBar() {
     auto* deleteAct = editMenu->addAction("&Delete");
     deleteAct->setToolTip("Delete selected node (Del)");
     connect(deleteAct, &QAction::triggered, this,
-            [this]() { m_tabManager->currentScene()->deleteSelected(); });
+            [this]() { if (auto* s = m_tabManager->currentScene()) s->deleteSelected(); });
 
     // ---- View menu ----
     auto* viewMenu = menuBar()->addMenu("&View");
@@ -411,17 +412,17 @@ void MainWindow::setupMenuBar() {
     auto* zoomInAct = viewMenu->addAction("Zoom &In");
     zoomInAct->setShortcut(QKeySequence::ZoomIn);
     connect(zoomInAct, &QAction::triggered, this,
-            [this]() { m_tabManager->currentView()->zoomIn(); });
+            [this]() { if (auto* v = m_tabManager->currentView()) v->zoomIn(); });
 
     auto* zoomOutAct = viewMenu->addAction("Zoom &Out");
     zoomOutAct->setShortcut(QKeySequence::ZoomOut);
     connect(zoomOutAct, &QAction::triggered, this,
-            [this]() { m_tabManager->currentView()->zoomOut(); });
+            [this]() { if (auto* v = m_tabManager->currentView()) v->zoomOut(); });
 
     auto* fitAct = viewMenu->addAction("&Fit to View");
     fitAct->setShortcut(QKeySequence("Ctrl+0"));
     connect(fitAct, &QAction::triggered, this,
-            [this]() { m_tabManager->currentView()->zoomToFit(); });
+            [this]() { if (auto* v = m_tabManager->currentView()) v->zoomToFit(); });
 
     viewMenu->addSeparator();
 
@@ -465,7 +466,7 @@ void MainWindow::setupMenuBar() {
     auto* autoLayoutAct = layoutMenu->addAction("&Auto Layout");
     autoLayoutAct->setShortcut(QKeySequence("Ctrl+L"));
     connect(autoLayoutAct, &QAction::triggered, this,
-            [this]() { m_tabManager->currentScene()->autoLayout(); });
+            [this]() { if (auto* s = m_tabManager->currentScene()) s->autoLayout(); });
 
     // ---- Insert menu ----
     auto* insertMenu = menuBar()->addMenu("&Insert");
@@ -473,12 +474,12 @@ void MainWindow::setupMenuBar() {
     m_addChildAct = insertMenu->addAction("Add &Child");
     m_addChildAct->setToolTip("Add a child node (Enter)");
     connect(m_addChildAct, &QAction::triggered, this,
-            [this]() { m_tabManager->currentScene()->addChildToSelected(); });
+            [this]() { if (auto* s = m_tabManager->currentScene()) s->addChildToSelected(); });
 
     m_addSiblingAct = insertMenu->addAction("Add &Sibling");
     m_addSiblingAct->setToolTip("Add a sibling node (Ctrl+Enter)");
     connect(m_addSiblingAct, &QAction::triggered, this,
-            [this]() { m_tabManager->currentScene()->addSiblingToSelected(); });
+            [this]() { if (auto* s = m_tabManager->currentScene()) s->addSiblingToSelected(); });
 
     // ---- Style menu ----
     auto* styleMenu = menuBar()->addMenu("&Style");
@@ -614,9 +615,9 @@ void MainWindow::applyTheme() {
     // Refresh icons that are generated dynamically so they match the new theme
     // Update toggle buttons
     if (m_toggleOutlineBtn)
-        m_toggleOutlineBtn->setIcon(ThemeManager::makeToolIcon("sidebar"));
+        m_toggleOutlineBtn->setIcon(IconFactory::makeToolIcon("sidebar"));
     if (m_toggleToolbarBtn)
-        m_toggleToolbarBtn->setIcon(ThemeManager::makeToolIcon("toolbar"));
+        m_toggleToolbarBtn->setIcon(IconFactory::makeToolIcon("toolbar"));
 
     // Update all tool buttons that expose an "iconName" property
     const auto btns = this->findChildren<QToolButton*>();
@@ -625,7 +626,7 @@ void MainWindow::applyTheme() {
         if (prop.isValid() && prop.canConvert<QString>()) {
             QString iconName = prop.toString();
             if (!iconName.isEmpty())
-                btn->setIcon(ThemeManager::makeToolIcon(iconName));
+                btn->setIcon(IconFactory::makeToolIcon(iconName));
         }
     }
 }

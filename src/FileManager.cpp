@@ -114,97 +114,77 @@ void FileManager::saveFileAs() {
     emit m_tabManager->currentTabChanged(cur);
 }
 
-void FileManager::exportAsText() {
-    QString filePath = QFileDialog::getSaveFileName(m_window, "Export as Text", QString(),
-                                                    "Text Files (*.txt);;All Files (*)");
+// ---------------------------------------------------------------------------
+// Common export helper
+// ---------------------------------------------------------------------------
+void FileManager::doExport(const QString& dialogTitle, const QString& filter,
+                           const QString& defaultExt,
+                           std::function<bool(const QString&)> exporter,
+                           const QString& errorLabel) {
+    QString filePath = QFileDialog::getSaveFileName(m_window, dialogTitle, QString(), filter);
     if (filePath.isEmpty())
         return;
 
-    if (!filePath.endsWith(".txt", Qt::CaseInsensitive))
-        filePath += ".txt";
+    if (!filePath.endsWith(defaultExt, Qt::CaseInsensitive))
+        filePath += defaultExt;
 
-    QFile file(filePath);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QMessageBox::warning(m_window, "XMind", "Could not write file:\n" + filePath);
+    if (!exporter(filePath)) {
+        QMessageBox::warning(m_window, "XMind",
+                             QString("Could not export %1:\n%2").arg(errorLabel, filePath));
         return;
     }
-    file.write(m_tabManager->currentScene()->exportToText().toUtf8());
-    file.close();
-
     if (auto* mw = qobject_cast<QMainWindow*>(m_window))
         mw->statusBar()->showMessage("Exported to " + filePath, 3000);
+}
+
+void FileManager::exportAsText() {
+    doExport("Export as Text", "Text Files (*.txt);;All Files (*)", ".txt",
+             [this](const QString& path) {
+                 QFile file(path);
+                 if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+                     return false;
+                 file.write(m_tabManager->currentScene()->exportToText().toUtf8());
+                 file.close();
+                 return true;
+             },
+             "file");
 }
 
 void FileManager::exportAsMarkdown() {
-    QString filePath = QFileDialog::getSaveFileName(m_window, "Export as Markdown", QString(),
-                                                    "Markdown Files (*.md);;All Files (*)");
-    if (filePath.isEmpty())
-        return;
-
-    if (!filePath.endsWith(".md", Qt::CaseInsensitive))
-        filePath += ".md";
-
-    QFile file(filePath);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QMessageBox::warning(m_window, "XMind", "Could not write file:\n" + filePath);
-        return;
-    }
-    file.write(m_tabManager->currentScene()->exportToMarkdown().toUtf8());
-    file.close();
-
-    if (auto* mw = qobject_cast<QMainWindow*>(m_window))
-        mw->statusBar()->showMessage("Exported to " + filePath, 3000);
+    doExport("Export as Markdown", "Markdown Files (*.md);;All Files (*)", ".md",
+             [this](const QString& path) {
+                 QFile file(path);
+                 if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+                     return false;
+                 file.write(m_tabManager->currentScene()->exportToMarkdown().toUtf8());
+                 file.close();
+                 return true;
+             },
+             "file");
 }
 
 void FileManager::exportAsPng() {
-    QString filePath = QFileDialog::getSaveFileName(m_window, "Export as PNG", QString(),
-                                                    "PNG Images (*.png);;All Files (*)");
-    if (filePath.isEmpty())
-        return;
-
-    if (!filePath.endsWith(".png", Qt::CaseInsensitive))
-        filePath += ".png";
-
-    if (!m_tabManager->currentScene()->exportToPng(filePath)) {
-        QMessageBox::warning(m_window, "XMind", "Could not export PNG:\n" + filePath);
-        return;
-    }
-    if (auto* mw = qobject_cast<QMainWindow*>(m_window))
-        mw->statusBar()->showMessage("Exported to " + filePath, 3000);
+    doExport("Export as PNG", "PNG Images (*.png);;All Files (*)", ".png",
+             [this](const QString& path) {
+                 return m_tabManager->currentScene()->exportToPng(path);
+             },
+             "PNG");
 }
 
 void FileManager::exportAsSvg() {
-    QString filePath = QFileDialog::getSaveFileName(m_window, "Export as SVG", QString(),
-                                                    "SVG Files (*.svg);;All Files (*)");
-    if (filePath.isEmpty())
-        return;
-
-    if (!filePath.endsWith(".svg", Qt::CaseInsensitive))
-        filePath += ".svg";
-
-    if (!m_tabManager->currentScene()->exportToSvg(filePath)) {
-        QMessageBox::warning(m_window, "XMind", "Could not export SVG:\n" + filePath);
-        return;
-    }
-    if (auto* mw = qobject_cast<QMainWindow*>(m_window))
-        mw->statusBar()->showMessage("Exported to " + filePath, 3000);
+    doExport("Export as SVG", "SVG Files (*.svg);;All Files (*)", ".svg",
+             [this](const QString& path) {
+                 return m_tabManager->currentScene()->exportToSvg(path);
+             },
+             "SVG");
 }
 
 void FileManager::exportAsPdf() {
-    QString filePath = QFileDialog::getSaveFileName(m_window, "Export as PDF", QString(),
-                                                    "PDF Files (*.pdf);;All Files (*)");
-    if (filePath.isEmpty())
-        return;
-
-    if (!filePath.endsWith(".pdf", Qt::CaseInsensitive))
-        filePath += ".pdf";
-
-    if (!m_tabManager->currentScene()->exportToPdf(filePath)) {
-        QMessageBox::warning(m_window, "XMind", "Could not export PDF:\n" + filePath);
-        return;
-    }
-    if (auto* mw = qobject_cast<QMainWindow*>(m_window))
-        mw->statusBar()->showMessage("Exported to " + filePath, 3000);
+    doExport("Export as PDF", "PDF Files (*.pdf);;All Files (*)", ".pdf",
+             [this](const QString& path) {
+                 return m_tabManager->currentScene()->exportToPdf(path);
+             },
+             "PDF");
 }
 
 void FileManager::importFromText() {

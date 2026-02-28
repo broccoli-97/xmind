@@ -14,6 +14,9 @@ set(SOURCES
     src/main.cpp
     src/MainWindow.cpp
     src/ThemeManager.cpp
+    src/StyleSheetGenerator.cpp
+    src/IconFactory.cpp
+    src/LayoutEngine.cpp
     src/TabManager.cpp
     src/FileManager.cpp
     src/OutlineWidget.cpp
@@ -30,6 +33,10 @@ set(SOURCES
 set(HEADERS
     src/MainWindow.h
     src/ThemeManager.h
+    src/StyleSheetGenerator.h
+    src/IconFactory.h
+    src/LayoutEngine.h
+    src/LayoutStyle.h
     src/TabManager.h
     src/FileManager.h
     src/OutlineWidget.h

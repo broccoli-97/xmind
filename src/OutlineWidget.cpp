@@ -1,8 +1,8 @@
 #include "OutlineWidget.h"
+#include "IconFactory.h"
 #include "MindMapScene.h"
 #include "MindMapView.h"
 #include "NodeItem.h"
-#include "ThemeManager.h"
 
 #include <QHBoxLayout>
 #include <QLabel>
@@ -29,7 +29,7 @@ OutlineWidget::OutlineWidget(QWidget* parent) : QWidget(parent) {
     headerLayout->addStretch();
 
     auto* closeBtn = new QToolButton();
-    closeBtn->setIcon(ThemeManager::makeToolIcon("close-panel"));
+    closeBtn->setIcon(IconFactory::makeToolIcon("close-panel"));
     closeBtn->setProperty("iconName", "close-panel");
     closeBtn->setToolTip("Hide Outline");
     closeBtn->setAutoRaise(true);

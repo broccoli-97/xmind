@@ -1,5 +1,6 @@
 #include "Commands.h"
 #include "EdgeItem.h"
+#include "LayoutEngine.h"
 #include "MindMapScene.h"
 #include "NodeItem.h"
 
@@ -29,23 +30,12 @@ void AddNodeCommand::redo() {
         m_scene->addItem(edge);
         m_parent->addEdge(edge);
         m_node->addEdge(edge);
-        m_scene->m_edges.append(edge);
+        m_scene->registerEdge(edge);
         m_edge = edge;
 
         // Position near parent
-        QPointF parentPos = m_parent->pos();
-        int childCount = m_parent->childNodes().size();
-        qreal yOffset = (childCount - 1) * 60.0;
-
-        if (m_scene->layoutStyle() == LayoutStyle::TopDown) {
-            m_node->setPos(parentPos.x() + (childCount - 1) * 60.0, parentPos.y() + 100.0);
-        } else if (m_scene->layoutStyle() == LayoutStyle::RightTree) {
-            m_node->setPos(parentPos.x() + 220.0, parentPos.y() + yOffset);
-        } else {
-            qreal xDir = (m_parent == m_scene->m_rootNode) ? ((childCount % 2 == 1) ? 1.0 : -1.0)
-                                                           : (parentPos.x() >= 0 ? 1.0 : -1.0);
-            m_node->setPos(parentPos.x() + xDir * 220.0, parentPos.y() + yOffset);
-        }
+        m_node->setPos(LayoutEngine::initialChildPosition(m_parent, m_scene->rootNode(),
+                                                          m_scene->layoutStyle()));
 
         QObject::connect(m_node, &NodeItem::doubleClicked, m_scene, &MindMapScene::startEditing);
     } else {
@@ -55,7 +45,7 @@ void AddNodeCommand::redo() {
         m_parent->addChild(m_node);
         m_parent->addEdge(m_edge);
         m_node->addEdge(m_edge);
-        m_scene->m_edges.append(m_edge);
+        m_scene->registerEdge(m_edge);
         m_edge->updatePath();
     }
 
@@ -69,7 +59,7 @@ void AddNodeCommand::undo() {
     m_parent->removeChild(m_node);
     m_parent->removeEdge(m_edge);
     m_node->removeEdge(m_edge);
-    m_scene->m_edges.removeOne(m_edge);
+    m_scene->unregisterEdge(m_edge);
     m_scene->removeItem(m_edge);
     m_scene->removeItem(m_node);
 
@@ -106,11 +96,8 @@ RemoveNodeCommand::NodeSnapshot RemoveNodeCommand::captureSubtree(NodeItem* node
 
     // Find the edge connecting this node to its parent
     snap.edge = nullptr;
-    for (auto* edge : m_scene->m_edges) {
-        if (edge->sourceNode() == snap.parent && edge->targetNode() == node) {
-            snap.edge = edge;
-            break;
-        }
+    if (snap.parent) {
+        snap.edge = m_scene->findEdge(snap.parent, node);
     }
 
     // Record index in parent's child list
@@ -137,7 +124,7 @@ void RemoveNodeCommand::removeSubtree(const NodeSnapshot& snap) {
     if (snap.edge) {
         snap.edge->sourceNode()->removeEdge(snap.edge);
         snap.edge->targetNode()->removeEdge(snap.edge);
-        m_scene->m_edges.removeOne(snap.edge);
+        m_scene->unregisterEdge(snap.edge);
         m_scene->removeItem(snap.edge);
     }
 
@@ -163,7 +150,7 @@ void RemoveNodeCommand::restoreSubtree(const NodeSnapshot& snap) {
         m_scene->addItem(snap.edge);
         snap.parent->addEdge(snap.edge);
         snap.node->addEdge(snap.edge);
-        m_scene->m_edges.append(snap.edge);
+        m_scene->registerEdge(snap.edge);
         snap.edge->updatePath();
     }
 

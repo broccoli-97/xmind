@@ -1,5 +1,7 @@
 #pragma once
 
+#include "LayoutEngine.h"
+
 #include <QGraphicsScene>
 #include <QMap>
 
@@ -10,16 +12,9 @@ class QGraphicsProxyWidget;
 class QJsonObject;
 class QJsonArray;
 class QUndoStack;
-class AddNodeCommand;
-class RemoveNodeCommand;
-
-enum class LayoutStyle { Bilateral = 0, TopDown = 1, RightTree = 2 };
 
 class MindMapScene : public QGraphicsScene {
     Q_OBJECT
-
-    friend class AddNodeCommand;
-    friend class RemoveNodeCommand;
 
 public:
     explicit MindMapScene(QObject* parent = nullptr);
@@ -58,6 +53,13 @@ public:
     bool isModified() const;
     void setModified(bool modified);
 
+    // Root node creation (consolidates 4 duplicated patterns)
+    NodeItem* createRootNode(const QString& text);
+
+    // Edge registration (public API for Commands)
+    void registerEdge(EdgeItem* edge);
+    void unregisterEdge(EdgeItem* edge);
+
 signals:
     void modifiedChanged(bool modified);
     void fileLoaded(const QString& filePath);
@@ -83,20 +85,6 @@ private:
     void exportNodeToText(NodeItem* node, int indent, QString& output) const;
     void exportNodeToMarkdown(NodeItem* node, int level, QString& output) const;
 
-    qreal subtreeHeight(NodeItem* node) const;
-    void calculatePositions(NodeItem* node, qreal x, qreal y, int direction,
-                            QMap<NodeItem*, QPointF>& positions);
-
-    // Layout strategies
-    void layoutBilateral(QMap<NodeItem*, QPointF>& positions);
-    void layoutTopDown(QMap<NodeItem*, QPointF>& positions);
-    void layoutRightTree(QMap<NodeItem*, QPointF>& positions);
-
-    // Top-down helpers
-    qreal subtreeWidth(NodeItem* node) const;
-    void calculatePositionsTopDown(NodeItem* node, qreal x, qreal y,
-                                   QMap<NodeItem*, QPointF>& positions);
-
     NodeItem* m_rootNode = nullptr;
     QList<EdgeItem*> m_edges;
     QUndoStack* m_undoStack;
@@ -107,9 +95,4 @@ private:
     NodeItem* m_editingNode = nullptr;
     QGraphicsProxyWidget* m_editProxy = nullptr;
     QLineEdit* m_editLineEdit = nullptr;
-
-    static constexpr qreal kHSpacing = 220.0;
-    static constexpr qreal kVSpacing = 16.0;
-    static constexpr qreal kNodeHeight = 44.0;
-    static constexpr qreal kTopDownLevelSpacing = 100.0;
 };
