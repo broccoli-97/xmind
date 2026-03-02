@@ -2,6 +2,8 @@
 #include "EdgeItem.h"
 #include "NodeItem.h"
 
+#include <algorithm>
+
 // ===========================================================================
 // Public API
 // ===========================================================================
@@ -17,13 +19,16 @@ QMap<NodeItem*, QPointF> LayoutEngine::computeLayout(NodeItem* root, LayoutStyle
     switch (style) {
     case LayoutStyle::TopDown:
         layoutTopDown(root, edgeFinder, positions);
+        resolveOverlapsTopDown(root, edgeFinder, positions);
         break;
     case LayoutStyle::RightTree:
         layoutRightTree(root, edgeFinder, positions);
+        resolveOverlapsHorizontal(root, edgeFinder, positions);
         break;
     case LayoutStyle::Bilateral:
     default:
         layoutBilateral(root, edgeFinder, positions);
+        resolveOverlapsHorizontal(root, edgeFinder, positions);
         break;
     }
     return positions;
@@ -75,30 +80,31 @@ void LayoutEngine::calculatePositions(NodeItem* node, qreal x, qreal y, int dire
     if (children.isEmpty())
         return;
 
+    // Only sum unlocked children for space allocation
     qreal totalH = 0;
-    for (int i = 0; i < children.size(); ++i) {
-        totalH += subtreeHeight(children[i]);
-        if (i < children.size() - 1) {
-            totalH += kVSpacing;
-        }
+    int unlockedCount = 0;
+    for (auto* child : children) {
+        EdgeItem* edge = edgeFinder(node, child);
+        if (edge && edge->isLocked()) continue;
+        if (unlockedCount > 0) totalH += kVSpacing;
+        totalH += subtreeHeight(child);
+        unlockedCount++;
     }
 
     qreal childX = x + direction * kHSpacing;
     qreal childY = y - totalH / 2;
 
     for (auto* child : children) {
-        qreal h = subtreeHeight(child);
-        qreal centerY = childY + h / 2;
-
         EdgeItem* edge = edgeFinder(node, child);
         if (edge && edge->isLocked()) {
             positions[child] = child->pos();
             layoutLockedSubtreeHorizontal(child, direction, edgeFinder, positions);
         } else {
+            qreal h = subtreeHeight(child);
+            qreal centerY = childY + h / 2;
             calculatePositions(child, childX, centerY, direction, edgeFinder, positions);
+            childY += h + kVSpacing;
         }
-
-        childY += h + kVSpacing;
     }
 }
 
@@ -110,18 +116,28 @@ void LayoutEngine::layoutLockedSubtreeHorizontal(NodeItem* child, int direction,
     if (grandchildren.isEmpty())
         return;
 
+    // Only sum unlocked grandchildren
     qreal gcTotalH = 0;
-    for (int i = 0; i < grandchildren.size(); ++i) {
-        gcTotalH += subtreeHeight(grandchildren[i]);
-        if (i < grandchildren.size() - 1)
-            gcTotalH += kVSpacing;
+    int unlockedCount = 0;
+    for (auto* gc : grandchildren) {
+        EdgeItem* edge = edgeFinder(child, gc);
+        if (edge && edge->isLocked()) continue;
+        if (unlockedCount > 0) gcTotalH += kVSpacing;
+        gcTotalH += subtreeHeight(gc);
+        unlockedCount++;
     }
     qreal gcY = lockedPos.y() - gcTotalH / 2;
     for (auto* gc : grandchildren) {
-        qreal gcH = subtreeHeight(gc);
-        calculatePositions(gc, lockedPos.x() + direction * kHSpacing, gcY + gcH / 2, direction,
-                           edgeFinder, positions);
-        gcY += gcH + kVSpacing;
+        EdgeItem* edge = edgeFinder(child, gc);
+        if (edge && edge->isLocked()) {
+            positions[gc] = gc->pos();
+            layoutLockedSubtreeHorizontal(gc, direction, edgeFinder, positions);
+        } else {
+            qreal gcH = subtreeHeight(gc);
+            calculatePositions(gc, lockedPos.x() + direction * kHSpacing, gcY + gcH / 2, direction,
+                               edgeFinder, positions);
+            gcY += gcH + kVSpacing;
+        }
     }
 }
 
@@ -145,44 +161,50 @@ void LayoutEngine::layoutBilateral(NodeItem* root, const EdgeFinder& edgeFinder,
     // Layout right children
     if (!rightChildren.isEmpty()) {
         qreal totalH = 0;
-        for (int i = 0; i < rightChildren.size(); ++i) {
-            totalH += subtreeHeight(rightChildren[i]);
-            if (i < rightChildren.size() - 1)
-                totalH += kVSpacing;
+        int unlockedCount = 0;
+        for (auto* child : rightChildren) {
+            EdgeItem* edge = edgeFinder(root, child);
+            if (edge && edge->isLocked()) continue;
+            if (unlockedCount > 0) totalH += kVSpacing;
+            totalH += subtreeHeight(child);
+            unlockedCount++;
         }
         qreal y = -totalH / 2;
         for (auto* child : rightChildren) {
             EdgeItem* edge = edgeFinder(root, child);
-            qreal h = subtreeHeight(child);
             if (edge && edge->isLocked()) {
                 positions[child] = child->pos();
                 layoutLockedSubtreeHorizontal(child, 1, edgeFinder, positions);
             } else {
+                qreal h = subtreeHeight(child);
                 calculatePositions(child, kHSpacing, y + h / 2, 1, edgeFinder, positions);
+                y += h + kVSpacing;
             }
-            y += h + kVSpacing;
         }
     }
 
     // Layout left children
     if (!leftChildren.isEmpty()) {
         qreal totalH = 0;
-        for (int i = 0; i < leftChildren.size(); ++i) {
-            totalH += subtreeHeight(leftChildren[i]);
-            if (i < leftChildren.size() - 1)
-                totalH += kVSpacing;
+        int unlockedCount = 0;
+        for (auto* child : leftChildren) {
+            EdgeItem* edge = edgeFinder(root, child);
+            if (edge && edge->isLocked()) continue;
+            if (unlockedCount > 0) totalH += kVSpacing;
+            totalH += subtreeHeight(child);
+            unlockedCount++;
         }
         qreal y = -totalH / 2;
         for (auto* child : leftChildren) {
             EdgeItem* edge = edgeFinder(root, child);
-            qreal h = subtreeHeight(child);
             if (edge && edge->isLocked()) {
                 positions[child] = child->pos();
                 layoutLockedSubtreeHorizontal(child, -1, edgeFinder, positions);
             } else {
+                qreal h = subtreeHeight(child);
                 calculatePositions(child, -kHSpacing, y + h / 2, -1, edgeFinder, positions);
+                y += h + kVSpacing;
             }
-            y += h + kVSpacing;
         }
     }
 }
@@ -198,23 +220,26 @@ void LayoutEngine::layoutRightTree(NodeItem* root, const EdgeFinder& edgeFinder,
         return;
 
     qreal totalH = 0;
-    for (int i = 0; i < children.size(); ++i) {
-        totalH += subtreeHeight(children[i]);
-        if (i < children.size() - 1)
-            totalH += kVSpacing;
+    int unlockedCount = 0;
+    for (auto* child : children) {
+        EdgeItem* edge = edgeFinder(root, child);
+        if (edge && edge->isLocked()) continue;
+        if (unlockedCount > 0) totalH += kVSpacing;
+        totalH += subtreeHeight(child);
+        unlockedCount++;
     }
 
     qreal y = -totalH / 2;
     for (auto* child : children) {
         EdgeItem* edge = edgeFinder(root, child);
-        qreal h = subtreeHeight(child);
         if (edge && edge->isLocked()) {
             positions[child] = child->pos();
             layoutLockedSubtreeHorizontal(child, 1, edgeFinder, positions);
         } else {
+            qreal h = subtreeHeight(child);
             calculatePositions(child, kHSpacing, y + h / 2, 1, edgeFinder, positions);
+            y += h + kVSpacing;
         }
-        y += h + kVSpacing;
     }
 }
 
@@ -246,30 +271,31 @@ void LayoutEngine::calculatePositionsTopDown(NodeItem* node, qreal x, qreal y,
     if (children.isEmpty())
         return;
 
+    // Only sum unlocked children for space allocation
     qreal totalW = 0;
-    for (int i = 0; i < children.size(); ++i) {
-        totalW += subtreeWidth(children[i]);
-        if (i < children.size() - 1) {
-            totalW += kVSpacing;
-        }
+    int unlockedCount = 0;
+    for (auto* child : children) {
+        EdgeItem* edge = edgeFinder(node, child);
+        if (edge && edge->isLocked()) continue;
+        if (unlockedCount > 0) totalW += kVSpacing;
+        totalW += subtreeWidth(child);
+        unlockedCount++;
     }
 
     qreal childY = y + kTopDownLevelSpacing;
     qreal childX = x - totalW / 2;
 
     for (auto* child : children) {
-        qreal w = subtreeWidth(child);
-        qreal centerX = childX + w / 2;
-
         EdgeItem* edge = edgeFinder(node, child);
         if (edge && edge->isLocked()) {
             positions[child] = child->pos();
             layoutLockedSubtreeTopDown(child, edgeFinder, positions);
         } else {
+            qreal w = subtreeWidth(child);
+            qreal centerX = childX + w / 2;
             calculatePositionsTopDown(child, centerX, childY, edgeFinder, positions);
+            childX += w + kVSpacing;
         }
-
-        childX += w + kVSpacing;
     }
 }
 
@@ -279,18 +305,28 @@ void LayoutEngine::layoutLockedSubtreeTopDown(NodeItem* child, const EdgeFinder&
     if (grandchildren.isEmpty())
         return;
 
+    // Only sum unlocked grandchildren
     qreal gcTotalW = 0;
-    for (int i = 0; i < grandchildren.size(); ++i) {
-        gcTotalW += subtreeWidth(grandchildren[i]);
-        if (i < grandchildren.size() - 1)
-            gcTotalW += kVSpacing;
+    int unlockedCount = 0;
+    for (auto* gc : grandchildren) {
+        EdgeItem* edge = edgeFinder(child, gc);
+        if (edge && edge->isLocked()) continue;
+        if (unlockedCount > 0) gcTotalW += kVSpacing;
+        gcTotalW += subtreeWidth(gc);
+        unlockedCount++;
     }
     qreal gcX = child->pos().x() - gcTotalW / 2;
     for (auto* gc : grandchildren) {
-        qreal gcW = subtreeWidth(gc);
-        calculatePositionsTopDown(gc, gcX + gcW / 2, child->pos().y() + kTopDownLevelSpacing,
-                                  edgeFinder, positions);
-        gcX += gcW + kVSpacing;
+        EdgeItem* edge = edgeFinder(child, gc);
+        if (edge && edge->isLocked()) {
+            positions[gc] = gc->pos();
+            layoutLockedSubtreeTopDown(gc, edgeFinder, positions);
+        } else {
+            qreal gcW = subtreeWidth(gc);
+            calculatePositionsTopDown(gc, gcX + gcW / 2, child->pos().y() + kTopDownLevelSpacing,
+                                      edgeFinder, positions);
+            gcX += gcW + kVSpacing;
+        }
     }
 }
 
@@ -301,4 +337,169 @@ void LayoutEngine::layoutLockedSubtreeTopDown(NodeItem* child, const EdgeFinder&
 void LayoutEngine::layoutTopDown(NodeItem* root, const EdgeFinder& edgeFinder,
                                  QMap<NodeItem*, QPointF>& positions) {
     calculatePositionsTopDown(root, 0, 0, edgeFinder, positions);
+}
+
+// ===========================================================================
+// Post-layout overlap resolution
+// ===========================================================================
+
+QPair<qreal, qreal> LayoutEngine::subtreeYExtent(NodeItem* node,
+                                                   const QMap<NodeItem*, QPointF>& positions) {
+    if (!positions.contains(node))
+        return {0, 0};
+    qreal minY = positions[node].y() - kNodeHeight / 2;
+    qreal maxY = positions[node].y() + kNodeHeight / 2;
+    for (auto* child : node->childNodes()) {
+        if (!positions.contains(child)) continue;
+        auto ext = subtreeYExtent(child, positions);
+        minY = qMin(minY, ext.first);
+        maxY = qMax(maxY, ext.second);
+    }
+    return {minY, maxY};
+}
+
+QPair<qreal, qreal> LayoutEngine::subtreeXExtent(NodeItem* node,
+                                                   const QMap<NodeItem*, QPointF>& positions) {
+    if (!positions.contains(node))
+        return {0, 0};
+    qreal halfW = node->nodeRect().width() / 2;
+    qreal minX = positions[node].x() - halfW;
+    qreal maxX = positions[node].x() + halfW;
+    for (auto* child : node->childNodes()) {
+        if (!positions.contains(child)) continue;
+        auto ext = subtreeXExtent(child, positions);
+        minX = qMin(minX, ext.first);
+        maxX = qMax(maxX, ext.second);
+    }
+    return {minX, maxX};
+}
+
+void LayoutEngine::shiftSubtreePositions(NodeItem* node, qreal delta, bool isTopDown,
+                                          const EdgeFinder& edgeFinder,
+                                          QMap<NodeItem*, QPointF>& positions) {
+    if (!positions.contains(node)) return;
+    if (isTopDown) {
+        positions[node].rx() += delta;
+    } else {
+        positions[node].ry() += delta;
+    }
+    for (auto* child : node->childNodes()) {
+        EdgeItem* edge = edgeFinder(node, child);
+        if (edge && edge->isLocked()) continue;
+        shiftSubtreePositions(child, delta, isTopDown, edgeFinder, positions);
+    }
+}
+
+void LayoutEngine::resolveOverlapGroup(QList<NodeItem*> siblings, NodeItem* parent,
+                                        const EdgeFinder& edgeFinder,
+                                        QMap<NodeItem*, QPointF>& positions, bool isTopDown) {
+    if (siblings.size() < 2) return;
+
+    // Sort siblings by position (Y for horizontal, X for top-down)
+    std::sort(siblings.begin(), siblings.end(), [&](NodeItem* a, NodeItem* b) {
+        if (isTopDown)
+            return positions[a].x() < positions[b].x();
+        else
+            return positions[a].y() < positions[b].y();
+    });
+
+    // Forward sweep
+    for (int i = 1; i < siblings.size(); ++i) {
+        auto* prev = siblings[i - 1];
+        auto* curr = siblings[i];
+
+        qreal prevMax, currMin;
+        if (isTopDown) {
+            prevMax = subtreeXExtent(prev, positions).second;
+            currMin = subtreeXExtent(curr, positions).first;
+        } else {
+            prevMax = subtreeYExtent(prev, positions).second;
+            currMin = subtreeYExtent(curr, positions).first;
+        }
+
+        qreal gap = currMin - prevMax;
+        if (gap < kVSpacing) {
+            qreal shift = kVSpacing - gap;
+            EdgeItem* currEdge = edgeFinder(parent, curr);
+            bool currLocked = currEdge && currEdge->isLocked();
+
+            if (!currLocked) {
+                shiftSubtreePositions(curr, shift, isTopDown, edgeFinder, positions);
+            } else {
+                EdgeItem* prevEdge = edgeFinder(parent, prev);
+                bool prevLocked = prevEdge && prevEdge->isLocked();
+                if (!prevLocked) {
+                    shiftSubtreePositions(prev, -shift, isTopDown, edgeFinder, positions);
+                }
+            }
+        }
+    }
+
+    // Backward sweep
+    for (int i = siblings.size() - 2; i >= 0; --i) {
+        auto* curr = siblings[i];
+        auto* next = siblings[i + 1];
+
+        qreal currMax, nextMin;
+        if (isTopDown) {
+            currMax = subtreeXExtent(curr, positions).second;
+            nextMin = subtreeXExtent(next, positions).first;
+        } else {
+            currMax = subtreeYExtent(curr, positions).second;
+            nextMin = subtreeYExtent(next, positions).first;
+        }
+
+        qreal gap = nextMin - currMax;
+        if (gap < kVSpacing) {
+            qreal shift = kVSpacing - gap;
+            EdgeItem* currEdge = edgeFinder(parent, curr);
+            bool currLocked = currEdge && currEdge->isLocked();
+
+            if (!currLocked) {
+                shiftSubtreePositions(curr, -shift, isTopDown, edgeFinder, positions);
+            } else {
+                EdgeItem* nextEdge = edgeFinder(parent, next);
+                bool nextLocked = nextEdge && nextEdge->isLocked();
+                if (!nextLocked) {
+                    shiftSubtreePositions(next, shift, isTopDown, edgeFinder, positions);
+                }
+            }
+        }
+    }
+}
+
+void LayoutEngine::resolveOverlapsHorizontal(NodeItem* node, const EdgeFinder& edgeFinder,
+                                              QMap<NodeItem*, QPointF>& positions) {
+    auto children = node->childNodes();
+    if (children.size() >= 2) {
+        // Split children by side (right vs left of parent)
+        QList<NodeItem*> rightGroup, leftGroup;
+        qreal parentX = positions.contains(node) ? positions[node].x() : 0;
+        for (auto* child : children) {
+            if (!positions.contains(child)) continue;
+            if (positions[child].x() >= parentX)
+                rightGroup.append(child);
+            else
+                leftGroup.append(child);
+        }
+        if (rightGroup.size() >= 2)
+            resolveOverlapGroup(rightGroup, node, edgeFinder, positions, false);
+        if (leftGroup.size() >= 2)
+            resolveOverlapGroup(leftGroup, node, edgeFinder, positions, false);
+    }
+    // Recurse into children
+    for (auto* child : children) {
+        resolveOverlapsHorizontal(child, edgeFinder, positions);
+    }
+}
+
+void LayoutEngine::resolveOverlapsTopDown(NodeItem* node, const EdgeFinder& edgeFinder,
+                                           QMap<NodeItem*, QPointF>& positions) {
+    auto children = node->childNodes();
+    if (children.size() >= 2) {
+        resolveOverlapGroup(children, node, edgeFinder, positions, true);
+    }
+    for (auto* child : children) {
+        resolveOverlapsTopDown(child, edgeFinder, positions);
+    }
 }

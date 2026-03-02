@@ -54,4 +54,20 @@ private:
 
     static void layoutTopDown(NodeItem* root, const EdgeFinder& edgeFinder,
                               QMap<NodeItem*, QPointF>& positions);
+
+    // --- Post-layout overlap resolution ---
+    static QPair<qreal, qreal> subtreeYExtent(NodeItem* node,
+                                               const QMap<NodeItem*, QPointF>& positions);
+    static QPair<qreal, qreal> subtreeXExtent(NodeItem* node,
+                                               const QMap<NodeItem*, QPointF>& positions);
+    static void shiftSubtreePositions(NodeItem* node, qreal delta, bool isTopDown,
+                                       const EdgeFinder& edgeFinder,
+                                       QMap<NodeItem*, QPointF>& positions);
+    static void resolveOverlapGroup(QList<NodeItem*> siblings, NodeItem* parent,
+                                     const EdgeFinder& edgeFinder,
+                                     QMap<NodeItem*, QPointF>& positions, bool isTopDown);
+    static void resolveOverlapsHorizontal(NodeItem* node, const EdgeFinder& edgeFinder,
+                                           QMap<NodeItem*, QPointF>& positions);
+    static void resolveOverlapsTopDown(NodeItem* node, const EdgeFinder& edgeFinder,
+                                        QMap<NodeItem*, QPointF>& positions);
 };
