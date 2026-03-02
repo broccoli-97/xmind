@@ -160,6 +160,14 @@ void NodeItem::mousePressEvent(QGraphicsSceneMouseEvent* event) {
 }
 
 void NodeItem::mouseMoveEvent(QGraphicsSceneMouseEvent* event) {
+    // Close any open editing widget when a drag starts — mouseMoveEvent is
+    // only delivered while a button is held, so any call here means the user
+    // is dragging rather than editing.
+    auto* mindMapScene = dynamic_cast<MindMapScene*>(scene());
+    if (mindMapScene && mindMapScene->isEditing()) {
+        mindMapScene->cancelEditing();
+    }
+
     if (m_dragging) {
         QPointF delta = pos() - m_dragStartPos;
         m_dragStartPos = pos();

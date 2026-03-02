@@ -71,6 +71,8 @@ public slots:
     void deleteSelected();
     void startEditing(NodeItem* node);
 
+    void cancelEditing();
+
 protected:
     void keyPressEvent(QKeyEvent* event) override;
     void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
@@ -78,7 +80,6 @@ protected:
 
 private:
     void finishEditing();
-    void cancelEditing();
     void markModified();
 
     QJsonObject nodeToJson(NodeItem* node) const;
