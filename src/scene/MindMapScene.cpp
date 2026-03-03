@@ -1,9 +1,9 @@
-#include "MindMapScene.h"
-#include "Commands.h"
-#include "EdgeItem.h"
-#include "LayoutEngine.h"
-#include "NodeItem.h"
-#include "ThemeManager.h"
+#include "scene/MindMapScene.h"
+#include "core/Commands.h"
+#include "scene/EdgeItem.h"
+#include "layout/LayoutEngine.h"
+#include "scene/NodeItem.h"
+#include "ui/ThemeManager.h"
 
 #include <QEasingCurve>
 #include <QFile>

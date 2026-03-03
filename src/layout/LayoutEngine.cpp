@@ -1,6 +1,6 @@
-#include "LayoutEngine.h"
-#include "EdgeItem.h"
-#include "NodeItem.h"
+#include "layout/LayoutEngine.h"
+#include "scene/EdgeItem.h"
+#include "scene/NodeItem.h"
 
 #include <QQueue>
 #include <algorithm>

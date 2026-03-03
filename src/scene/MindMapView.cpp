@@ -1,5 +1,5 @@
-#include "MindMapView.h"
-#include "ThemeManager.h"
+#include "scene/MindMapView.h"
+#include "ui/ThemeManager.h"
 
 #include <QMouseEvent>
 #include <QPainter>

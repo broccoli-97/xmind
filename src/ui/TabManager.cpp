@@ -1,10 +1,10 @@
-#include "TabManager.h"
-#include "IconFactory.h"
-#include "LayoutStyle.h"
-#include "MindMapScene.h"
-#include "MindMapView.h"
-#include "StartPage.h"
-#include "ThemeManager.h"
+#include "ui/TabManager.h"
+#include "ui/IconFactory.h"
+#include "layout/LayoutStyle.h"
+#include "scene/MindMapScene.h"
+#include "scene/MindMapView.h"
+#include "ui/StartPage.h"
+#include "ui/ThemeManager.h"
 
 #include <QAction>
 #include <QFileInfo>

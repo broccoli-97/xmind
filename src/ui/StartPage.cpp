@@ -1,7 +1,7 @@
-#include "StartPage.h"
-#include "IconFactory.h"
-#include "MindMapScene.h"
-#include "NodeItem.h"
+#include "ui/StartPage.h"
+#include "ui/IconFactory.h"
+#include "scene/MindMapScene.h"
+#include "scene/NodeItem.h"
 
 #include <QUndoStack>
 

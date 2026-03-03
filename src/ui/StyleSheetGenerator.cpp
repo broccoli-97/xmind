@@ -1,4 +1,4 @@
-#include "StyleSheetGenerator.h"
+#include "ui/StyleSheetGenerator.h"
 
 #include <QFile>
 #include <QHash>

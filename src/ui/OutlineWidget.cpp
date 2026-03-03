@@ -1,8 +1,8 @@
-#include "OutlineWidget.h"
-#include "IconFactory.h"
-#include "MindMapScene.h"
-#include "MindMapView.h"
-#include "NodeItem.h"
+#include "ui/OutlineWidget.h"
+#include "ui/IconFactory.h"
+#include "scene/MindMapScene.h"
+#include "scene/MindMapView.h"
+#include "scene/NodeItem.h"
 
 #include <QHBoxLayout>
 #include <QLabel>

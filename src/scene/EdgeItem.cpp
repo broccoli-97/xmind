@@ -1,8 +1,8 @@
-#include "EdgeItem.h"
-#include "Commands.h"
-#include "MindMapScene.h"
-#include "NodeItem.h"
-#include "ThemeManager.h"
+#include "scene/EdgeItem.h"
+#include "core/Commands.h"
+#include "scene/MindMapScene.h"
+#include "scene/NodeItem.h"
+#include "ui/ThemeManager.h"
 
 #include <QCursor>
 #include <QGraphicsScene>

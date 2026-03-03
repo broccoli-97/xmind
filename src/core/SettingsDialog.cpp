@@ -1,6 +1,6 @@
-#include "SettingsDialog.h"
-#include "AppSettings.h"
-#include "ThemeManager.h"
+#include "core/SettingsDialog.h"
+#include "core/AppSettings.h"
+#include "ui/ThemeManager.h"
 
 #include <QCheckBox>
 #include <QComboBox>

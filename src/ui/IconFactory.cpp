@@ -1,5 +1,5 @@
-#include "IconFactory.h"
-#include "ThemeManager.h"
+#include "ui/IconFactory.h"
+#include "ui/ThemeManager.h"
 
 #include <QPainter>
 #include <QPainterPath>

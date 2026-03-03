@@ -1,4 +1,4 @@
-#include "AppSettings.h"
+#include "core/AppSettings.h"
 
 #include <QFont>
 #include <QSettings>

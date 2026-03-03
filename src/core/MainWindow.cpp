@@ -1,13 +1,13 @@
-#include "MainWindow.h"
-#include "AppSettings.h"
-#include "FileManager.h"
-#include "IconFactory.h"
-#include "MindMapScene.h"
-#include "MindMapView.h"
-#include "OutlineWidget.h"
-#include "SettingsDialog.h"
-#include "TabManager.h"
-#include "ThemeManager.h"
+#include "core/MainWindow.h"
+#include "core/AppSettings.h"
+#include "core/FileManager.h"
+#include "ui/IconFactory.h"
+#include "scene/MindMapScene.h"
+#include "scene/MindMapView.h"
+#include "ui/OutlineWidget.h"
+#include "core/SettingsDialog.h"
+#include "ui/TabManager.h"
+#include "ui/ThemeManager.h"
 
 #include <QAction>
 #include <QApplication>

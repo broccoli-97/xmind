@@ -1,8 +1,8 @@
-#include "Commands.h"
-#include "EdgeItem.h"
-#include "LayoutEngine.h"
-#include "MindMapScene.h"
-#include "NodeItem.h"
+#include "core/Commands.h"
+#include "scene/EdgeItem.h"
+#include "layout/LayoutEngine.h"
+#include "scene/MindMapScene.h"
+#include "scene/NodeItem.h"
 
 // ===========================================================================
 // AddNodeCommand

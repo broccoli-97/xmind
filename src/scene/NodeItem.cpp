@@ -1,9 +1,9 @@
-#include "NodeItem.h"
-#include "AppSettings.h"
-#include "Commands.h"
-#include "EdgeItem.h"
-#include "MindMapScene.h"
-#include "ThemeManager.h"
+#include "scene/NodeItem.h"
+#include "core/AppSettings.h"
+#include "core/Commands.h"
+#include "scene/EdgeItem.h"
+#include "scene/MindMapScene.h"
+#include "ui/ThemeManager.h"
 
 #include <QFontMetricsF>
 #include <QGraphicsSceneMouseEvent>

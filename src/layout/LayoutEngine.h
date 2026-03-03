@@ -1,6 +1,6 @@
 #pragma once
 
-#include "LayoutStyle.h"
+#include "layout/LayoutStyle.h"
 
 #include <QMap>
 #include <QPointF>

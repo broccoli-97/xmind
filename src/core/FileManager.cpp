@@ -1,7 +1,7 @@
-#include "FileManager.h"
-#include "MindMapScene.h"
-#include "MindMapView.h"
-#include "TabManager.h"
+#include "core/FileManager.h"
+#include "scene/MindMapScene.h"
+#include "scene/MindMapView.h"
+#include "ui/TabManager.h"
 
 #include <QFile>
 #include <QFileDialog>

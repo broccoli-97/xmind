@@ -1,10 +1,10 @@
-#include "ThemeManager.h"
-#include "AppSettings.h"
-#include "MindMapScene.h"
-#include "MindMapView.h"
-#include "NodeItem.h"
-#include "StyleSheetGenerator.h"
-#include "TabManager.h"
+#include "ui/ThemeManager.h"
+#include "core/AppSettings.h"
+#include "scene/MindMapScene.h"
+#include "scene/MindMapView.h"
+#include "scene/NodeItem.h"
+#include "ui/StyleSheetGenerator.h"
+#include "ui/TabManager.h"
 
 #include <QApplication>
 #include <QDir>
