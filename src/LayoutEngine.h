@@ -30,44 +30,54 @@ public:
     static constexpr qreal kTopDownLevelSpacing = 100.0;
 
 private:
-    // --- Bilateral / RightTree helpers (horizontal layouts) ---
-    static qreal subtreeHeight(NodeItem* node);
-    static void calculatePositions(NodeItem* node, qreal x, qreal y, int direction,
-                                   const EdgeFinder& edgeFinder,
-                                   QMap<NodeItem*, QPointF>& positions);
-    static void layoutLockedSubtreeHorizontal(NodeItem* child, int direction,
-                                              const EdgeFinder& edgeFinder,
-                                              QMap<NodeItem*, QPointF>& positions);
+    // Axis abstraction — parameterizes layout direction, eliminating
+    // horizontal/topdown code duplication.
+    struct LayoutAxis {
+        bool spreadIsX;       // TopDown: true (children along X), Horizontal: false (along Y)
+        qreal depthSpacing;   // kHSpacing or kTopDownLevelSpacing
+        qreal spreadSpacing;  // kVSpacing
+        int depthDirection;   // +1 or -1
 
-    static void layoutBilateral(NodeItem* root, const EdgeFinder& edgeFinder,
+        qreal spread(QPointF p) const { return spreadIsX ? p.x() : p.y(); }
+        qreal depth(QPointF p) const { return spreadIsX ? p.y() : p.x(); }
+        void setSpread(QPointF& p, qreal v) const { if (spreadIsX) p.rx() = v; else p.ry() = v; }
+        void setDepth(QPointF& p, qreal v) const { if (spreadIsX) p.ry() = v; else p.rx() = v; }
+        qreal nodeSpan(NodeItem* node) const;
+    };
+
+    static LayoutAxis makeRightAxis();
+    static LayoutAxis makeLeftAxis();
+    static LayoutAxis makeTopDownAxis();
+
+    // Phase 1: Measure (bottom-up) — spread-axis space needed by subtree
+    static qreal measureSubtree(NodeItem* node, const LayoutAxis& axis,
+                                const EdgeFinder& edgeFinder);
+
+    // Phase 2: Place (top-down)
+    static void placeSubtree(NodeItem* node, QPointF position, const LayoutAxis& axis,
+                             const EdgeFinder& edgeFinder,
+                             QMap<NodeItem*, QPointF>& positions);
+    static void placeChildGroup(NodeItem* parent, const QList<NodeItem*>& children,
+                                const LayoutAxis& axis, const EdgeFinder& edgeFinder,
                                 QMap<NodeItem*, QPointF>& positions);
-    static void layoutRightTree(NodeItem* root, const EdgeFinder& edgeFinder,
-                                QMap<NodeItem*, QPointF>& positions);
 
-    // --- TopDown helpers ---
-    static qreal subtreeWidth(NodeItem* node);
-    static void calculatePositionsTopDown(NodeItem* node, qreal x, qreal y,
-                                          const EdgeFinder& edgeFinder,
-                                          QMap<NodeItem*, QPointF>& positions);
-    static void layoutLockedSubtreeTopDown(NodeItem* child, const EdgeFinder& edgeFinder,
-                                           QMap<NodeItem*, QPointF>& positions);
+    // Phase 3: Force-directed refinement (overlap resolution)
+    static void forceDirectedRefinement(
+        NodeItem* root,
+        const QList<NodeItem*>& subtreeRoots,
+        const LayoutAxis& axis,
+        const EdgeFinder& edgeFinder,
+        QMap<NodeItem*, QPointF>& positions);
 
-    static void layoutTopDown(NodeItem* root, const EdgeFinder& edgeFinder,
-                              QMap<NodeItem*, QPointF>& positions);
+    // Helpers
+    static void collectSubtreeNodes(NodeItem* node, QList<NodeItem*>& nodes,
+                                    const QMap<NodeItem*, QPointF>& positions);
 
-    // --- Post-layout overlap resolution ---
-    static QPair<qreal, qreal> subtreeYExtent(NodeItem* node,
-                                               const QMap<NodeItem*, QPointF>& positions);
-    static QPair<qreal, qreal> subtreeXExtent(NodeItem* node,
-                                               const QMap<NodeItem*, QPointF>& positions);
-    static void shiftSubtreePositions(NodeItem* node, qreal delta, bool isTopDown,
-                                       const EdgeFinder& edgeFinder,
-                                       QMap<NodeItem*, QPointF>& positions);
-    static void resolveOverlapGroup(QList<NodeItem*> siblings, NodeItem* parent,
-                                     const EdgeFinder& edgeFinder,
-                                     QMap<NodeItem*, QPointF>& positions, bool isTopDown);
-    static void resolveOverlapsHorizontal(NodeItem* node, const EdgeFinder& edgeFinder,
-                                           QMap<NodeItem*, QPointF>& positions);
-    static void resolveOverlapsTopDown(NodeItem* node, const EdgeFinder& edgeFinder,
-                                        QMap<NodeItem*, QPointF>& positions);
+    // Force-directed constants
+    static constexpr int kMaxIterations = 100;
+    static constexpr qreal kInitialTemperature = 150.0;
+    static constexpr qreal kCoolingFactor = 0.90;
+    static constexpr qreal kConvergenceThreshold = 0.5;
+    static constexpr qreal kRepulsionStrength = 1.2;
+    static constexpr qreal kSpringStrength = 0.03;
 };
