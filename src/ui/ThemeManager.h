@@ -19,10 +19,6 @@ struct ThemeColors {
 
     // Edge
     int edgeLightenFactor;
-    QColor lockIconBackground;
-    QColor lockIconLocked;
-    QColor lockIconUnlocked;
-    QColor lockIconKeyhole;
 
     // Export
     QColor exportBackground;

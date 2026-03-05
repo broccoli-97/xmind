@@ -4,21 +4,13 @@
 
 #include <QMap>
 #include <QPointF>
-#include <functional>
 
 class NodeItem;
-class EdgeItem;
-
-// Callback used by LayoutEngine to query whether an edge is locked.
-// Signature: EdgeItem* finder(NodeItem* parent, NodeItem* child)
-using EdgeFinder = std::function<EdgeItem*(NodeItem*, NodeItem*)>;
 
 class LayoutEngine {
 public:
     // Compute the target position for every node in the tree rooted at |root|.
-    // |edgeFinder| is used to check edge lock state.
-    static QMap<NodeItem*, QPointF> computeLayout(NodeItem* root, LayoutStyle style,
-                                                  const EdgeFinder& edgeFinder);
+    static QMap<NodeItem*, QPointF> computeLayout(NodeItem* root, LayoutStyle style);
 
     // Compute a reasonable initial position for a newly added child node.
     static QPointF initialChildPosition(NodeItem* parent, NodeItem* root, LayoutStyle style);
@@ -50,15 +42,13 @@ private:
     static LayoutAxis makeTopDownAxis();
 
     // Phase 1: Measure (bottom-up) — spread-axis space needed by subtree
-    static qreal measureSubtree(NodeItem* node, const LayoutAxis& axis,
-                                const EdgeFinder& edgeFinder);
+    static qreal measureSubtree(NodeItem* node, const LayoutAxis& axis);
 
     // Phase 2: Place (top-down)
     static void placeSubtree(NodeItem* node, QPointF position, const LayoutAxis& axis,
-                             const EdgeFinder& edgeFinder,
                              QMap<NodeItem*, QPointF>& positions);
     static void placeChildGroup(NodeItem* parent, const QList<NodeItem*>& children,
-                                const LayoutAxis& axis, const EdgeFinder& edgeFinder,
+                                const LayoutAxis& axis,
                                 QMap<NodeItem*, QPointF>& positions);
 
     // Phase 3: Force-directed refinement (overlap resolution)
@@ -66,7 +56,6 @@ private:
         NodeItem* root,
         const QList<NodeItem*>& subtreeRoots,
         const LayoutAxis& axis,
-        const EdgeFinder& edgeFinder,
         QMap<NodeItem*, QPointF>& positions);
 
     // Helpers

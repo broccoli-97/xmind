@@ -212,17 +212,3 @@ void MoveNodeCommand::redo() {
     m_node->moveSubtree(delta);
 }
 
-// ===========================================================================
-// ToggleEdgeLockCommand
-// ===========================================================================
-
-ToggleEdgeLockCommand::ToggleEdgeLockCommand(EdgeItem* edge, QUndoCommand* parentCmd)
-    : QUndoCommand("Toggle Edge Lock", parentCmd), m_edge(edge) {}
-
-void ToggleEdgeLockCommand::undo() {
-    m_edge->setLocked(!m_edge->isLocked());
-}
-
-void ToggleEdgeLockCommand::redo() {
-    m_edge->setLocked(!m_edge->isLocked());
-}

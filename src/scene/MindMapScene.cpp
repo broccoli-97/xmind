@@ -343,14 +343,6 @@ QJsonObject MindMapScene::nodeToJson(NodeItem* node) const {
     obj["x"] = node->pos().x();
     obj["y"] = node->pos().y();
 
-    // Serialize edge lock state
-    if (node->parentNode()) {
-        EdgeItem* edge = findEdge(node->parentNode(), node);
-        if (edge && edge->isLocked()) {
-            obj["edgeLocked"] = true;
-        }
-    }
-
     QJsonArray children;
     for (auto* child : node->childNodes()) {
         children.append(nodeToJson(child));
@@ -388,13 +380,6 @@ NodeItem* MindMapScene::nodeFromJson(const QJsonObject& json, NodeItem* parent) 
 
     if (!node)
         return nullptr;
-
-    // Restore edge lock state
-    if (parent && json["edgeLocked"].toBool(false)) {
-        EdgeItem* edge = findEdge(parent, node);
-        if (edge)
-            edge->setLocked(true);
-    }
 
     QJsonArray children = json["children"].toArray();
     for (const auto& childVal : children) {
@@ -630,12 +615,8 @@ void MindMapScene::autoLayout() {
     if (m_editingNode)
         finishEditing();
 
-    auto edgeFinder = [this](NodeItem* parent, NodeItem* child) -> EdgeItem* {
-        return findEdge(parent, child);
-    };
-
     QMap<NodeItem*, QPointF> positions =
-        LayoutEngine::computeLayout(m_rootNode, m_layoutStyle, edgeFinder);
+        LayoutEngine::computeLayout(m_rootNode, m_layoutStyle);
 
     // Animate to new positions
     auto* group = new QParallelAnimationGroup(this);
