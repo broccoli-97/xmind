@@ -69,8 +69,8 @@ NodeItem* MindMapScene::addNode(const QString& text, NodeItem* parent) {
     node->addEdge(edge);
     m_edges.append(edge);
 
-    // Position near parent
-    node->setPos(LayoutEngine::initialChildPosition(parent, m_rootNode, m_layoutStyle));
+    // Position avoiding overlap with existing nodes
+    node->setPos(LayoutEngine::initialChildPosition(node, parent, m_rootNode, m_layoutStyle));
 
     connect(node, &NodeItem::doubleClicked, this, &MindMapScene::startEditing);
 

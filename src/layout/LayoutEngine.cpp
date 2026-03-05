@@ -77,22 +77,141 @@ QMap<NodeItem*, QPointF> LayoutEngine::computeLayout(NodeItem* root, LayoutStyle
     return positions;
 }
 
-QPointF LayoutEngine::initialChildPosition(NodeItem* parent, NodeItem* root, LayoutStyle style) {
+QPointF LayoutEngine::initialChildPosition(NodeItem* newNode, NodeItem* parent,
+                                            NodeItem* root, LayoutStyle style) {
     QPointF parentPos = parent->pos();
-    int childCount = parent->childNodes().size();
-    qreal yOffset = (childCount - 1) * 60.0;
+    auto allChildren = parent->childNodes();
+
+    // Collect existing siblings (all children except the newly added one)
+    QList<NodeItem*> existingSiblings;
+    for (auto* child : allChildren) {
+        if (child != newNode)
+            existingSiblings.append(child);
+    }
+
+    // Collect all nodes in the tree for overlap checking (excluding the new node)
+    QList<NodeItem*> allNodes;
+    collectAllNodes(root, allNodes);
+    allNodes.removeOne(newNode);
+
+    LayoutAxis axis;
+    QList<NodeItem*> relevantSiblings = existingSiblings;
 
     if (style == LayoutStyle::TopDown) {
-        return QPointF(parentPos.x() + (childCount - 1) * 60.0,
-                       parentPos.y() + kTopDownLevelSpacing);
+        axis = makeTopDownAxis();
     } else if (style == LayoutStyle::RightTree) {
-        return QPointF(parentPos.x() + kHSpacing, parentPos.y() + yOffset);
+        axis = makeRightAxis();
     } else {
-        // Bilateral
-        qreal xDir = (parent == root) ? ((childCount % 2 == 1) ? 1.0 : -1.0)
-                                      : (parentPos.x() >= 0 ? 1.0 : -1.0);
-        return QPointF(parentPos.x() + xDir * kHSpacing, parentPos.y() + yOffset);
+        // Bilateral: determine which side the new node goes on
+        qreal xDir;
+        if (parent == root) {
+            int newIndex = allChildren.indexOf(newNode);
+            xDir = (newIndex % 2 == 0) ? 1.0 : -1.0;
+        } else {
+            xDir = (parentPos.x() >= 0) ? 1.0 : -1.0;
+        }
+        axis = (xDir > 0) ? makeRightAxis() : makeLeftAxis();
+
+        // Only consider siblings on the same side
+        relevantSiblings.clear();
+        for (auto* sib : existingSiblings) {
+            if ((xDir > 0 && sib->pos().x() > parentPos.x()) ||
+                (xDir < 0 && sib->pos().x() < parentPos.x()))
+                relevantSiblings.append(sib);
+        }
     }
+
+    // Depth: fixed offset from parent along depth axis
+    qreal depth = axis.depth(parentPos) + axis.depthSpacing * axis.depthDirection;
+
+    // Spread: align with parent by default, or place after the last sibling
+    qreal spread = axis.spread(parentPos);
+
+    if (!relevantSiblings.isEmpty()) {
+        // Find the sibling with the furthest spread-axis endpoint
+        qreal maxSpreadEnd = -1e18;
+        for (auto* sib : relevantSiblings) {
+            qreal s = axis.spread(sib->pos());
+            qreal halfSpan = axis.nodeSpan(sib) / 2;
+            qreal end = s + halfSpan;
+            if (end > maxSpreadEnd)
+                maxSpreadEnd = end;
+        }
+        // Place the new node right after the furthest sibling
+        spread = maxSpreadEnd + kVSpacing + axis.nodeSpan(newNode) / 2;
+    }
+
+    // Resolve any remaining overlap with nodes from other subtrees
+    spread = findAvailableSpread(spread, depth, newNode, allNodes, axis);
+
+    QPointF pos;
+    axis.setSpread(pos, spread);
+    axis.setDepth(pos, depth);
+    return pos;
+}
+
+// ===========================================================================
+// Helpers for initial placement
+// ===========================================================================
+
+void LayoutEngine::collectAllNodes(NodeItem* node, QList<NodeItem*>& nodes) {
+    if (!node)
+        return;
+    nodes.append(node);
+    for (auto* child : node->childNodes())
+        collectAllNodes(child, nodes);
+}
+
+qreal LayoutEngine::findAvailableSpread(qreal candidateSpread, qreal depth,
+                                         NodeItem* newNode,
+                                         const QList<NodeItem*>& allNodes,
+                                         const LayoutAxis& axis) {
+    QRectF newRect = newNode->nodeRect();
+
+    for (int attempt = 0; attempt < 50; ++attempt) {
+        // Build world-space rect for the candidate position
+        QPointF candidatePos;
+        axis.setSpread(candidatePos, candidateSpread);
+        axis.setDepth(candidatePos, depth);
+
+        QRectF candidateWorld(candidatePos.x() + newRect.left(),
+                              candidatePos.y() + newRect.top(),
+                              newRect.width(), newRect.height());
+        candidateWorld.adjust(-kVSpacing / 2, -kVSpacing / 2,
+                               kVSpacing / 2,  kVSpacing / 2);
+
+        // Find the maximum shift needed to clear all overlapping nodes
+        bool hasOverlap = false;
+        qreal maxShift = 0;
+
+        for (auto* node : allNodes) {
+            QRectF nodeRect = node->nodeRect();
+            QPointF nodePos = node->pos();
+            QRectF nodeWorld(nodePos.x() + nodeRect.left(),
+                             nodePos.y() + nodeRect.top(),
+                             nodeRect.width(), nodeRect.height());
+
+            if (!candidateWorld.intersects(nodeWorld))
+                continue;
+
+            hasOverlap = true;
+            qreal shift;
+            if (axis.spreadIsX) {
+                shift = nodeWorld.right() - candidateWorld.left() + kVSpacing;
+            } else {
+                shift = nodeWorld.bottom() - candidateWorld.top() + kVSpacing;
+            }
+            if (shift > maxShift)
+                maxShift = shift;
+        }
+
+        if (!hasOverlap)
+            break;
+
+        candidateSpread += maxShift;
+    }
+
+    return candidateSpread;
 }
 
 // ===========================================================================

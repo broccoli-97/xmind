@@ -12,8 +12,10 @@ public:
     // Compute the target position for every node in the tree rooted at |root|.
     static QMap<NodeItem*, QPointF> computeLayout(NodeItem* root, LayoutStyle style);
 
-    // Compute a reasonable initial position for a newly added child node.
-    static QPointF initialChildPosition(NodeItem* parent, NodeItem* root, LayoutStyle style);
+    // Compute a reasonable initial position for a newly added child node,
+    // avoiding overlap with existing nodes.
+    static QPointF initialChildPosition(NodeItem* newNode, NodeItem* parent,
+                                        NodeItem* root, LayoutStyle style);
 
     // Layout constants (public so Commands/MindMapScene can reference them)
     static constexpr qreal kHSpacing = 220.0;
@@ -61,6 +63,11 @@ private:
     // Helpers
     static void collectSubtreeNodes(NodeItem* node, QList<NodeItem*>& nodes,
                                     const QMap<NodeItem*, QPointF>& positions);
+    static void collectAllNodes(NodeItem* node, QList<NodeItem*>& nodes);
+    static qreal findAvailableSpread(qreal candidateSpread, qreal depth,
+                                     NodeItem* newNode,
+                                     const QList<NodeItem*>& allNodes,
+                                     const LayoutAxis& axis);
 
     // Force-directed constants
     static constexpr int kMaxIterations = 100;

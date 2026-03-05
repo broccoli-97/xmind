@@ -33,8 +33,8 @@ void AddNodeCommand::redo() {
         m_scene->registerEdge(edge);
         m_edge = edge;
 
-        // Position near parent
-        m_node->setPos(LayoutEngine::initialChildPosition(m_parent, m_scene->rootNode(),
+        // Position avoiding overlap with existing nodes
+        m_node->setPos(LayoutEngine::initialChildPosition(m_node, m_parent, m_scene->rootNode(),
                                                           m_scene->layoutStyle()));
 
         QObject::connect(m_node, &NodeItem::doubleClicked, m_scene, &MindMapScene::startEditing);
