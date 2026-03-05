@@ -28,7 +28,7 @@ private:
     // horizontal/topdown code duplication.
     struct LayoutAxis {
         bool spreadIsX;       // TopDown: true (children along X), Horizontal: false (along Y)
-        qreal depthSpacing;   // kHSpacing or kTopDownLevelSpacing
+        qreal depthSpacing;   // edge-to-edge gap along depth axis
         qreal spreadSpacing;  // kVSpacing
         int depthDirection;   // +1 or -1
 
@@ -37,6 +37,7 @@ private:
         void setSpread(QPointF& p, qreal v) const { if (spreadIsX) p.rx() = v; else p.ry() = v; }
         void setDepth(QPointF& p, qreal v) const { if (spreadIsX) p.ry() = v; else p.rx() = v; }
         qreal nodeSpan(NodeItem* node) const;
+        qreal nodeDepthSpan(NodeItem* node) const;
     };
 
     static LayoutAxis makeRightAxis();
@@ -76,4 +77,8 @@ private:
     static constexpr qreal kConvergenceThreshold = 0.5;
     static constexpr qreal kRepulsionStrength = 1.2;
     static constexpr qreal kSpringStrength = 0.03;
+
+    // Edge-to-edge gap constants for depth axis
+    static constexpr qreal kHGap = 100.0;
+    static constexpr qreal kTopDownGap = 56.0;
 };

@@ -57,7 +57,9 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
     // Text
     painter->setPen(tc.nodeText);
     painter->setFont(m_font);
-    painter->drawText(m_rect, Qt::AlignCenter, m_text);
+    QFontMetricsF fm(m_font);
+    QString displayText = fm.elidedText(m_text, Qt::ElideRight, m_rect.width() - kPadding * 2);
+    painter->drawText(m_rect, Qt::AlignCenter, displayText);
 }
 
 QString NodeItem::text() const {
@@ -195,7 +197,7 @@ void NodeItem::updateGeometry() {
     QFontMetricsF fm(m_font);
     qreal textW = fm.horizontalAdvance(m_text);
     qreal textH = fm.height();
-    qreal w = qMax(kMinWidth, textW + kPadding * 2);
+    qreal w = qMax(kMinWidth, qMin(kMaxWidth, textW + kPadding * 2));
     qreal h = textH + kPadding * 2;
     m_rect = QRectF(-w / 2, -h / 2, w, h);
 }

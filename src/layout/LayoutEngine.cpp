@@ -16,16 +16,23 @@ qreal LayoutEngine::LayoutAxis::nodeSpan(NodeItem* node) const {
         return qMax(kNodeHeight, node->nodeRect().height());
 }
 
+qreal LayoutEngine::LayoutAxis::nodeDepthSpan(NodeItem* node) const {
+    if (spreadIsX)
+        return qMax(kNodeHeight, node->nodeRect().height());
+    else
+        return node->nodeRect().width();
+}
+
 LayoutEngine::LayoutAxis LayoutEngine::makeRightAxis() {
-    return {false, kHSpacing, kVSpacing, +1};
+    return {false, kHGap, kVSpacing, +1};
 }
 
 LayoutEngine::LayoutAxis LayoutEngine::makeLeftAxis() {
-    return {false, kHSpacing, kVSpacing, -1};
+    return {false, kHGap, kVSpacing, -1};
 }
 
 LayoutEngine::LayoutAxis LayoutEngine::makeTopDownAxis() {
-    return {true, kTopDownLevelSpacing, kVSpacing, +1};
+    return {true, kTopDownGap, kVSpacing, +1};
 }
 
 // ===========================================================================
@@ -121,8 +128,11 @@ QPointF LayoutEngine::initialChildPosition(NodeItem* newNode, NodeItem* parent,
         }
     }
 
-    // Depth: fixed offset from parent along depth axis
-    qreal depth = axis.depth(parentPos) + axis.depthSpacing * axis.depthDirection;
+    // Depth: edge-to-edge from parent's far edge to child's near edge
+    qreal parentHalfDepth = axis.nodeDepthSpan(parent) / 2;
+    qreal newNodeHalfDepth = axis.nodeDepthSpan(newNode) / 2;
+    qreal depth = axis.depth(parentPos)
+        + axis.depthDirection * (parentHalfDepth + axis.depthSpacing + newNodeHalfDepth);
 
     // Spread: align with parent by default, or place after the last sibling
     qreal spread = axis.spread(parentPos);
@@ -260,12 +270,17 @@ void LayoutEngine::placeChildGroup(NodeItem* parent, const QList<NodeItem*>& chi
     }
 
     qreal parentSpread = axis.spread(positions[parent]);
-    qreal childDepth = axis.depth(positions[parent]) + axis.depthSpacing * axis.depthDirection;
+    qreal parentDepth = axis.depth(positions[parent]);
+    qreal parentHalfDepth = axis.nodeDepthSpan(parent) / 2;
     qreal cursor = parentSpread - totalSpan / 2;
 
     for (int i = 0; i < children.size(); ++i) {
         QPointF pos;
         qreal spread = cursor + measures[i] / 2;
+        // Edge-to-edge: parent far edge + gap + child half depth
+        qreal childHalfDepth = axis.nodeDepthSpan(children[i]) / 2;
+        qreal childDepth = parentDepth
+            + axis.depthDirection * (parentHalfDepth + axis.depthSpacing + childHalfDepth);
         axis.setSpread(pos, spread);
         axis.setDepth(pos, childDepth);
         placeSubtree(children[i], pos, axis, positions);

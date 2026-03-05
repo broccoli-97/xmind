@@ -64,6 +64,7 @@ private:
     bool m_dragging = false;
 
     static constexpr qreal kMinWidth = 120.0;
+    static constexpr qreal kMaxWidth = 300.0;
     static constexpr qreal kPadding = 16.0;
     static constexpr qreal kRadius = 10.0;
 };
