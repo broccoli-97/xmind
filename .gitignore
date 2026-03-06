@@ -8,3 +8,4 @@ deploy/
 out/
 templates/
 CLAUDE.md
+*.bat

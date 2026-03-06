@@ -11,6 +11,7 @@
 #include <QGraphicsItem>
 #include <QGraphicsView>
 #include <QPainter>
+#include <QPalette>
 #include <QStandardPaths>
 #include <QTimer>
 #include <cmath>
@@ -101,6 +102,81 @@ static QString generateCloseIcon(bool dark) {
 }
 
 // ---------------------------------------------------------------------------
+// Build a QPalette that matches the stylesheet so unstyled widgets also
+// follow the chosen theme.  Without this, Qt6 on Windows picks up the
+// system dark/light palette and unstyled widgets ignore the stylesheet.
+// ---------------------------------------------------------------------------
+static QPalette buildPalette(bool dark) {
+    QPalette pal;
+    if (dark) {
+        QColor windowBg("#2D2D30");
+        QColor windowFg("#D4D4D4");
+        QColor baseBg("#252526");
+        QColor highlight("#094771");
+        QColor highlightText("#FFFFFF");
+        QColor buttonBg("#3C3C3C");
+        QColor disabledFg("#5A5A5A");
+
+        pal.setColor(QPalette::Window,          windowBg);
+        pal.setColor(QPalette::WindowText,      windowFg);
+        pal.setColor(QPalette::Base,            baseBg);
+        pal.setColor(QPalette::AlternateBase,   windowBg);
+        pal.setColor(QPalette::Text,            windowFg);
+        pal.setColor(QPalette::Button,          buttonBg);
+        pal.setColor(QPalette::ButtonText,      windowFg);
+        pal.setColor(QPalette::BrightText,      Qt::white);
+        pal.setColor(QPalette::Highlight,       highlight);
+        pal.setColor(QPalette::HighlightedText, highlightText);
+        pal.setColor(QPalette::ToolTipBase,     windowBg);
+        pal.setColor(QPalette::ToolTipText,     windowFg);
+        pal.setColor(QPalette::PlaceholderText, disabledFg);
+        pal.setColor(QPalette::Light,           QColor("#3F3F46"));
+        pal.setColor(QPalette::Midlight,        QColor("#353535"));
+        pal.setColor(QPalette::Mid,             QColor("#2D2D30"));
+        pal.setColor(QPalette::Dark,            QColor("#1E1E1E"));
+        pal.setColor(QPalette::Shadow,          QColor("#111111"));
+
+        // Disabled state
+        pal.setColor(QPalette::Disabled, QPalette::WindowText,  disabledFg);
+        pal.setColor(QPalette::Disabled, QPalette::Text,        disabledFg);
+        pal.setColor(QPalette::Disabled, QPalette::ButtonText,  disabledFg);
+    } else {
+        QColor windowBg("#FFFFFF");
+        QColor windowFg("#1E1E1E");
+        QColor baseBg("#FFFFFF");
+        QColor highlight("#CCE4F7");
+        QColor highlightText("#1E1E1E");
+        QColor buttonBg("#E1E4E8");
+        QColor disabledFg("#B0B0B0");
+
+        pal.setColor(QPalette::Window,          windowBg);
+        pal.setColor(QPalette::WindowText,      windowFg);
+        pal.setColor(QPalette::Base,            baseBg);
+        pal.setColor(QPalette::AlternateBase,   QColor("#F8F8F8"));
+        pal.setColor(QPalette::Text,            windowFg);
+        pal.setColor(QPalette::Button,          buttonBg);
+        pal.setColor(QPalette::ButtonText,      windowFg);
+        pal.setColor(QPalette::BrightText,      Qt::black);
+        pal.setColor(QPalette::Highlight,       highlight);
+        pal.setColor(QPalette::HighlightedText, highlightText);
+        pal.setColor(QPalette::ToolTipBase,     QColor("#F5F5F5"));
+        pal.setColor(QPalette::ToolTipText,     windowFg);
+        pal.setColor(QPalette::PlaceholderText, disabledFg);
+        pal.setColor(QPalette::Light,           QColor("#FFFFFF"));
+        pal.setColor(QPalette::Midlight,        QColor("#F0F0F0"));
+        pal.setColor(QPalette::Mid,             QColor("#D0D0D0"));
+        pal.setColor(QPalette::Dark,            QColor("#A0A0A0"));
+        pal.setColor(QPalette::Shadow,          QColor("#808080"));
+
+        // Disabled state
+        pal.setColor(QPalette::Disabled, QPalette::WindowText,  disabledFg);
+        pal.setColor(QPalette::Disabled, QPalette::Text,        disabledFg);
+        pal.setColor(QPalette::Disabled, QPalette::ButtonText,  disabledFg);
+    }
+    return pal;
+}
+
+// ---------------------------------------------------------------------------
 // Apply theme to application and invalidate caches on all scenes
 // ---------------------------------------------------------------------------
 void ThemeManager::applyTheme(const QList<TabState>& tabs) {
@@ -115,6 +191,10 @@ void ThemeManager::applyTheme(const QList<TabState>& tabs) {
     iconPath.replace("\\", "/"); // Qt URL paths require forward slashes
     stylesheet += QString("\nQTabBar::close-button { image: url(%1); }").arg(iconPath);
 
+    // Set palette BEFORE stylesheet so Qt's palette and CSS are in sync.
+    // This is critical on Windows where Qt6 auto-detects system dark mode
+    // and applies a system palette that overrides unstyled widget colors.
+    qApp->setPalette(buildPalette(dark));
     qApp->setStyleSheet(stylesheet);
 
     // Invalidate caches on ALL open scenes
