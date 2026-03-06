@@ -12,23 +12,26 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(BUILD_STATIC "Build a fully static executable" OFF)
+option(BUILD_TESTING "Build unit tests" OFF)
+option(ENABLE_CLANG_TIDY "Run clang-tidy during compilation" OFF)
+
+# ---- Static analysis ---------------------------------------------------------
+
+if(ENABLE_CLANG_TIDY)
+    find_program(CLANG_TIDY_EXE NAMES clang-tidy REQUIRED)
+    set(CMAKE_CXX_CLANG_TIDY
+        ${CLANG_TIDY_EXE}
+        --config-file=${CMAKE_SOURCE_DIR}/.clang-tidy
+    )
+endif()
 
 # ---- Dependencies ------------------------------------------------------------
 
 find_package(Qt6 REQUIRED COMPONENTS Widgets Svg PrintSupport)
 
-# ---- Target ------------------------------------------------------------------
+# ---- Library (all sources except main.cpp) -----------------------------------
 
-if(WIN32)
-    add_executable(xmind WIN32)
-else()
-    add_executable(xmind)
-endif()
-
-target_sources(xmind PRIVATE
-    # Entry point
-    src/main.cpp
-
+add_library(xmind_lib STATIC
     # Core – application infrastructure
     src/core/AppSettings.h        src/core/AppSettings.cpp
     src/core/Commands.h           src/core/Commands.cpp
@@ -66,13 +69,24 @@ target_sources(xmind PRIVATE
     resources/resources.qrc
 )
 
-target_include_directories(xmind PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(xmind_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-target_link_libraries(xmind PRIVATE
+target_link_libraries(xmind_lib PUBLIC
     Qt6::Widgets
     Qt6::Svg
     Qt6::PrintSupport
 )
+
+# ---- Executable --------------------------------------------------------------
+
+if(WIN32)
+    add_executable(xmind WIN32)
+else()
+    add_executable(xmind)
+endif()
+
+target_sources(xmind PRIVATE src/main.cpp)
+target_link_libraries(xmind PRIVATE xmind_lib)
 
 # ---- Platform-specific -------------------------------------------------------
 
@@ -83,3 +97,10 @@ endif()
 # ---- Install -----------------------------------------------------------------
 
 install(TARGETS xmind DESTINATION bin)
+
+# ---- Testing -----------------------------------------------------------------
+
+if(BUILD_TESTING)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
