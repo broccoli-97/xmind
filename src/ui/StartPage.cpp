@@ -1,4 +1,6 @@
 #include "ui/StartPage.h"
+#include "core/TemplateDescriptor.h"
+#include "core/TemplateRegistry.h"
 #include "ui/IconFactory.h"
 #include "scene/MindMapScene.h"
 #include "scene/NodeItem.h"
@@ -10,7 +12,7 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 
-QWidget* StartPage::create(QObject* /*receiver*/, std::function<void(int)> onTemplate,
+QWidget* StartPage::create(QObject* /*receiver*/, std::function<void(const QString&)> onTemplate,
                            std::function<void()> onBlankCanvas) {
     auto* page = new QWidget();
     page->setObjectName("startPage");
@@ -36,15 +38,18 @@ QWidget* StartPage::create(QObject* /*receiver*/, std::function<void(int)> onTem
     cardLayout->setAlignment(Qt::AlignCenter);
     cardLayout->setSpacing(24);
 
-    QStringList templateNames = {"Mind Map", "Org Chart", "Project Plan"};
-    for (int i = 0; i < 3; ++i) {
+    auto templates = TemplateRegistry::instance().allTemplates();
+    for (int i = 0; i < templates.size(); ++i) {
+        const auto* td = templates[i];
         auto* card = new QPushButton();
         card->setObjectName("templateCard");
         card->setFixedSize(180, 140);
         card->setIconSize(QSize(160, 106));
-        card->setIcon(QIcon(IconFactory::makeTemplatePreview(i, 160, 106)));
-        card->setToolTip(templateNames[i]);
-        QObject::connect(card, &QPushButton::clicked, page, [onTemplate, i]() { onTemplate(i); });
+        card->setIcon(QIcon(IconFactory::makeTemplatePreview(td->id, 160, 106)));
+        card->setToolTip(td->name);
+        QString templateId = td->id;
+        QObject::connect(card, &QPushButton::clicked, page,
+                         [onTemplate, templateId]() { onTemplate(templateId); });
         cardLayout->addWidget(card);
     }
     outer->addWidget(cardRow);
@@ -66,35 +71,26 @@ QWidget* StartPage::create(QObject* /*receiver*/, std::function<void(int)> onTem
     return page;
 }
 
-void StartPage::loadTemplate(int index, MindMapScene* scene) {
-    auto* root = scene->rootNode();
-
-    if (index == 0) {
-        // Mind Map — central topic with 4 branches
-        root->setText("Central Topic");
-        scene->addNode("Branch 1", root);
-        scene->addNode("Branch 2", root);
-        scene->addNode("Branch 3", root);
-        scene->addNode("Branch 4", root);
-        scene->setLayoutStyle(LayoutStyle::Bilateral);
-    } else if (index == 1) {
-        // Org Chart — CEO -> 3 departments
-        root->setText("CEO");
-        scene->setLayoutStyle(LayoutStyle::TopDown);
-        scene->addNode("Engineering", root);
-        scene->addNode("Marketing", root);
-        scene->addNode("Sales", root);
-    } else if (index == 2) {
-        // Project Plan — root -> phases -> tasks
-        root->setText("Project");
-        scene->setLayoutStyle(LayoutStyle::RightTree);
-        auto* phase1 = scene->addNode("Phase 1", root);
-        auto* phase2 = scene->addNode("Phase 2", root);
-        scene->addNode("Task 1.1", phase1);
-        scene->addNode("Task 1.2", phase1);
-        scene->addNode("Task 2.1", phase2);
-        scene->addNode("Task 2.2", phase2);
+static void buildContentTree(MindMapScene* scene, NodeItem* parent,
+                              const QList<TemplateContentNode>& children) {
+    for (const auto& child : children) {
+        auto* node = scene->addNode(child.text, parent);
+        if (node && !child.children.isEmpty())
+            buildContentTree(scene, node, child.children);
     }
+}
+
+void StartPage::loadTemplate(const QString& templateId, MindMapScene* scene) {
+    const auto* td = TemplateRegistry::instance().templateById(templateId);
+    if (!td)
+        return;
+
+    auto* root = scene->rootNode();
+    root->setText(td->content.text);
+
+    scene->setTemplateId(templateId);
+
+    buildContentTree(scene, root, td->content.children);
 
     scene->autoLayout();
     scene->undoStack()->clear();

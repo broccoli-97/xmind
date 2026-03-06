@@ -1,5 +1,7 @@
 #include "scene/MindMapScene.h"
 #include "core/Commands.h"
+#include "core/TemplateDescriptor.h"
+#include "core/TemplateRegistry.h"
 #include "scene/EdgeItem.h"
 #include "layout/LayoutEngine.h"
 #include "scene/NodeItem.h"
@@ -70,7 +72,14 @@ NodeItem* MindMapScene::addNode(const QString& text, NodeItem* parent) {
     m_edges.append(edge);
 
     // Position avoiding overlap with existing nodes
-    node->setPos(LayoutEngine::initialChildPosition(node, parent, m_rootNode, m_layoutStyle));
+    const auto* td = templateDescriptor();
+    if (td) {
+        LayoutParams params{td->layout.depthSpacing, td->layout.spreadSpacing};
+        node->setPos(LayoutEngine::initialChildPosition(
+            node, parent, m_rootNode, td->layout.algorithm, params));
+    } else {
+        node->setPos(LayoutEngine::initialChildPosition(node, parent, m_rootNode, m_layoutStyle));
+    }
 
     connect(node, &NodeItem::doubleClicked, this, &MindMapScene::startEditing);
 
@@ -145,6 +154,29 @@ void MindMapScene::setLayoutStyle(LayoutStyle style) {
         m_layoutStyle = style;
         emit layoutStyleChanged();
     }
+}
+
+QString MindMapScene::templateId() const {
+    return m_templateId;
+}
+
+void MindMapScene::setTemplateId(const QString& id) {
+    m_templateId = id;
+    // Sync layout style from template
+    const auto* td = templateDescriptor();
+    if (td) {
+        LayoutStyle ls = algorithmNameToLayoutStyle(td->layout.algorithm);
+        if (m_layoutStyle != ls) {
+            m_layoutStyle = ls;
+            emit layoutStyleChanged();
+        }
+    }
+}
+
+const TemplateDescriptor* MindMapScene::templateDescriptor() const {
+    if (m_templateId.isEmpty())
+        return nullptr;
+    return TemplateRegistry::instance().templateById(m_templateId);
 }
 
 EdgeItem* MindMapScene::findEdge(NodeItem* parent, NodeItem* child) const {
@@ -354,8 +386,10 @@ QJsonObject MindMapScene::nodeToJson(NodeItem* node) const {
 QJsonObject MindMapScene::toJson() const {
     QJsonObject root;
     root["format"] = QStringLiteral("xmind");
-    root["version"] = 1;
+    root["version"] = 2;
     root["layoutStyle"] = static_cast<int>(m_layoutStyle);
+    if (!m_templateId.isEmpty())
+        root["templateId"] = m_templateId;
     if (m_rootNode) {
         root["root"] = nodeToJson(m_rootNode);
     }
@@ -396,6 +430,13 @@ bool MindMapScene::fromJson(const QJsonObject& json) {
 
     // Restore layout style (default to Bilateral for old files)
     m_layoutStyle = static_cast<LayoutStyle>(json["layoutStyle"].toInt(0));
+
+    // Restore template ID; for old files (v1), map layoutStyle to builtin ID
+    if (json.contains("templateId")) {
+        m_templateId = json["templateId"].toString();
+    } else {
+        m_templateId = TemplateRegistry::builtinIdForLayoutStyle(json["layoutStyle"].toInt(0));
+    }
 
     QJsonObject rootObj = json["root"].toObject();
     m_rootNode = nodeFromJson(rootObj, nullptr);
@@ -515,7 +556,10 @@ bool MindMapScene::exportToPng(const QString& filePath, int scaleFactor) {
                     static_cast<int>(contentRect.height() * scaleFactor));
 
     QImage image(imageSize, QImage::Format_ARGB32_Premultiplied);
-    image.fill(ThemeManager::colors().exportBackground);
+    const auto* td = templateDescriptor();
+    QColor bgColor = td ? td->activeColors().exportBackground
+                        : ThemeManager::colors().exportBackground;
+    image.fill(bgColor);
 
     QPainter painter(&image);
     painter.setRenderHint(QPainter::Antialiasing);
@@ -615,8 +659,14 @@ void MindMapScene::autoLayout() {
     if (m_editingNode)
         finishEditing();
 
-    QMap<NodeItem*, QPointF> positions =
-        LayoutEngine::computeLayout(m_rootNode, m_layoutStyle);
+    QMap<NodeItem*, QPointF> positions;
+    const auto* td = templateDescriptor();
+    if (td) {
+        LayoutParams params{td->layout.depthSpacing, td->layout.spreadSpacing};
+        positions = LayoutEngine::computeLayout(m_rootNode, td->layout.algorithm, params);
+    } else {
+        positions = LayoutEngine::computeLayout(m_rootNode, m_layoutStyle);
+    }
 
     // Animate to new positions
     auto* group = new QParallelAnimationGroup(this);

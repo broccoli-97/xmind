@@ -261,3 +261,50 @@ QPixmap IconFactory::makeTemplatePreview(int index, int width, int height) {
     p.end();
     return pix;
 }
+
+QPixmap IconFactory::makeTemplatePreview(const QString& templateId, int width, int height) {
+    // Map builtin IDs to existing hardcoded previews
+    if (templateId == QLatin1String("builtin.mindmap"))
+        return makeTemplatePreview(0, width, height);
+    if (templateId == QLatin1String("builtin.orgchart"))
+        return makeTemplatePreview(1, width, height);
+    if (templateId == QLatin1String("builtin.projectplan"))
+        return makeTemplatePreview(2, width, height);
+
+    // Generic preview for user templates: simple centered label
+    const auto& c = ThemeManager::colors();
+    QPixmap pix(width, height);
+    pix.fill(Qt::transparent);
+    QPainter p(&pix);
+    p.setRenderHint(QPainter::Antialiasing);
+
+    qreal sx = width / 120.0;
+    qreal sy = height / 80.0;
+    p.scale(sx, sy);
+
+    QPen nodePen(c.previewNodeBorder, 1.5);
+    QBrush nodeBrush(c.previewNodeFill);
+
+    // Draw a simple generic mind map shape
+    p.setPen(nodePen);
+    p.setBrush(nodeBrush);
+    p.drawRoundedRect(35, 28, 50, 18, 4, 4);
+
+    QPen linePen(c.previewLine, 1.5);
+    p.setPen(linePen);
+    p.drawLine(60, 28, 90, 14);
+    p.drawLine(60, 46, 90, 56);
+    p.drawLine(35, 28, 18, 14);
+    p.drawLine(35, 46, 18, 56);
+
+    p.setPen(c.previewText);
+    p.setFont(QFont("sans-serif", 7));
+    // Use templateId as label (strip prefix if present)
+    QString label = templateId;
+    if (label.contains('.'))
+        label = label.mid(label.lastIndexOf('.') + 1);
+    p.drawText(QRect(0, 68, 120, 12), Qt::AlignCenter, label);
+
+    p.end();
+    return pix;
+}

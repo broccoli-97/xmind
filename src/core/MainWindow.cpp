@@ -1,6 +1,8 @@
 #include "core/MainWindow.h"
 #include "core/AppSettings.h"
 #include "core/FileManager.h"
+#include "core/TemplateRegistry.h"
+#include "layout/LayoutAlgorithmRegistry.h"
 #include "ui/IconFactory.h"
 #include "scene/MindMapScene.h"
 #include "scene/MindMapView.h"
@@ -22,6 +24,7 @@
 #include <QSignalBlocker>
 #include <QSplitter>
 #include <QStackedWidget>
+#include <QStandardPaths>
 #include <QStatusBar>
 #include <QTabBar>
 #include <QTimer>
@@ -34,6 +37,13 @@
 // ---------------------------------------------------------------------------
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     resize(1280, 800);
+
+    // Initialize registries before anything else
+    LayoutAlgorithmRegistry::instance().registerBuiltins();
+    TemplateRegistry::instance().loadBuiltins();
+    TemplateRegistry::instance().loadFromDirectory(
+        QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)
+        + "/XMind/templates");
 
     m_tabManager = new TabManager(this);
     m_fileManager = new FileManager(this, m_tabManager, this);

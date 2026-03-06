@@ -1,505 +1,58 @@
 #include "layout/LayoutEngine.h"
-#include "scene/NodeItem.h"
-
-#include <QQueue>
-#include <algorithm>
-#include <cmath>
+#include "layout/LayoutAlgorithmRegistry.h"
 
 // ===========================================================================
-// LayoutAxis
+// Private helpers
 // ===========================================================================
 
-qreal LayoutEngine::LayoutAxis::nodeSpan(NodeItem* node) const {
-    if (spreadIsX)
-        return node->nodeRect().width();
-    else
-        return qMax(kNodeHeight, node->nodeRect().height());
+const ILayoutAlgorithm* LayoutEngine::resolveAlgorithm(const QString& name) {
+    return LayoutAlgorithmRegistry::instance().algorithm(name);
 }
 
-qreal LayoutEngine::LayoutAxis::nodeDepthSpan(NodeItem* node) const {
-    if (spreadIsX)
-        return qMax(kNodeHeight, node->nodeRect().height());
-    else
-        return node->nodeRect().width();
-}
-
-LayoutEngine::LayoutAxis LayoutEngine::makeRightAxis() {
-    return {false, kHGap, kVSpacing, +1};
-}
-
-LayoutEngine::LayoutAxis LayoutEngine::makeLeftAxis() {
-    return {false, kHGap, kVSpacing, -1};
-}
-
-LayoutEngine::LayoutAxis LayoutEngine::makeTopDownAxis() {
-    return {true, kTopDownGap, kVSpacing, +1};
+LayoutParams LayoutEngine::defaultParams() {
+    return {100.0, 16.0};
 }
 
 // ===========================================================================
-// Public API
+// Legacy API (enum-based)
 // ===========================================================================
 
 QMap<NodeItem*, QPointF> LayoutEngine::computeLayout(NodeItem* root, LayoutStyle style) {
-    QMap<NodeItem*, QPointF> positions;
-    if (!root)
-        return positions;
-
-    positions[root] = QPointF(0, 0);
-
-    switch (style) {
-    case LayoutStyle::Bilateral: {
-        auto children = root->childNodes();
-        QList<NodeItem*> rightChildren, leftChildren;
-        for (int i = 0; i < children.size(); ++i) {
-            if (i % 2 == 0)
-                rightChildren.append(children[i]);
-            else
-                leftChildren.append(children[i]);
-        }
-
-        LayoutAxis rightAxis = makeRightAxis();
-        LayoutAxis leftAxis = makeLeftAxis();
-
-        placeChildGroup(root, rightChildren, rightAxis, positions);
-        placeChildGroup(root, leftChildren, leftAxis, positions);
-
-        forceDirectedRefinement(root, rightChildren, rightAxis, positions);
-        forceDirectedRefinement(root, leftChildren, leftAxis, positions);
-        break;
-    }
-    case LayoutStyle::RightTree: {
-        LayoutAxis axis = makeRightAxis();
-        placeSubtree(root, QPointF(0, 0), axis, positions);
-        forceDirectedRefinement(root, root->childNodes(), axis, positions);
-        break;
-    }
-    case LayoutStyle::TopDown: {
-        LayoutAxis axis = makeTopDownAxis();
-        placeSubtree(root, QPointF(0, 0), axis, positions);
-        forceDirectedRefinement(root, root->childNodes(), axis, positions);
-        break;
-    }
-    }
-
-    return positions;
+    return computeLayout(root, layoutStyleToAlgorithmName(style), defaultParams());
 }
 
 QPointF LayoutEngine::initialChildPosition(NodeItem* newNode, NodeItem* parent,
                                             NodeItem* root, LayoutStyle style) {
-    QPointF parentPos = parent->pos();
-    auto allChildren = parent->childNodes();
-
-    // Collect existing siblings (all children except the newly added one)
-    QList<NodeItem*> existingSiblings;
-    for (auto* child : allChildren) {
-        if (child != newNode)
-            existingSiblings.append(child);
-    }
-
-    // Collect all nodes in the tree for overlap checking (excluding the new node)
-    QList<NodeItem*> allNodes;
-    collectAllNodes(root, allNodes);
-    allNodes.removeOne(newNode);
-
-    LayoutAxis axis;
-    QList<NodeItem*> relevantSiblings = existingSiblings;
-
-    if (style == LayoutStyle::TopDown) {
-        axis = makeTopDownAxis();
-    } else if (style == LayoutStyle::RightTree) {
-        axis = makeRightAxis();
-    } else {
-        // Bilateral: determine which side the new node goes on
-        qreal xDir;
-        if (parent == root) {
-            int newIndex = allChildren.indexOf(newNode);
-            xDir = (newIndex % 2 == 0) ? 1.0 : -1.0;
-        } else {
-            xDir = (parentPos.x() >= 0) ? 1.0 : -1.0;
-        }
-        axis = (xDir > 0) ? makeRightAxis() : makeLeftAxis();
-
-        // Only consider siblings on the same side
-        relevantSiblings.clear();
-        for (auto* sib : existingSiblings) {
-            if ((xDir > 0 && sib->pos().x() > parentPos.x()) ||
-                (xDir < 0 && sib->pos().x() < parentPos.x()))
-                relevantSiblings.append(sib);
-        }
-    }
-
-    // Depth: edge-to-edge from parent's far edge to child's near edge
-    qreal parentHalfDepth = axis.nodeDepthSpan(parent) / 2;
-    qreal newNodeHalfDepth = axis.nodeDepthSpan(newNode) / 2;
-    qreal depth = axis.depth(parentPos)
-        + axis.depthDirection * (parentHalfDepth + axis.depthSpacing + newNodeHalfDepth);
-
-    // Spread: align with parent by default, or place after the last sibling
-    qreal spread = axis.spread(parentPos);
-
-    if (!relevantSiblings.isEmpty()) {
-        // Find the sibling with the furthest spread-axis endpoint
-        qreal maxSpreadEnd = -1e18;
-        for (auto* sib : relevantSiblings) {
-            qreal s = axis.spread(sib->pos());
-            qreal halfSpan = axis.nodeSpan(sib) / 2;
-            qreal end = s + halfSpan;
-            if (end > maxSpreadEnd)
-                maxSpreadEnd = end;
-        }
-        // Place the new node right after the furthest sibling
-        spread = maxSpreadEnd + kVSpacing + axis.nodeSpan(newNode) / 2;
-    }
-
-    // Resolve any remaining overlap with nodes from other subtrees
-    spread = findAvailableSpread(spread, depth, newNode, allNodes, axis);
-
-    QPointF pos;
-    axis.setSpread(pos, spread);
-    axis.setDepth(pos, depth);
-    return pos;
+    return initialChildPosition(newNode, parent, root,
+                                 layoutStyleToAlgorithmName(style), defaultParams());
 }
 
 // ===========================================================================
-// Helpers for initial placement
+// New API (name + params)
 // ===========================================================================
 
-void LayoutEngine::collectAllNodes(NodeItem* node, QList<NodeItem*>& nodes) {
-    if (!node)
-        return;
-    nodes.append(node);
-    for (auto* child : node->childNodes())
-        collectAllNodes(child, nodes);
-}
-
-qreal LayoutEngine::findAvailableSpread(qreal candidateSpread, qreal depth,
-                                         NodeItem* newNode,
-                                         const QList<NodeItem*>& allNodes,
-                                         const LayoutAxis& axis) {
-    QRectF newRect = newNode->nodeRect();
-
-    for (int attempt = 0; attempt < 50; ++attempt) {
-        // Build world-space rect for the candidate position
-        QPointF candidatePos;
-        axis.setSpread(candidatePos, candidateSpread);
-        axis.setDepth(candidatePos, depth);
-
-        QRectF candidateWorld(candidatePos.x() + newRect.left(),
-                              candidatePos.y() + newRect.top(),
-                              newRect.width(), newRect.height());
-        candidateWorld.adjust(-kVSpacing / 2, -kVSpacing / 2,
-                               kVSpacing / 2,  kVSpacing / 2);
-
-        // Find the maximum shift needed to clear all overlapping nodes
-        bool hasOverlap = false;
-        qreal maxShift = 0;
-
-        for (auto* node : allNodes) {
-            QRectF nodeRect = node->nodeRect();
-            QPointF nodePos = node->pos();
-            QRectF nodeWorld(nodePos.x() + nodeRect.left(),
-                             nodePos.y() + nodeRect.top(),
-                             nodeRect.width(), nodeRect.height());
-
-            if (!candidateWorld.intersects(nodeWorld))
-                continue;
-
-            hasOverlap = true;
-            qreal shift;
-            if (axis.spreadIsX) {
-                shift = nodeWorld.right() - candidateWorld.left() + kVSpacing;
-            } else {
-                shift = nodeWorld.bottom() - candidateWorld.top() + kVSpacing;
-            }
-            if (shift > maxShift)
-                maxShift = shift;
-        }
-
-        if (!hasOverlap)
-            break;
-
-        candidateSpread += maxShift;
+QMap<NodeItem*, QPointF> LayoutEngine::computeLayout(NodeItem* root,
+                                                      const QString& algorithmName,
+                                                      const LayoutParams& params) {
+    const auto* algo = resolveAlgorithm(algorithmName);
+    if (!algo) {
+        // Fallback to bilateral
+        algo = resolveAlgorithm(QStringLiteral("bilateral"));
     }
-
-    return candidateSpread;
+    if (!algo)
+        return {};
+    return algo->computeLayout(root, params);
 }
 
-// ===========================================================================
-// Phase 1: Measure (bottom-up)
-// ===========================================================================
-
-qreal LayoutEngine::measureSubtree(NodeItem* node, const LayoutAxis& axis) {
-    auto children = node->childNodes();
-    qreal selfSpan = axis.nodeSpan(node);
-    if (children.isEmpty())
-        return selfSpan;
-
-    qreal total = 0;
-    for (int i = 0; i < children.size(); ++i) {
-        if (i > 0) total += axis.spreadSpacing;
-        total += measureSubtree(children[i], axis);
+QPointF LayoutEngine::initialChildPosition(NodeItem* newNode, NodeItem* parent,
+                                            NodeItem* root,
+                                            const QString& algorithmName,
+                                            const LayoutParams& params) {
+    const auto* algo = resolveAlgorithm(algorithmName);
+    if (!algo) {
+        algo = resolveAlgorithm(QStringLiteral("bilateral"));
     }
-
-    return qMax(selfSpan, total);
-}
-
-// ===========================================================================
-// Phase 2: Place (top-down)
-// ===========================================================================
-
-void LayoutEngine::placeSubtree(NodeItem* node, QPointF position, const LayoutAxis& axis,
-                                 QMap<NodeItem*, QPointF>& positions) {
-    positions[node] = position;
-    placeChildGroup(node, node->childNodes(), axis, positions);
-}
-
-void LayoutEngine::placeChildGroup(NodeItem* parent, const QList<NodeItem*>& children,
-                                    const LayoutAxis& axis,
-                                    QMap<NodeItem*, QPointF>& positions) {
-    if (children.isEmpty())
-        return;
-
-    // Compute total span needed
-    qreal totalSpan = 0;
-    QList<qreal> measures;
-    for (int i = 0; i < children.size(); ++i) {
-        qreal m = measureSubtree(children[i], axis);
-        measures.append(m);
-        if (i > 0) totalSpan += axis.spreadSpacing;
-        totalSpan += m;
-    }
-
-    qreal parentSpread = axis.spread(positions[parent]);
-    qreal parentDepth = axis.depth(positions[parent]);
-    qreal parentHalfDepth = axis.nodeDepthSpan(parent) / 2;
-    qreal cursor = parentSpread - totalSpan / 2;
-
-    for (int i = 0; i < children.size(); ++i) {
-        QPointF pos;
-        qreal spread = cursor + measures[i] / 2;
-        // Edge-to-edge: parent far edge + gap + child half depth
-        qreal childHalfDepth = axis.nodeDepthSpan(children[i]) / 2;
-        qreal childDepth = parentDepth
-            + axis.depthDirection * (parentHalfDepth + axis.depthSpacing + childHalfDepth);
-        axis.setSpread(pos, spread);
-        axis.setDepth(pos, childDepth);
-        placeSubtree(children[i], pos, axis, positions);
-        cursor += measures[i] + axis.spreadSpacing;
-    }
-}
-
-// ===========================================================================
-// Helper: Collect nodes in BFS order from subtree roots
-// ===========================================================================
-
-void LayoutEngine::collectSubtreeNodes(NodeItem* node, QList<NodeItem*>& nodes,
-                                        const QMap<NodeItem*, QPointF>& positions) {
-    if (!positions.contains(node))
-        return;
-    nodes.append(node);
-    for (auto* child : node->childNodes())
-        collectSubtreeNodes(child, nodes, positions);
-}
-
-// ===========================================================================
-// Phase 3: Force-directed refinement
-// ===========================================================================
-
-void LayoutEngine::forceDirectedRefinement(
-    NodeItem* root,
-    const QList<NodeItem*>& subtreeRoots,
-    const LayoutAxis& axis,
-    QMap<NodeItem*, QPointF>& positions)
-{
-    // Collect all nodes from the given subtree roots (BFS order)
-    QList<NodeItem*> allNodes;
-    allNodes.append(root);
-    for (auto* sr : subtreeRoots)
-        collectSubtreeNodes(sr, allNodes, positions);
-
-    if (allNodes.size() < 2)
-        return;
-
-    // Root is always pinned
-    QSet<NodeItem*> pinnedNodes;
-    pinnedNodes.insert(root);
-
-    // Save rest positions (the initial tree-computed positions)
-    QMap<NodeItem*, QPointF> restPositions;
-    for (auto* node : allNodes)
-        restPositions[node] = positions[node];
-
-    // Record initial sibling orderings (spread-axis order within each parent)
-    QMap<NodeItem*, qreal> initialSpread;
-    for (auto* node : allNodes)
-        initialSpread[node] = axis.spread(positions[node]);
-
-    // Build parent-to-children map for BFS propagation (only nodes in our set)
-    QSet<NodeItem*> nodeSet(allNodes.begin(), allNodes.end());
-
-    qreal temperature = kInitialTemperature;
-
-    for (int iter = 0; iter < kMaxIterations; ++iter) {
-        // Accumulate displacements (spread-axis only)
-        QMap<NodeItem*, qreal> displacement;
-        for (auto* node : allNodes)
-            displacement[node] = 0.0;
-
-        // --- 1. Repulsive forces between overlapping pairs ---
-        QList<NodeItem*> sorted = allNodes;
-        std::sort(sorted.begin(), sorted.end(), [&](NodeItem* a, NodeItem* b) {
-            return axis.spread(positions[a]) < axis.spread(positions[b]);
-        });
-
-        for (int i = 0; i < sorted.size(); ++i) {
-            NodeItem* a = sorted[i];
-            QPointF posA = positions[a];
-            QRectF rectA = a->nodeRect();
-
-            for (int j = i + 1; j < sorted.size(); ++j) {
-                NodeItem* b = sorted[j];
-                QPointF posB = positions[b];
-                QRectF rectB = b->nodeRect();
-
-                // Early termination
-                qreal halfSpanA = axis.nodeSpan(a) / 2;
-                qreal halfSpanB = axis.nodeSpan(b) / 2;
-                qreal spreadGap = axis.spread(posB) - axis.spread(posA);
-                if (spreadGap > halfSpanA + halfSpanB + kVSpacing)
-                    break;
-
-                // Full 2D AABB overlap check
-                QRectF worldA(posA.x() + rectA.left(), posA.y() + rectA.top(),
-                              rectA.width(), rectA.height());
-                QRectF worldB(posB.x() + rectB.left(), posB.y() + rectB.top(),
-                              rectB.width(), rectB.height());
-
-                worldA.adjust(-kVSpacing / 2, -kVSpacing / 2,
-                               kVSpacing / 2,  kVSpacing / 2);
-
-                if (!worldA.intersects(worldB))
-                    continue;
-
-                qreal overlap;
-                if (axis.spreadIsX) {
-                    overlap = worldA.right() - worldB.left();
-                } else {
-                    overlap = worldA.bottom() - worldB.top();
-                }
-                if (overlap <= 0)
-                    continue;
-
-                qreal force = overlap * kRepulsionStrength;
-
-                bool aPinned = pinnedNodes.contains(a);
-                bool bPinned = pinnedNodes.contains(b);
-
-                if (aPinned && bPinned) {
-                    continue;
-                } else if (aPinned) {
-                    displacement[b] += force;
-                } else if (bPinned) {
-                    displacement[a] -= force;
-                } else {
-                    displacement[a] -= force / 2;
-                    displacement[b] += force / 2;
-                }
-            }
-        }
-
-        // --- 2. Rest-position springs ---
-        for (auto* node : allNodes) {
-            if (pinnedNodes.contains(node))
-                continue;
-            qreal rest = axis.spread(restPositions[node]);
-            qreal curr = axis.spread(positions[node]);
-            displacement[node] += kSpringStrength * (rest - curr);
-        }
-
-        // --- 3. Apply displacements top-down (BFS) with subtree propagation ---
-        for (auto* node : pinnedNodes)
-            displacement[node] = 0.0;
-
-        // Clamp by temperature
-        for (auto* node : allNodes) {
-            if (pinnedNodes.contains(node)) continue;
-            qreal d = displacement[node];
-            if (std::abs(d) > temperature)
-                displacement[node] = (d > 0) ? temperature : -temperature;
-        }
-
-        // Propagate parent displacement to children
-        QMap<NodeItem*, qreal> totalDisplacement;
-        for (auto* node : allNodes)
-            totalDisplacement[node] = 0.0;
-
-        for (auto* node : allNodes) {
-            qreal inherited = 0.0;
-            NodeItem* par = node->parentNode();
-            if (par && totalDisplacement.contains(par) && !pinnedNodes.contains(node)) {
-                inherited = totalDisplacement[par];
-            }
-            if (pinnedNodes.contains(node)) {
-                totalDisplacement[node] = 0.0;
-            } else {
-                totalDisplacement[node] = displacement[node] + inherited;
-            }
-        }
-
-        // Apply total displacements
-        qreal maxDisp = 0.0;
-        for (auto* node : allNodes) {
-            qreal d = totalDisplacement[node];
-            if (std::abs(d) > 1e-6) {
-                qreal s = axis.spread(positions[node]);
-                axis.setSpread(positions[node], s + d);
-            }
-            maxDisp = qMax(maxDisp, std::abs(d));
-        }
-
-        // --- 4. Enforce sibling ordering constraint ---
-        QSet<NodeItem*> processed;
-        for (auto* node : allNodes) {
-            NodeItem* par = node->parentNode();
-            if (!par || processed.contains(par))
-                continue;
-            processed.insert(par);
-
-            QList<NodeItem*> siblings;
-            for (auto* child : par->childNodes()) {
-                if (nodeSet.contains(child))
-                    siblings.append(child);
-            }
-            if (siblings.size() < 2)
-                continue;
-
-            std::sort(siblings.begin(), siblings.end(), [&](NodeItem* a, NodeItem* b) {
-                return initialSpread[a] < initialSpread[b];
-            });
-
-            for (int i = 1; i < siblings.size(); ++i) {
-                NodeItem* prev = siblings[i - 1];
-                NodeItem* curr = siblings[i];
-
-                qreal prevSpread = axis.spread(positions[prev]);
-                qreal currSpread = axis.spread(positions[curr]);
-                qreal minGap = axis.nodeSpan(prev) / 2 + axis.nodeSpan(curr) / 2 + kVSpacing;
-
-                if (currSpread - prevSpread < minGap) {
-                    qreal mid = (prevSpread + currSpread) / 2;
-                    axis.setSpread(positions[prev], mid - minGap / 2);
-                    qreal shift = (mid + minGap / 2) - currSpread;
-                    for (int j = i; j < siblings.size(); ++j) {
-                        qreal s = axis.spread(positions[siblings[j]]);
-                        axis.setSpread(positions[siblings[j]], s + shift);
-                    }
-                }
-            }
-        }
-
-        // --- 5. Cool temperature and check convergence ---
-        temperature *= kCoolingFactor;
-        if (maxDisp < kConvergenceThreshold)
-            break;
-    }
+    if (!algo)
+        return {};
+    return algo->initialChildPosition(newNode, parent, root, params);
 }

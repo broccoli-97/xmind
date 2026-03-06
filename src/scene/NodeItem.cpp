@@ -1,6 +1,7 @@
 #include "scene/NodeItem.h"
 #include "core/AppSettings.h"
 #include "core/Commands.h"
+#include "core/TemplateDescriptor.h"
 #include "scene/EdgeItem.h"
 #include "scene/MindMapScene.h"
 #include "ui/ThemeManager.h"
@@ -35,18 +36,34 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
                      QWidget* /*widget*/) {
     painter->setRenderHint(QPainter::Antialiasing);
 
-    const auto& tc = ThemeManager::colors();
+    // Resolve colors: template-specific if available, else global
+    const ThemeColors& globalTC = ThemeManager::colors();
+    QColor shadowColor = globalTC.nodeShadow;
+    QColor selectionBorder = globalTC.nodeSelectionBorder;
+    QColor textColor = globalTC.nodeText;
+
+    auto* mindMapScene = dynamic_cast<MindMapScene*>(scene());
+    if (mindMapScene) {
+        const auto* td = mindMapScene->templateDescriptor();
+        if (td) {
+            const auto& tc = td->activeColors();
+            shadowColor = tc.nodeShadow;
+            selectionBorder = tc.nodeSelectionBorder;
+            textColor = tc.nodeText;
+        }
+    }
+
     QColor bg = nodeColor();
 
     // Shadow
     painter->setPen(Qt::NoPen);
-    painter->setBrush(tc.nodeShadow);
+    painter->setBrush(shadowColor);
     painter->drawRoundedRect(m_rect.translated(2, 3), kRadius, kRadius);
 
     // Body
     QColor border = bg.darker(120);
     if (option->state & QStyle::State_Selected) {
-        border = tc.nodeSelectionBorder;
+        border = selectionBorder;
         painter->setPen(QPen(border, 3));
     } else {
         painter->setPen(QPen(border, 1.5));
@@ -55,7 +72,7 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
     painter->drawRoundedRect(m_rect, kRadius, kRadius);
 
     // Text
-    painter->setPen(tc.nodeText);
+    painter->setPen(textColor);
     painter->setFont(m_font);
     QFontMetricsF fm(m_font);
     QString displayText = fm.elidedText(m_text, Qt::ElideRight, m_rect.width() - kPadding * 2);
@@ -112,6 +129,12 @@ int NodeItem::level() const {
 }
 
 QColor NodeItem::nodeColor() const {
+    auto* mindMapScene = dynamic_cast<MindMapScene*>(scene());
+    if (mindMapScene) {
+        const auto* td = mindMapScene->templateDescriptor();
+        if (td)
+            return td->activeColors().nodePalette[level() % 6];
+    }
     return ThemeManager::colors().nodePalette[level() % 6];
 }
 

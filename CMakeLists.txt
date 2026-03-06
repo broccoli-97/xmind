@@ -35,6 +35,8 @@ target_sources(xmind PRIVATE
     src/core/FileManager.h        src/core/FileManager.cpp
     src/core/MainWindow.h         src/core/MainWindow.cpp
     src/core/SettingsDialog.h     src/core/SettingsDialog.cpp
+    src/core/TemplateDescriptor.h src/core/TemplateDescriptor.cpp
+    src/core/TemplateRegistry.h   src/core/TemplateRegistry.cpp
 
     # Scene – graphics-scene items
     src/scene/EdgeItem.h          src/scene/EdgeItem.cpp
@@ -43,6 +45,12 @@ target_sources(xmind PRIVATE
     src/scene/NodeItem.h          src/scene/NodeItem.cpp
 
     # Layout – auto-layout algorithms
+    src/layout/ILayoutAlgorithm.h
+    src/layout/LayoutAlgorithmBase.h  src/layout/LayoutAlgorithmBase.cpp
+    src/layout/BilateralLayout.h      src/layout/BilateralLayout.cpp
+    src/layout/TopDownLayout.h        src/layout/TopDownLayout.cpp
+    src/layout/RightTreeLayout.h      src/layout/RightTreeLayout.cpp
+    src/layout/LayoutAlgorithmRegistry.h src/layout/LayoutAlgorithmRegistry.cpp
     src/layout/LayoutEngine.h     src/layout/LayoutEngine.cpp
     src/layout/LayoutStyle.h
 

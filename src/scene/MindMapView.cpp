@@ -1,4 +1,6 @@
 #include "scene/MindMapView.h"
+#include "core/TemplateDescriptor.h"
+#include "scene/MindMapScene.h"
 #include "ui/ThemeManager.h"
 
 #include <QMouseEvent>
@@ -76,10 +78,21 @@ void MindMapView::zoomToFit() {
 }
 
 void MindMapView::drawBackground(QPainter* painter, const QRectF& rect) {
-    const auto& c = ThemeManager::colors();
-    painter->fillRect(rect, c.canvasBackground);
+    QColor bgColor = ThemeManager::colors().canvasBackground;
+    QColor dotColor = ThemeManager::colors().canvasGridDot;
 
-    QPen dotPen(c.canvasGridDot, 2);
+    auto* mindMapScene = dynamic_cast<MindMapScene*>(scene());
+    if (mindMapScene) {
+        const auto* td = mindMapScene->templateDescriptor();
+        if (td) {
+            bgColor = td->activeColors().canvasBackground;
+            dotColor = td->activeColors().canvasGridDot;
+        }
+    }
+
+    painter->fillRect(rect, bgColor);
+
+    QPen dotPen(dotColor, 2);
     dotPen.setCapStyle(Qt::RoundCap);
     painter->setPen(dotPen);
 

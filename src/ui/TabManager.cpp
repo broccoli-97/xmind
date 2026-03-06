@@ -72,7 +72,7 @@ void TabManager::addNewTab() {
     auto* stack = new QStackedWidget(m_parentWidget);
     auto* startPage = StartPage::create(
         this,
-        [this](int index) {
+        [this](const QString& templateId) {
             int tabIdx = m_tabBar->currentIndex();
             if (tabIdx < 0)
                 return;
@@ -85,7 +85,7 @@ void TabManager::addNewTab() {
             m_currentFile.clear();
             m_tabs[tabIdx].filePath.clear();
 
-            StartPage::loadTemplate(index, m_tabs[tabIdx].scene);
+            StartPage::loadTemplate(templateId, m_tabs[tabIdx].scene);
 
             // switch to view first
             if (m_tabs[tabIdx].stack)

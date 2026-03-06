@@ -1,4 +1,6 @@
 #include "scene/EdgeItem.h"
+#include "core/TemplateDescriptor.h"
+#include "scene/MindMapScene.h"
 #include "scene/NodeItem.h"
 #include "ui/ThemeManager.h"
 
@@ -20,9 +22,21 @@ QRectF EdgeItem::boundingRect() const {
 void EdgeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/,
                      QWidget* /*widget*/) {
     painter->setRenderHint(QPainter::Antialiasing);
+
     int lighten = ThemeManager::colors().edgeLightenFactor;
+    qreal edgeWidth = 2.5;
+
+    auto* mindMapScene = dynamic_cast<MindMapScene*>(scene());
+    if (mindMapScene) {
+        const auto* td = mindMapScene->templateDescriptor();
+        if (td) {
+            lighten = td->activeColors().edgeLightenFactor;
+            edgeWidth = td->edgeStyle.width;
+        }
+    }
+
     QColor color = m_target->nodeColor().lighter(lighten);
-    painter->setPen(QPen(color, 2.5, Qt::SolidLine, Qt::RoundCap));
+    painter->setPen(QPen(color, edgeWidth, Qt::SolidLine, Qt::RoundCap));
     painter->setBrush(Qt::NoBrush);
     painter->drawPath(m_path);
 }

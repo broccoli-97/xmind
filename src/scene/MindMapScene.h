@@ -12,6 +12,7 @@ class QGraphicsProxyWidget;
 class QJsonObject;
 class QJsonArray;
 class QUndoStack;
+class TemplateDescriptor;
 
 class MindMapScene : public QGraphicsScene {
     Q_OBJECT
@@ -31,6 +32,11 @@ public:
 
     LayoutStyle layoutStyle() const;
     void setLayoutStyle(LayoutStyle style);
+
+    // Template system
+    QString templateId() const;
+    void setTemplateId(const QString& id);
+    const TemplateDescriptor* templateDescriptor() const;
 
     EdgeItem* findEdge(NodeItem* parent, NodeItem* child) const;
 
@@ -92,6 +98,7 @@ private:
     QUndoStack* m_undoStack;
     bool m_modified = false;
     LayoutStyle m_layoutStyle = LayoutStyle::Bilateral;
+    QString m_templateId;
 
     // Editing state
     NodeItem* m_editingNode = nullptr;
