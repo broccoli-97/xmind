@@ -7,6 +7,8 @@ class tst_AppSettings : public QObject {
     Q_OBJECT
 
 private slots:
+    void initTestCase();
+
     void themeRoundTrip();
     void themeSignal();
     void autoSaveRoundTrip();
@@ -18,6 +20,10 @@ private slots:
     void fontFamilyRoundTrip();
     void fontFamilySignal();
 };
+
+void tst_AppSettings::initTestCase() {
+    qRegisterMetaType<AppTheme>("AppTheme");
+}
 
 void tst_AppSettings::themeRoundTrip() {
     auto& s = AppSettings::instance();
