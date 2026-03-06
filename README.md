@@ -11,14 +11,13 @@ A desktop mind map editor built with C++ and Qt6. Create, edit, and organize hie
 - **Tabbed Editing** - Work on multiple mind maps simultaneously with drag-to-reorder tabs
 - **Multiple Layouts** - Bilateral (balanced left/right), Top-Down (org chart), and Right-Tree (project plan) layouts
 - **Auto Layout** - Automatically arrange nodes with `Ctrl+L`
-- **Undo/Redo** - Full command-based undo/redo for add, remove, edit, move, and edge lock operations
+- **Undo/Redo** - Full command-based undo/redo for add, remove, edit, and move operations
 - **Drag & Drop** - Reposition nodes and subtrees by dragging
-- **Edge Locking** - Lock edges to prevent child node movement, with visual lock/unlock icons
 - **File I/O** - Save and load mind maps in `.ymind` (JSON) format
 - **Export** - Export to PNG (2x scaling), SVG, PDF, plain text, or Markdown
 - **Import** - Import mind maps from indented text files
-- **Templates** - Start from built-in templates (Mind Map, Org Chart, Project Plan) or a blank canvas
-- **Themes** - Light and Dark mode with VS Code-inspired dark styling and system theme detection
+- **Templates** - Start from built-in templates (Mind Map, Org Chart, Project Plan), load custom templates from JSON, or start with a blank canvas
+- **Themes** - Light and Dark mode with system theme detection
 - **Auto-Save** - Configurable automatic saving with 1-5 minute intervals
 - **Outline Sidebar** - Tree-based outline view for quick navigation
 - **Settings** - Configurable theme, fonts, auto-save, and editor preferences
@@ -42,14 +41,17 @@ make
 ./ymind
 ```
 
-### Windows Builds
+### Build Options
 
 ```bash
-# Static build (standalone executable)
-./build-windows.sh static
+# Build with unit tests
+cmake .. -DBUILD_TESTING=ON
 
-# Shared build (executable + Qt DLLs in deploy/ folder)
-./build-windows.sh shared
+# Build with clang-tidy static analysis
+cmake .. -DENABLE_CLANG_TIDY=ON
+
+# Run tests
+ctest --output-on-failure
 ```
 
 ## Keyboard Shortcuts
@@ -81,26 +83,51 @@ make
 ```
 ymind/
 ├── CMakeLists.txt
-├── build-windows.sh
+├── .clang-tidy             # clang-tidy configuration
 ├── LICENSE
 ├── README.md
-├── img/
-│   └── Screenshot.png
+├── resources/
+│   ├── resources.qrc
+│   └── theme.qss           # QSS stylesheet template
+├── tests/                   # Qt Test unit tests
+│   ├── CMakeLists.txt
+│   ├── tst_TemplateDescriptor.cpp
+│   ├── tst_LayoutStyle.cpp
+│   ├── tst_TemplateRegistry.cpp
+│   ├── tst_LayoutAlgorithmRegistry.cpp
+│   ├── tst_AppSettings.cpp
+│   └── tst_MindMapSceneSerialization.cpp
 └── src/
-    ├── main.cpp              # Application entry point
-    ├── MainWindow.h/cpp      # Main window with menus, toolbar, sidebar, auto-save
-    ├── ThemeManager.h/cpp    # Centralized theme colors, stylesheets, icon generation
-    ├── TabManager.h/cpp      # Tab bar and content stack management
-    ├── FileManager.h/cpp     # File I/O, export, and import operations
-    ├── MindMapScene.h/cpp    # Graphics scene managing nodes, edges, and layout algorithms
-    ├── MindMapView.h/cpp     # Graphics view with zoom, pan, and grid background
-    ├── NodeItem.h/cpp        # Node graphics item with text, colors, and hierarchy
-    ├── EdgeItem.h/cpp        # Curved bezier edge connector with lock icons
-    ├── Commands.h/cpp        # Undo/redo commands (add, remove, edit, move, toggle lock)
-    ├── OutlineWidget.h/cpp   # Tree-based outline sidebar
-    ├── StartPage.h/cpp       # Template gallery start page
-    ├── AppSettings.h/cpp     # Settings singleton (theme, auto-save, fonts)
-    └── SettingsDialog.h/cpp  # Settings dialog UI
+    ├── main.cpp
+    ├── core/                # Application infrastructure
+    │   ├── MainWindow       # Main window, menus, toolbar, auto-save
+    │   ├── FileManager      # File I/O, export, and import
+    │   ├── Commands         # Undo/redo commands (add, remove, edit, move)
+    │   ├── AppSettings      # Settings singleton (theme, auto-save, fonts)
+    │   ├── SettingsDialog   # Settings dialog UI
+    │   ├── TemplateDescriptor  # Template data structures and JSON serialization
+    │   └── TemplateRegistry    # Template registration and lookup
+    ├── scene/               # Graphics scene items
+    │   ├── MindMapScene     # Scene managing nodes, edges, serialization
+    │   ├── MindMapView      # View with zoom, pan, and grid background
+    │   ├── NodeItem         # Node graphics item with floating shadow
+    │   └── EdgeItem         # Curved bezier edge connector
+    ├── layout/              # Auto-layout algorithms
+    │   ├── ILayoutAlgorithm       # Abstract algorithm interface
+    │   ├── LayoutAlgorithmBase    # Shared measure/place/refine phases
+    │   ├── BilateralLayout        # Left/right balanced tree
+    │   ├── TopDownLayout          # Top-down org chart
+    │   ├── RightTreeLayout        # Right-expanding tree
+    │   ├── LayoutAlgorithmRegistry  # Algorithm registry singleton
+    │   ├── LayoutEngine           # Static layout facade
+    │   └── LayoutStyle            # Enum and name conversions
+    └── ui/                  # Widgets and theming
+        ├── ThemeManager     # Theme color palette singleton
+        ├── StyleSheetGenerator  # CSS stylesheet generation
+        ├── TabManager       # Tab bar and content stack management
+        ├── StartPage        # Template gallery start page
+        ├── OutlineWidget    # Tree-based outline sidebar
+        └── IconFactory      # SVG icon and preview generation
 ```
 
 ## License
