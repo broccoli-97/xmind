@@ -13,6 +13,8 @@ public:
     void loadBuiltins();
     void loadFromDirectory(const QString& dirPath);
 
+    void registerTemplate(const TemplateDescriptor& td);
+
     const TemplateDescriptor* templateById(const QString& id) const;
     QList<const TemplateDescriptor*> allTemplates() const;
 

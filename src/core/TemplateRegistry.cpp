@@ -133,6 +133,14 @@ void TemplateRegistry::loadFromDirectory(const QString& dirPath) {
     }
 }
 
+void TemplateRegistry::registerTemplate(const TemplateDescriptor& td) {
+    if (td.id.isEmpty())
+        return;
+    if (!m_templates.contains(td.id))
+        m_orderedIds.append(td.id);
+    m_templates[td.id] = td;
+}
+
 const TemplateDescriptor* TemplateRegistry::templateById(const QString& id) const {
     auto it = m_templates.find(id);
     if (it != m_templates.end())

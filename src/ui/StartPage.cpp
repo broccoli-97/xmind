@@ -5,11 +5,14 @@
 #include "scene/MindMapScene.h"
 #include "scene/NodeItem.h"
 
-#include <QUndoStack>
-
+#include <QFile>
+#include <QFileDialog>
 #include <QHBoxLayout>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QLabel>
 #include <QPushButton>
+#include <QUndoStack>
 #include <QVBoxLayout>
 
 QWidget* StartPage::create(QObject* /*receiver*/, std::function<void(const QString&)> onTemplate,
@@ -32,15 +35,17 @@ QWidget* StartPage::create(QObject* /*receiver*/, std::function<void(const QStri
     subtitle->setAlignment(Qt::AlignCenter);
     outer->addWidget(subtitle);
 
-    // Template cards row
+    // Template cards row — only the 3 builtins
     auto* cardRow = new QWidget();
     auto* cardLayout = new QHBoxLayout(cardRow);
     cardLayout->setAlignment(Qt::AlignCenter);
     cardLayout->setSpacing(24);
 
-    auto templates = TemplateRegistry::instance().allTemplates();
-    for (int i = 0; i < templates.size(); ++i) {
-        const auto* td = templates[i];
+    QStringList builtinIds = {"builtin.mindmap", "builtin.orgchart", "builtin.projectplan"};
+    for (const auto& id : builtinIds) {
+        const auto* td = TemplateRegistry::instance().templateById(id);
+        if (!td) continue;
+
         auto* card = new QPushButton();
         card->setObjectName("templateCard");
         card->setFixedSize(180, 140);
@@ -57,7 +62,7 @@ QWidget* StartPage::create(QObject* /*receiver*/, std::function<void(const QStri
     // Spacing
     outer->addSpacing(16);
 
-    // Blank Canvas button
+    // Blank Canvas button + Load Template link
     auto* blankBtn = new QPushButton("Blank Canvas");
     blankBtn->setObjectName("blankCanvasBtn");
     blankBtn->setFixedSize(160, 36);
@@ -67,6 +72,45 @@ QWidget* StartPage::create(QObject* /*receiver*/, std::function<void(const QStri
     blankRow->setAlignment(Qt::AlignCenter);
     blankRow->addWidget(blankBtn);
     outer->addLayout(blankRow);
+
+    // "Load Template..." underlined link
+    outer->addSpacing(8);
+    auto* loadLink = new QLabel("<a href=\"#\" style=\"color: inherit;\">Load Template...</a>");
+    loadLink->setObjectName("loadTemplateLink");
+    loadLink->setAlignment(Qt::AlignCenter);
+    loadLink->setCursor(Qt::PointingHandCursor);
+    QObject::connect(loadLink, &QLabel::linkActivated, page, [page, onTemplate]() {
+        QString filePath = QFileDialog::getOpenFileName(
+            page, "Load Template", QString(), "Template Files (*.json)");
+        if (filePath.isEmpty())
+            return;
+
+        // Load the template file into the registry so loadTemplate() can find it
+        QFile file(filePath);
+        if (!file.open(QIODevice::ReadOnly))
+            return;
+
+        QJsonParseError err;
+        QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &err);
+        if (err.error != QJsonParseError::NoError)
+            return;
+
+        QJsonObject obj = doc.object();
+        if (obj["$schema"].toString() != "xmind-template-v1")
+            return;
+
+        TemplateDescriptor td = TemplateDescriptor::fromJson(obj);
+        if (td.id.isEmpty())
+            return;
+
+        // Register it temporarily so loadTemplate() can look it up
+        TemplateRegistry::instance().registerTemplate(td);
+        onTemplate(td.id);
+    });
+    auto* linkRow = new QHBoxLayout();
+    linkRow->setAlignment(Qt::AlignCenter);
+    linkRow->addWidget(loadLink);
+    outer->addLayout(linkRow);
 
     return page;
 }
@@ -95,4 +139,27 @@ void StartPage::loadTemplate(const QString& templateId, MindMapScene* scene) {
     scene->autoLayout();
     scene->undoStack()->clear();
     scene->setModified(false);
+}
+
+bool StartPage::loadTemplateFromFile(const QString& filePath, MindMapScene* scene) {
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly))
+        return false;
+
+    QJsonParseError err;
+    QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &err);
+    if (err.error != QJsonParseError::NoError)
+        return false;
+
+    QJsonObject obj = doc.object();
+    if (obj["$schema"].toString() != "xmind-template-v1")
+        return false;
+
+    TemplateDescriptor td = TemplateDescriptor::fromJson(obj);
+    if (td.id.isEmpty())
+        return false;
+
+    TemplateRegistry::instance().registerTemplate(td);
+    loadTemplate(td.id, scene);
+    return true;
 }

@@ -6,3 +6,4 @@ deploy/
 .cache/*
 *.zip
 out/
+templates/
