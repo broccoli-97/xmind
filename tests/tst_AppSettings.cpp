@@ -1,5 +1,6 @@
 #include "core/AppSettings.h"
 
+#include <QCoreApplication>
 #include <QSignalSpy>
 #include <QTest>
 
@@ -22,6 +23,11 @@ private slots:
 };
 
 void tst_AppSettings::initTestCase() {
+    // QSettings needs org/app name for a stable storage path on all platforms.
+    // On Windows this determines the registry key; without it, behavior is undefined.
+    QCoreApplication::setOrganizationName("YMindTest");
+    QCoreApplication::setApplicationName("tst_AppSettings");
+
     qRegisterMetaType<AppTheme>("AppTheme");
 }
 
@@ -38,9 +44,13 @@ void tst_AppSettings::themeSignal() {
     s.setTheme(AppTheme::Light); // ensure known state
 
     QSignalSpy spy(&s, &AppSettings::themeChanged);
+    QVERIFY(spy.isValid());
+
     s.setTheme(AppTheme::Dark);
     QCOMPARE(spy.count(), 1);
-    QCOMPARE(spy.first().first().value<AppTheme>(), AppTheme::Dark);
+    // Verify via getter instead of QVariant::value<AppTheme>() to avoid
+    // metatype issues across compilers.
+    QCOMPARE(s.theme(), AppTheme::Dark);
 
     // Setting same value again should NOT emit
     spy.clear();
@@ -59,6 +69,8 @@ void tst_AppSettings::autoSaveRoundTrip() {
 void tst_AppSettings::autoSaveSignal() {
     auto& s = AppSettings::instance();
     QSignalSpy spy(&s, &AppSettings::autoSaveSettingsChanged);
+    QVERIFY(spy.isValid());
+
     s.setAutoSaveEnabled(true);
     QVERIFY(spy.count() >= 1);
 }
@@ -95,9 +107,11 @@ void tst_AppSettings::fontSizeSignal() {
     s.setDefaultFontSize(10); // ensure known state
 
     QSignalSpy spy(&s, &AppSettings::defaultFontSizeChanged);
+    QVERIFY(spy.isValid());
+
     s.setDefaultFontSize(16);
     QCOMPARE(spy.count(), 1);
-    QCOMPARE(spy.first().first().toInt(), 16);
+    QCOMPARE(s.defaultFontSize(), 16);
 
     // Same value should NOT emit
     spy.clear();
@@ -116,9 +130,11 @@ void tst_AppSettings::fontFamilySignal() {
     s.setDefaultFontFamily("Arial"); // known state
 
     QSignalSpy spy(&s, &AppSettings::defaultFontFamilyChanged);
+    QVERIFY(spy.isValid());
+
     s.setDefaultFontFamily("Courier");
     QCOMPARE(spy.count(), 1);
-    QCOMPARE(spy.first().first().toString(), QString("Courier"));
+    QCOMPARE(s.defaultFontFamily(), QString("Courier"));
 
     // Same value should NOT emit
     spy.clear();

@@ -40,11 +40,11 @@ jobs:
 
       - name: Test (Linux)
         if: runner.os == 'Linux'
-        run: cd build && QT_QPA_PLATFORM=offscreen ctest --output-on-failure
+        run: cd build && QT_QPA_PLATFORM=offscreen ctest -V
 
       - name: Test (non-Linux)
         if: runner.os != 'Linux'
-        run: cd build && ctest --output-on-failure -C Release
+        run: cd build && ctest -V -C Release
 
       - name: Package (Linux)
         if: runner.os == 'Linux'
