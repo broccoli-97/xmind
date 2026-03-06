@@ -1,56 +1,43 @@
 #include "ui/OutlineWidget.h"
-#include "ui/IconFactory.h"
 #include "scene/MindMapScene.h"
 #include "scene/MindMapView.h"
 #include "scene/NodeItem.h"
 
-#include <QHBoxLayout>
 #include <QLabel>
-#include <QToolButton>
 #include <QTreeWidget>
+#include <QTreeWidgetItemIterator>
 #include <QVBoxLayout>
 
 OutlineWidget::OutlineWidget(QWidget* parent) : QWidget(parent) {
     setMinimumWidth(120);
+    setObjectName("outlinePanel");
 
     auto* layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
 
-    // Header row with label + close button
-    auto* header = new QWidget();
-    header->setObjectName("sectionHeader");
-    auto* headerLayout = new QHBoxLayout(header);
-    headerLayout->setContentsMargins(10, 6, 4, 6);
-    headerLayout->setSpacing(0);
-
-    auto* outlineLabel = new QLabel("Outline");
-    headerLayout->addWidget(outlineLabel);
-    headerLayout->addStretch();
-
-    auto* closeBtn = new QToolButton();
-    closeBtn->setIcon(IconFactory::makeToolIcon("close-panel"));
-    closeBtn->setProperty("iconName", "close-panel");
-    closeBtn->setToolTip("Hide Outline");
-    closeBtn->setAutoRaise(true);
-    closeBtn->setFixedSize(20, 20);
-    closeBtn->setIconSize(QSize(14, 14));
-    closeBtn->setObjectName("closePanelBtn");
-    connect(closeBtn, &QToolButton::clicked, this, &OutlineWidget::closeRequested);
-    headerLayout->addWidget(closeBtn);
-
-    layout->addWidget(header);
+    // Bold "Outline" title
+    auto* titleLabel = new QLabel("Outline");
+    titleLabel->setObjectName("outlineTitle");
+    layout->addWidget(titleLabel);
 
     m_tree = new QTreeWidget();
+    m_tree->setObjectName("outlineTree");
     m_tree->setHeaderHidden(true);
     m_tree->setAnimated(true);
-    m_tree->setIndentation(16);
+    m_tree->setIndentation(20);
     m_tree->setExpandsOnDoubleClick(false);
+    m_tree->setRootIsDecorated(true);
+    m_tree->setFocusPolicy(Qt::NoFocus);
     connect(m_tree, &QTreeWidget::itemClicked, this, &OutlineWidget::onItemClicked);
     layout->addWidget(m_tree, 1);
 }
 
 void OutlineWidget::refresh(MindMapScene* scene) {
+    // Disconnect old scene
+    if (m_scene)
+        disconnect(m_scene, &QGraphicsScene::selectionChanged, this, &OutlineWidget::syncSelection);
+
     m_scene = scene;
 
     if (!m_tree)
@@ -60,6 +47,9 @@ void OutlineWidget::refresh(MindMapScene* scene) {
 
     if (!m_scene)
         return;
+
+    // Connect selection changes so outline tracks clicks/edits on the canvas
+    connect(m_scene, &QGraphicsScene::selectionChanged, this, &OutlineWidget::syncSelection);
 
     auto* root = m_scene->rootNode();
     if (!root)
@@ -71,6 +61,8 @@ void OutlineWidget::refresh(MindMapScene* scene) {
     rootItem->setExpanded(true);
 
     buildSubtree(root, rootItem);
+
+    syncSelection();
 }
 
 void OutlineWidget::setView(MindMapView* view) {
@@ -98,4 +90,32 @@ void OutlineWidget::onItemClicked(QTreeWidgetItem* item, int /*column*/) {
     node->setSelected(true);
     if (m_view)
         m_view->centerOn(node);
+}
+
+void OutlineWidget::syncSelection() {
+    if (!m_scene || !m_tree)
+        return;
+
+    NodeItem* selected = m_scene->selectedNode();
+    if (!selected) {
+        m_tree->clearSelection();
+        m_tree->setCurrentItem(nullptr);
+        return;
+    }
+
+    // Block signals to avoid feedback loop (setCurrentItem would trigger itemClicked)
+    bool blocked = m_tree->blockSignals(true);
+
+    quintptr target = reinterpret_cast<quintptr>(selected);
+    QTreeWidgetItemIterator it(m_tree);
+    while (*it) {
+        if ((*it)->data(0, Qt::UserRole).value<quintptr>() == target) {
+            m_tree->setCurrentItem(*it);
+            m_tree->scrollToItem(*it);
+            break;
+        }
+        ++it;
+    }
+
+    m_tree->blockSignals(blocked);
 }

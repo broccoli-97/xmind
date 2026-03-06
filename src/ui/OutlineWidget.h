@@ -15,6 +15,7 @@ public:
 
     void refresh(MindMapScene* scene);
     void setView(MindMapView* view);
+    void syncSelection();
 
 signals:
     void closeRequested();

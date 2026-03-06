@@ -241,6 +241,55 @@ QToolButton#closePanelBtn:hover {
 /* ---------------------------------------------------------------------------
    Tree Widget (Outline)
    --------------------------------------------------------------------------- */
+QWidget#outlinePanel {
+    background-color: {{headerBg}};
+    border: none;
+}
+
+QLabel#outlineTitle {
+    background-color: {{headerBg}};
+    color: {{treeFg}};
+    font-weight: bold;
+    font-size: 15px;
+    padding: 12px 14px 8px 14px;
+    border: none;
+}
+
+QTreeWidget#outlineTree {
+    background-color: {{headerBg}};
+    color: {{treeFg}};
+    border: none;
+    outline: none;
+    font-size: 13px;
+}
+
+QTreeWidget#outlineTree::item {
+    padding: 5px 4px;
+}
+
+QTreeWidget#outlineTree::item:hover {
+    background-color: {{treeHoverBg}};
+}
+
+QTreeWidget#outlineTree::item:selected {
+    background-color: {{treeSelBg}};
+    color: {{treeSelFg}};
+}
+
+QTreeWidget#outlineTree::branch {
+    background-color: {{headerBg}};
+}
+
+QTreeWidget#outlineTree::branch:has-children:!has-siblings:closed,
+QTreeWidget#outlineTree::branch:closed:has-children:has-siblings {
+    image: url({{branchClosedIcon}});
+}
+
+QTreeWidget#outlineTree::branch:open:has-children:!has-siblings,
+QTreeWidget#outlineTree::branch:open:has-children:has-siblings {
+    image: url({{branchOpenIcon}});
+}
+
 QTreeWidget {
     background-color: {{treeBg}};
     color: {{treeFg}};

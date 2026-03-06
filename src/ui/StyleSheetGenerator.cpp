@@ -1,7 +1,11 @@
 #include "ui/StyleSheetGenerator.h"
 
+#include <QDir>
 #include <QFile>
 #include <QHash>
+#include <QPainter>
+#include <QPixmap>
+#include <QStandardPaths>
 #include <QString>
 
 // ---------------------------------------------------------------------------
@@ -272,16 +276,63 @@ static ColorMap lightColors() {
 // clang-format on
 
 // ---------------------------------------------------------------------------
+// Generate small branch arrow icons and return their file paths.
+// ---------------------------------------------------------------------------
+static QString generateBranchIcon(bool open, const QString& suffix) {
+    QString tempDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+    QDir().mkpath(tempDir);
+    QString path = tempDir + "/xmind-branch-" + suffix + ".png";
+
+    const int sz = 12;
+    QPixmap pix(sz, sz);
+    pix.fill(Qt::transparent);
+    QPainter p(&pix);
+    p.setRenderHint(QPainter::Antialiasing);
+
+    // Light gray chevron stroke
+    QColor color("#B0B0B0");
+    QPen pen(color, 1.4, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+    p.setPen(pen);
+    p.setBrush(Qt::NoBrush);
+
+    if (open) {
+        // "v" shape — expanded
+        p.drawLine(QPointF(2, 4), QPointF(6, 8));
+        p.drawLine(QPointF(6, 8), QPointF(10, 4));
+    } else {
+        // ">" shape — collapsed
+        p.drawLine(QPointF(4, 2), QPointF(8, 6));
+        p.drawLine(QPointF(8, 6), QPointF(4, 10));
+    }
+    p.end();
+
+    pix.save(path, "PNG");
+    return path;
+}
+
+// ---------------------------------------------------------------------------
 // Load the .qss template from Qt resources and substitute {{placeholders}}.
 // ---------------------------------------------------------------------------
-static QString buildStyleSheet(const ColorMap& colors) {
+static QString buildStyleSheet(const ColorMap& colors, bool dark) {
     QFile file(":/styles/theme.qss");
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
         return {};
 
     QString css = QString::fromUtf8(file.readAll());
 
-    for (auto it = colors.cbegin(); it != colors.cend(); ++it) {
+    // Generate branch chevron icons (light gray ">" and "v")
+    QString suffix = dark ? "dark" : "light";
+    QString openIconPath = generateBranchIcon(true, "open-" + suffix);
+    QString closedIconPath = generateBranchIcon(false, "closed-" + suffix);
+    openIconPath.replace("\\", "/");
+    closedIconPath.replace("\\", "/");
+
+    // Inject icon paths alongside color substitutions
+    ColorMap allVars = colors;
+    allVars["branchOpenIcon"] = openIconPath;
+    allVars["branchClosedIcon"] = closedIconPath;
+
+    for (auto it = allVars.cbegin(); it != allVars.cend(); ++it) {
         css.replace(QLatin1String("{{") + it.key() + QLatin1String("}}"), it.value());
     }
     return css;
@@ -291,11 +342,11 @@ static QString buildStyleSheet(const ColorMap& colors) {
 // Public API — cached results for stable const char* pointers.
 // ---------------------------------------------------------------------------
 const char* StyleSheetGenerator::darkStyleSheet() {
-    static QByteArray cached = buildStyleSheet(darkColors()).toUtf8();
+    static QByteArray cached = buildStyleSheet(darkColors(), true).toUtf8();
     return cached.constData();
 }
 
 const char* StyleSheetGenerator::lightStyleSheet() {
-    static QByteArray cached = buildStyleSheet(lightColors()).toUtf8();
+    static QByteArray cached = buildStyleSheet(lightColors(), false).toUtf8();
     return cached.constData();
 }
