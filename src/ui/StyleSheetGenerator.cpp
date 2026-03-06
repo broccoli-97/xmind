@@ -281,7 +281,7 @@ static ColorMap lightColors() {
 static QString generateBranchIcon(bool open, const QString& suffix) {
     QString tempDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
     QDir().mkpath(tempDir);
-    QString path = tempDir + "/xmind-branch-" + suffix + ".png";
+    QString path = tempDir + "/ymind-branch-" + suffix + ".png";
 
     const int sz = 12;
     QPixmap pix(sz, sz);

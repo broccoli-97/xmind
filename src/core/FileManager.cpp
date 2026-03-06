@@ -24,7 +24,7 @@ void FileManager::newFile() {
 void FileManager::openFile() {
     QString filePath =
         QFileDialog::getOpenFileName(m_window, "Open Mind Map", QString(),
-                                     "XMind Files (*.xmind);;JSON Files (*.json);;All Files (*)");
+                                     "YMind Files (*.ymind);;JSON Files (*.json);;All Files (*)");
     if (filePath.isEmpty())
         return;
 
@@ -39,7 +39,7 @@ void FileManager::openFile() {
         auto* scene = m_tabManager->currentScene();
         auto* view = m_tabManager->currentView();
         if (!scene->loadFromFile(filePath)) {
-            QMessageBox::warning(m_window, "XMind", "Could not open file:\n" + filePath);
+            QMessageBox::warning(m_window, "YMind", "Could not open file:\n" + filePath);
             return;
         }
         m_tabManager->setCurrentFilePath(filePath);
@@ -55,7 +55,7 @@ void FileManager::openFile() {
         view->setScene(scene);
 
         if (!scene->loadFromFile(filePath)) {
-            QMessageBox::warning(m_window, "XMind", "Could not open file:\n" + filePath);
+            QMessageBox::warning(m_window, "YMind", "Could not open file:\n" + filePath);
             delete scene;
             delete view;
             return;
@@ -80,7 +80,7 @@ void FileManager::saveFile() {
     QString path = m_tabManager->currentFilePath();
 
     if (!scene->saveToFile(path)) {
-        QMessageBox::warning(m_window, "XMind", "Could not save file:\n" + path);
+        QMessageBox::warning(m_window, "YMind", "Could not save file:\n" + path);
     }
 
     int cur = m_tabManager->currentIndex();
@@ -93,16 +93,16 @@ void FileManager::saveFile() {
 void FileManager::saveFileAs() {
     QString filePath =
         QFileDialog::getSaveFileName(m_window, "Save Mind Map", QString(),
-                                     "XMind Files (*.xmind);;JSON Files (*.json);;All Files (*)");
+                                     "YMind Files (*.ymind);;JSON Files (*.json);;All Files (*)");
     if (filePath.isEmpty())
         return;
 
     if (!filePath.contains('.'))
-        filePath += ".xmind";
+        filePath += ".ymind";
 
     auto* scene = m_tabManager->currentScene();
     if (!scene->saveToFile(filePath)) {
-        QMessageBox::warning(m_window, "XMind", "Could not save file:\n" + filePath);
+        QMessageBox::warning(m_window, "YMind", "Could not save file:\n" + filePath);
         return;
     }
 
@@ -129,7 +129,7 @@ void FileManager::doExport(const QString& dialogTitle, const QString& filter,
         filePath += defaultExt;
 
     if (!exporter(filePath)) {
-        QMessageBox::warning(m_window, "XMind",
+        QMessageBox::warning(m_window, "YMind",
                              QString("Could not export %1:\n%2").arg(errorLabel, filePath));
         return;
     }
@@ -195,7 +195,7 @@ void FileManager::importFromText() {
 
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QMessageBox::warning(m_window, "XMind", "Could not read file:\n" + filePath);
+        QMessageBox::warning(m_window, "YMind", "Could not read file:\n" + filePath);
         return;
     }
     QString text = QString::fromUtf8(file.readAll());
@@ -206,7 +206,7 @@ void FileManager::importFromText() {
         auto* scene = m_tabManager->currentScene();
         auto* view = m_tabManager->currentView();
         if (!scene->importFromText(text)) {
-            QMessageBox::warning(m_window, "XMind", "Could not parse text file:\n" + filePath);
+            QMessageBox::warning(m_window, "YMind", "Could not parse text file:\n" + filePath);
             return;
         }
         m_tabManager->setCurrentFilePath(QString());
@@ -221,7 +221,7 @@ void FileManager::importFromText() {
         view->setScene(scene);
 
         if (!scene->importFromText(text)) {
-            QMessageBox::warning(m_window, "XMind", "Could not parse text file:\n" + filePath);
+            QMessageBox::warning(m_window, "YMind", "Could not parse text file:\n" + filePath);
             delete scene;
             delete view;
             return;

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(xmind VERSION 1.0.0 LANGUAGES CXX)
+project(ymind VERSION 1.0.0 LANGUAGES CXX)
 
 # ---- Global settings --------------------------------------------------------
 
@@ -31,7 +31,7 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets Svg PrintSupport)
 
 # ---- Library (all sources except main.cpp) -----------------------------------
 
-add_library(xmind_lib STATIC
+add_library(ymind_lib STATIC
     # Core – application infrastructure
     src/core/AppSettings.h        src/core/AppSettings.cpp
     src/core/Commands.h           src/core/Commands.cpp
@@ -69,9 +69,9 @@ add_library(xmind_lib STATIC
     resources/resources.qrc
 )
 
-target_include_directories(xmind_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(ymind_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-target_link_libraries(xmind_lib PUBLIC
+target_link_libraries(ymind_lib PUBLIC
     Qt6::Widgets
     Qt6::Svg
     Qt6::PrintSupport
@@ -80,23 +80,23 @@ target_link_libraries(xmind_lib PUBLIC
 # ---- Executable --------------------------------------------------------------
 
 if(WIN32)
-    add_executable(xmind WIN32)
+    add_executable(ymind WIN32)
 else()
-    add_executable(xmind)
+    add_executable(ymind)
 endif()
 
-target_sources(xmind PRIVATE src/main.cpp)
-target_link_libraries(xmind PRIVATE xmind_lib)
+target_sources(ymind PRIVATE src/main.cpp)
+target_link_libraries(ymind PRIVATE ymind_lib)
 
 # ---- Platform-specific -------------------------------------------------------
 
 if(BUILD_STATIC AND WIN32)
-    target_link_options(xmind PRIVATE -static -static-libgcc -static-libstdc++)
+    target_link_options(ymind PRIVATE -static -static-libgcc -static-libstdc++)
 endif()
 
 # ---- Install -----------------------------------------------------------------
 
-install(TARGETS xmind DESTINATION bin)
+install(TARGETS ymind DESTINATION bin)
 
 # ---- Testing -----------------------------------------------------------------
 

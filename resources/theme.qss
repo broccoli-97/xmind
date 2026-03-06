@@ -1,5 +1,5 @@
 /* ==========================================================================
-   XMind Theme Stylesheet Template
+   YMind Theme Stylesheet Template
    ==========================================================================
    Color placeholders use {{variableName}} syntax.
    StyleSheetGenerator substitutes them at runtime for dark/light themes.

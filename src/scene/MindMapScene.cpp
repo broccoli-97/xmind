@@ -385,7 +385,7 @@ QJsonObject MindMapScene::nodeToJson(NodeItem* node) const {
 
 QJsonObject MindMapScene::toJson() const {
     QJsonObject root;
-    root["format"] = QStringLiteral("xmind");
+    root["format"] = QStringLiteral("ymind");
     root["version"] = 2;
     root["layoutStyle"] = static_cast<int>(m_layoutStyle);
     if (!m_templateId.isEmpty())
@@ -423,7 +423,7 @@ NodeItem* MindMapScene::nodeFromJson(const QJsonObject& json, NodeItem* parent) 
 }
 
 bool MindMapScene::fromJson(const QJsonObject& json) {
-    if (json["format"].toString() != "xmind")
+    if (json["format"].toString() != "ymind")
         return false;
 
     clearScene();
@@ -576,7 +576,7 @@ bool MindMapScene::exportToSvg(const QString& filePath) {
     generator.setFileName(filePath);
     generator.setSize(contentRect.size().toSize());
     generator.setViewBox(QRectF(QPointF(0, 0), contentRect.size()));
-    generator.setTitle("XMind Export");
+    generator.setTitle("YMind Export");
 
     QPainter painter(&generator);
     painter.setRenderHint(QPainter::Antialiasing);

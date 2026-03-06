@@ -118,7 +118,7 @@ void TemplateRegistry::loadFromDirectory(const QString& dirPath) {
             continue;
 
         QJsonObject obj = doc.object();
-        if (obj["$schema"].toString() != "xmind-template-v1")
+        if (obj["$schema"].toString() != "ymind-template-v1")
             continue;
 
         TemplateDescriptor td = TemplateDescriptor::fromJson(obj);

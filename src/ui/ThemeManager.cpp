@@ -81,7 +81,7 @@ const ThemeColors& ThemeManager::colors() {
 static QString generateCloseIcon(bool dark) {
     QString tempDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
     QDir().mkpath(tempDir);
-    QString path = tempDir + (dark ? "/xmind-tab-close-dark.png" : "/xmind-tab-close-light.png");
+    QString path = tempDir + (dark ? "/ymind-tab-close-dark.png" : "/ymind-tab-close-light.png");
 
     const int sz = 16;
     QPixmap pix(sz, sz);

@@ -37,7 +37,7 @@ void tst_MindMapSceneSerialization::toJsonBasicStructure() {
 
     QJsonObject json = scene.toJson();
 
-    QCOMPARE(json["format"].toString(), QString("xmind"));
+    QCOMPARE(json["format"].toString(), QString("ymind"));
     QCOMPARE(json["version"].toInt(), 2);
     QVERIFY(json.contains("root"));
     QCOMPARE(json["root"].toObject()["text"].toString(), QString("Root"));
@@ -81,14 +81,14 @@ void tst_MindMapSceneSerialization::jsonRoundTrip() {
 void tst_MindMapSceneSerialization::fromJsonInvalidFormat() {
     MindMapScene scene;
     QJsonObject json;
-    json["format"] = "not-xmind";
+    json["format"] = "not-ymind";
     QVERIFY(!scene.fromJson(json));
 }
 
 void tst_MindMapSceneSerialization::fromJsonMissingRoot() {
     MindMapScene scene;
     QJsonObject json;
-    json["format"] = "xmind";
+    json["format"] = "ymind";
     json["version"] = 2;
     // No "root" key — should create a fallback root
     QVERIFY(scene.fromJson(json));
@@ -99,7 +99,7 @@ void tst_MindMapSceneSerialization::fromJsonMissingRoot() {
 void tst_MindMapSceneSerialization::fromJsonV1LayoutStyleMigration() {
     // v1 files have layoutStyle but no templateId
     QJsonObject json;
-    json["format"] = "xmind";
+    json["format"] = "ymind";
     json["version"] = 1;
     json["layoutStyle"] = 1; // TopDown
 

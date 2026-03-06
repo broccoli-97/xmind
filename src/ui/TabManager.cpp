@@ -281,7 +281,7 @@ bool TabManager::maybeSaveTab(int index) {
     QString name = m_tabs[index].filePath.isEmpty() ? "Untitled"
                                                     : QFileInfo(m_tabs[index].filePath).fileName();
 
-    auto ret = QMessageBox::warning(m_parentWidget, "XMind",
+    auto ret = QMessageBox::warning(m_parentWidget, "YMind",
                                     QString("The mind map \"%1\" has been modified.\n"
                                             "Do you want to save your changes?")
                                         .arg(name),

@@ -161,7 +161,7 @@ TemplateDescriptor TemplateDescriptor::fromJson(const QJsonObject& json) {
 
 QJsonObject TemplateDescriptor::toJson() const {
     QJsonObject obj;
-    obj["$schema"] = QStringLiteral("xmind-template-v1");
+    obj["$schema"] = QStringLiteral("ymind-template-v1");
     obj["id"] = id;
     obj["name"] = name;
     obj["description"] = description;

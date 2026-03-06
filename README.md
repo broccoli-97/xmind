@@ -1,4 +1,4 @@
-# XMind - Mind Map Editor
+# YMind - Mind Map Editor
 
 A desktop mind map editor built with C++ and Qt6. Create, edit, and organize hierarchical mind maps with an intuitive interface featuring tabbed editing, multiple layout styles, undo/redo, and theme support.
 
@@ -14,7 +14,7 @@ A desktop mind map editor built with C++ and Qt6. Create, edit, and organize hie
 - **Undo/Redo** - Full command-based undo/redo for add, remove, edit, move, and edge lock operations
 - **Drag & Drop** - Reposition nodes and subtrees by dragging
 - **Edge Locking** - Lock edges to prevent child node movement, with visual lock/unlock icons
-- **File I/O** - Save and load mind maps in `.xmind` (JSON) format
+- **File I/O** - Save and load mind maps in `.ymind` (JSON) format
 - **Export** - Export to PNG (2x scaling), SVG, PDF, plain text, or Markdown
 - **Import** - Import mind maps from indented text files
 - **Templates** - Start from built-in templates (Mind Map, Org Chart, Project Plan) or a blank canvas
@@ -39,7 +39,7 @@ A desktop mind map editor built with C++ and Qt6. Create, edit, and organize hie
 mkdir build && cd build
 cmake ..
 make
-./xmind
+./ymind
 ```
 
 ### Windows Builds
@@ -79,7 +79,7 @@ make
 ## Project Structure
 
 ```
-xmind/
+ymind/
 ├── CMakeLists.txt
 ├── build-windows.sh
 ├── LICENSE

@@ -44,7 +44,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     TemplateRegistry::instance().loadBuiltins();
     TemplateRegistry::instance().loadFromDirectory(
         QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)
-        + "/XMind/templates");
+        + "/YMind/templates");
 
     m_tabManager = new TabManager(this);
     m_fileManager = new FileManager(this, m_tabManager, this);
@@ -542,10 +542,10 @@ void MainWindow::closeEvent(QCloseEvent* event) {
 // Window title
 // ---------------------------------------------------------------------------
 void MainWindow::updateWindowTitle() {
-    QString title = "XMind - Mind Map Editor";
+    QString title = "YMind - Mind Map Editor";
     QString filePath = m_tabManager->currentFilePath();
     if (!filePath.isEmpty()) {
-        title = QFileInfo(filePath).fileName() + " - XMind";
+        title = QFileInfo(filePath).fileName() + " - YMind";
     }
     auto* scene = m_tabManager->currentScene();
     if (scene && scene->isModified()) {

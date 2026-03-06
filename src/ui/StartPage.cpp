@@ -97,7 +97,7 @@ QWidget* StartPage::create(QObject* /*receiver*/, std::function<void(const QStri
             return;
 
         QJsonObject obj = doc.object();
-        if (obj["$schema"].toString() != "xmind-template-v1")
+        if (obj["$schema"].toString() != "ymind-template-v1")
             return;
 
         TemplateDescriptor td = TemplateDescriptor::fromJson(obj);
@@ -153,7 +153,7 @@ bool StartPage::loadTemplateFromFile(const QString& filePath, MindMapScene* scen
         return false;
 
     QJsonObject obj = doc.object();
-    if (obj["$schema"].toString() != "xmind-template-v1")
+    if (obj["$schema"].toString() != "ymind-template-v1")
         return false;
 
     TemplateDescriptor td = TemplateDescriptor::fromJson(obj);
