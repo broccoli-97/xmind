@@ -96,6 +96,16 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 }
 
 // ---------------------------------------------------------------------------
+// Destructor – disconnect signals before child widgets are destroyed,
+// otherwise Qt may invoke slots on a partially-destroyed MainWindow.
+// ---------------------------------------------------------------------------
+MainWindow::~MainWindow() {
+    m_autoSaveTimer->stop();
+    disconnect(m_tabManager, nullptr, this, nullptr);
+    disconnect(&AppSettings::instance(), nullptr, this, nullptr);
+}
+
+// ---------------------------------------------------------------------------
 // Central layout: tab bar + toolbar + splitter(outline, content)
 // ---------------------------------------------------------------------------
 void MainWindow::setupCentralLayout() {
