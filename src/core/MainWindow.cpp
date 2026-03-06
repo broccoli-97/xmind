@@ -21,6 +21,7 @@
 #include <QLabel>
 #include <QMenu>
 #include <QMenuBar>
+#include <QPushButton>
 #include <QSignalBlocker>
 #include <QSplitter>
 #include <QStackedWidget>
@@ -659,4 +660,14 @@ void MainWindow::applyTheme() {
 
     // Refresh tab icons for the new theme
     m_tabManager->updateAllTabIcons();
+
+    // Refresh template preview icons on any visible start pages
+    if (auto* stack = m_tabManager->contentStack()) {
+        const auto cards = stack->findChildren<QPushButton*>("templateCard");
+        for (auto* card : cards) {
+            QString tid = card->property("templateId").toString();
+            if (!tid.isEmpty())
+                card->setIcon(QIcon(IconFactory::makeTemplatePreview(tid, 160, 106)));
+        }
+    }
 }

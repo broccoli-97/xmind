@@ -23,7 +23,11 @@ NodeItem::NodeItem(const QString& text, QGraphicsItem* parent)
 NodeItem::~NodeItem() = default;
 
 QRectF NodeItem::boundingRect() const {
-    return m_rect.adjusted(-3, -3, 5, 5);
+    constexpr qreal kShadowSpread = 10.0;
+    constexpr qreal kShadowOffsetY = 4.0;
+    constexpr qreal kMargin = 2.0;
+    return m_rect.adjusted(-kShadowSpread - kMargin, -kShadowSpread - kMargin,
+                           kShadowSpread + kMargin, kShadowSpread + kShadowOffsetY + kMargin);
 }
 
 QPainterPath NodeItem::shape() const {
@@ -55,18 +59,27 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
 
     QColor bg = nodeColor();
 
-    // Shadow
+    // Soft multi-layer shadow for floating effect
     painter->setPen(Qt::NoPen);
-    painter->setBrush(shadowColor);
-    painter->drawRoundedRect(m_rect.translated(2, 3), kRadius, kRadius);
+    constexpr int kShadowLayers = 5;
+    constexpr qreal kShadowSpread = 10.0;
+    constexpr qreal kShadowOffsetY = 4.0;
+    int layerAlpha = qBound(6, shadowColor.alpha() / 3, 20);
+    for (int i = kShadowLayers; i >= 1; --i) {
+        qreal expand = kShadowSpread * i / kShadowLayers;
+        QColor sc = shadowColor;
+        sc.setAlpha(layerAlpha);
+        painter->setBrush(sc);
+        QRectF sr = m_rect.adjusted(-expand, -expand, expand, expand)
+                        .translated(0, kShadowOffsetY);
+        painter->drawRoundedRect(sr, kRadius + expand, kRadius + expand);
+    }
 
-    // Body
-    QColor border = bg.darker(120);
+    // Body (borderless, selection highlight only)
     if (option->state & QStyle::State_Selected) {
-        border = selectionBorder;
-        painter->setPen(QPen(border, 3));
+        painter->setPen(QPen(selectionBorder, 3));
     } else {
-        painter->setPen(QPen(border, 1.5));
+        painter->setPen(Qt::NoPen);
     }
     painter->setBrush(bg);
     painter->drawRoundedRect(m_rect, kRadius, kRadius);

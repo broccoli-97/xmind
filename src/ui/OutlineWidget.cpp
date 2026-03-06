@@ -1,9 +1,12 @@
 #include "ui/OutlineWidget.h"
+#include "ui/IconFactory.h"
 #include "scene/MindMapScene.h"
 #include "scene/MindMapView.h"
 #include "scene/NodeItem.h"
 
+#include <QHBoxLayout>
 #include <QLabel>
+#include <QToolButton>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 #include <QVBoxLayout>
@@ -16,10 +19,25 @@ OutlineWidget::OutlineWidget(QWidget* parent) : QWidget(parent) {
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
 
-    // Bold "Outline" title
+    // Title row with close button
+    auto* titleRow = new QHBoxLayout();
+    titleRow->setContentsMargins(0, 0, 0, 0);
+    titleRow->setSpacing(0);
     auto* titleLabel = new QLabel("Outline");
     titleLabel->setObjectName("outlineTitle");
-    layout->addWidget(titleLabel);
+    titleRow->addWidget(titleLabel);
+    titleRow->addStretch();
+    auto* closeBtn = new QToolButton(this);
+    closeBtn->setIcon(IconFactory::makeToolIcon("close-panel"));
+    closeBtn->setProperty("iconName", "close-panel");
+    closeBtn->setToolTip("Hide Outline");
+    closeBtn->setAutoRaise(true);
+    closeBtn->setFixedSize(20, 20);
+    closeBtn->setIconSize(QSize(14, 14));
+    closeBtn->setObjectName("closePanelBtn");
+    connect(closeBtn, &QToolButton::clicked, this, &OutlineWidget::closeRequested);
+    titleRow->addWidget(closeBtn);
+    layout->addLayout(titleRow);
 
     m_tree = new QTreeWidget();
     m_tree->setObjectName("outlineTree");

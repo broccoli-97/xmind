@@ -52,6 +52,7 @@ QWidget* StartPage::create(QObject* /*receiver*/, std::function<void(const QStri
         card->setIconSize(QSize(160, 106));
         card->setIcon(QIcon(IconFactory::makeTemplatePreview(td->id, 160, 106)));
         card->setToolTip(td->name);
+        card->setProperty("templateId", td->id);
         QString templateId = td->id;
         QObject::connect(card, &QPushButton::clicked, page,
                          [onTemplate, templateId]() { onTemplate(templateId); });

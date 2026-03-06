@@ -205,16 +205,32 @@ QPixmap IconFactory::makeTemplatePreview(int index, int width, int height) {
     QPen nodePen(c.previewNodeBorder, 1.5);
     QBrush nodeBrush(c.previewNodeFill);
 
+    // Helper: draw a bezier curve between two points (matches EdgeItem style)
+    auto drawCurve = [&p](qreal x1, qreal y1, qreal x2, qreal y2, bool horizontal) {
+        QPainterPath path;
+        path.moveTo(x1, y1);
+        if (horizontal) {
+            qreal mx = (x1 + x2) * 0.5;
+            path.cubicTo(mx, y1, mx, y2, x2, y2);
+        } else {
+            qreal my = (y1 + y2) * 0.5;
+            path.cubicTo(x1, my, x2, my, x2, y2);
+        }
+        p.drawPath(path);
+    };
+
     if (index == 0) {
         p.setPen(nodePen);
         p.setBrush(nodeBrush);
         p.drawRoundedRect(42, 26, 36, 18, 4, 4);
         p.setPen(linePen);
-        p.drawLine(60, 26, 90, 10);
-        p.drawLine(60, 44, 90, 58);
-        p.drawLine(42, 26, 18, 10);
-        p.drawLine(42, 44, 18, 58);
+        p.setBrush(Qt::NoBrush);
+        drawCurve(78, 35, 84, 10, true);
+        drawCurve(78, 35, 84, 58, true);
+        drawCurve(42, 35, 32, 10, true);
+        drawCurve(42, 35, 32, 58, true);
         p.setPen(nodePen);
+        p.setBrush(nodeBrush);
         p.drawRoundedRect(84, 4, 28, 12, 3, 3);
         p.drawRoundedRect(84, 52, 28, 12, 3, 3);
         p.drawRoundedRect(4, 4, 28, 12, 3, 3);
@@ -227,11 +243,10 @@ QPixmap IconFactory::makeTemplatePreview(int index, int width, int height) {
         p.drawRoundedRect(46, 46, 28, 14, 3, 3);
         p.drawRoundedRect(84, 46, 28, 14, 3, 3);
         p.setPen(linePen);
-        p.drawLine(60, 18, 60, 28);
-        p.drawLine(22, 28, 98, 28);
-        p.drawLine(22, 28, 22, 46);
-        p.drawLine(60, 28, 60, 46);
-        p.drawLine(98, 28, 98, 46);
+        p.setBrush(Qt::NoBrush);
+        drawCurve(60, 18, 22, 46, false);
+        drawCurve(60, 18, 60, 46, false);
+        drawCurve(60, 18, 98, 46, false);
     } else if (index == 2) {
         p.setPen(nodePen);
         p.setBrush(nodeBrush);
@@ -243,12 +258,13 @@ QPixmap IconFactory::makeTemplatePreview(int index, int width, int height) {
         p.drawRoundedRect(84, 40, 28, 10, 2, 2);
         p.drawRoundedRect(84, 54, 28, 10, 2, 2);
         p.setPen(linePen);
-        p.drawLine(32, 33, 44, 14);
-        p.drawLine(32, 33, 44, 52);
-        p.drawLine(72, 14, 84, 7);
-        p.drawLine(72, 14, 84, 23);
-        p.drawLine(72, 52, 84, 45);
-        p.drawLine(72, 52, 84, 59);
+        p.setBrush(Qt::NoBrush);
+        drawCurve(32, 33, 44, 14, true);
+        drawCurve(32, 33, 44, 52, true);
+        drawCurve(72, 14, 84, 7, true);
+        drawCurve(72, 14, 84, 23, true);
+        drawCurve(72, 52, 84, 45, true);
+        drawCurve(72, 52, 84, 59, true);
     }
 
     p.setPen(c.previewText);
@@ -292,10 +308,18 @@ QPixmap IconFactory::makeTemplatePreview(const QString& templateId, int width, i
 
     QPen linePen(c.previewLine, 1.5);
     p.setPen(linePen);
-    p.drawLine(60, 28, 90, 14);
-    p.drawLine(60, 46, 90, 56);
-    p.drawLine(35, 28, 18, 14);
-    p.drawLine(35, 46, 18, 56);
+    p.setBrush(Qt::NoBrush);
+    auto drawCurve = [&p](qreal x1, qreal y1, qreal x2, qreal y2) {
+        QPainterPath path;
+        path.moveTo(x1, y1);
+        qreal mx = (x1 + x2) * 0.5;
+        path.cubicTo(mx, y1, mx, y2, x2, y2);
+        p.drawPath(path);
+    };
+    drawCurve(85, 37, 90, 14);
+    drawCurve(85, 37, 90, 56);
+    drawCurve(35, 37, 18, 14);
+    drawCurve(35, 37, 18, 56);
 
     p.setPen(c.previewText);
     p.setFont(QFont("sans-serif", 7));

@@ -7,3 +7,4 @@ deploy/
 *.zip
 out/
 templates/
+CLAUDE.md
