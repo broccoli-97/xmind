@@ -112,6 +112,15 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 // ---------------------------------------------------------------------------
 MainWindow::~MainWindow() {
     m_autoSaveTimer->stop();
+
+    // Disconnect undo stack signals that target this MainWindow before the base
+    // class destructor deletes child scenes (whose undo stacks would emit
+    // indexChanged during cleanup, calling refreshOutline on a half-destroyed object).
+    for (const auto& tab : m_tabManager->tabs()) {
+        if (tab.scene && tab.scene->undoStack())
+            disconnect(tab.scene->undoStack(), nullptr, this, nullptr);
+    }
+
     disconnect(m_tabManager, nullptr, this, nullptr);
     disconnect(&AppSettings::instance(), nullptr, this, nullptr);
 }
