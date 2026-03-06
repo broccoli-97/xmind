@@ -84,14 +84,18 @@ QToolButton:disabled {
 /* ---------------------------------------------------------------------------
    Tab Bar
    --------------------------------------------------------------------------- */
+QWidget#tabBarRow {
+    background-color: {{tabBarBg}};
+}
+
 QTabBar {
     background-color: {{tabBarBg}};
 }
 
 QTabBar::tab {
-    background-color: {{tabBg}};
+    background-color: {{tabBarBg}};
     color: {{tabFg}};
-    border: 1px solid {{tabBorder}};
+    border: 1px solid transparent;
     border-bottom: none;
     border-top-left-radius: 8px;
     border-top-right-radius: 8px;

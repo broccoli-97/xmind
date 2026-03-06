@@ -167,7 +167,7 @@ static ColorMap lightColors() {
         {"toolBtnPressedBg",     "#D0D0D0"},
         {"toolBtnDisabledFg",    "#B0B0B0"},
         // Tab bar
-        {"tabBarBg",             "transparent"},
+        {"tabBarBg",             "#E0E0E0"},
         {"tabBg",                "#E0E0E0"},
         {"tabFg",                "#1E1E1E"},
         {"tabBorder",            "#D0D0D0"},

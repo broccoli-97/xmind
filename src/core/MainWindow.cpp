@@ -125,7 +125,9 @@ void MainWindow::setupCentralLayout() {
     mainLayout->setSpacing(0);
 
     // ---- Tab bar row ----
-    auto* tabBarRow = new QHBoxLayout();
+    auto* tabBarRowWidget = new QWidget(this);
+    tabBarRowWidget->setObjectName("tabBarRow");
+    auto* tabBarRow = new QHBoxLayout(tabBarRowWidget);
     tabBarRow->setContentsMargins(0, 0, 0, 0);
     tabBarRow->setSpacing(0);
 
@@ -158,7 +160,7 @@ void MainWindow::setupCentralLayout() {
     m_toggleToolbarBtn->setObjectName("togglePanelBtn");
     tabBarRow->addWidget(m_toggleToolbarBtn);
 
-    mainLayout->addLayout(tabBarRow);
+    mainLayout->addWidget(tabBarRowWidget);
 
     // ---- Inline toolbar ----
     setupToolBar();
