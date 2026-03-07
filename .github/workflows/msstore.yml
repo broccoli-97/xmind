@@ -9,6 +9,9 @@ on:
         description: 'Version override (e.g. 1.2.0) — leave empty to read from CMakeLists.txt'
         required: false
 
+permissions:
+  contents: write
+
 jobs:
   msix:
     runs-on: windows-latest
