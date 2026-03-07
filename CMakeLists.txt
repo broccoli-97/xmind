@@ -63,9 +63,6 @@ add_library(ymind_lib OBJECT
     src/ui/StyleSheetGenerator.h  src/ui/StyleSheetGenerator.cpp
     src/ui/TabManager.h           src/ui/TabManager.cpp
     src/ui/ThemeManager.h         src/ui/ThemeManager.cpp
-
-    # Resources
-    resources/resources.qrc
 )
 
 target_include_directories(ymind_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -84,7 +81,7 @@ else()
     add_executable(ymind)
 endif()
 
-target_sources(ymind PRIVATE src/main.cpp)
+target_sources(ymind PRIVATE src/main.cpp resources/resources.qrc)
 target_link_libraries(ymind PRIVATE ymind_lib)
 
 # ---- Install -----------------------------------------------------------------
