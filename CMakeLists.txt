@@ -11,7 +11,6 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-option(BUILD_STATIC "Build a fully static executable" OFF)
 option(BUILD_TESTING "Build unit tests" OFF)
 option(ENABLE_CLANG_TIDY "Run clang-tidy during compilation" OFF)
 
@@ -31,7 +30,7 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets Svg PrintSupport)
 
 # ---- Library (all sources except main.cpp) -----------------------------------
 
-add_library(ymind_lib STATIC
+add_library(ymind_lib OBJECT
     # Core – application infrastructure
     src/core/AppSettings.h        src/core/AppSettings.cpp
     src/core/Commands.h           src/core/Commands.cpp
@@ -87,12 +86,6 @@ endif()
 
 target_sources(ymind PRIVATE src/main.cpp)
 target_link_libraries(ymind PRIVATE ymind_lib)
-
-# ---- Platform-specific -------------------------------------------------------
-
-if(BUILD_STATIC AND WIN32)
-    target_link_options(ymind PRIVATE -static -static-libgcc -static-libstdc++)
-endif()
 
 # ---- Install -----------------------------------------------------------------
 
