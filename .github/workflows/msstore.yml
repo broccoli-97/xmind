@@ -1,0 +1,115 @@
+name: MS Store Package
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version override (e.g. 1.2.0) — leave empty to read from CMakeLists.txt'
+        required: false
+
+jobs:
+  msix:
+    runs-on: windows-latest
+    name: Build MSIX
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.7.*'
+
+      - name: Determine version
+        id: version
+        shell: bash
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            VER="${{ github.event.inputs.version }}"
+          elif [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VER="${GITHUB_REF#refs/tags/v}"
+          else
+            # Read from CMakeLists.txt
+            VER=$(grep -oP 'project\(ymind VERSION \K[0-9]+\.[0-9]+\.[0-9]+' CMakeLists.txt)
+          fi
+          # MSIX requires 4-part version (x.y.z.0)
+          MSIX_VER="${VER}.0"
+          echo "version=${VER}" >> "$GITHUB_OUTPUT"
+          echo "msix_version=${MSIX_VER}" >> "$GITHUB_OUTPUT"
+          echo "Version: ${VER}, MSIX: ${MSIX_VER}"
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Stage package
+        shell: pwsh
+        run: |
+          $ver = "${{ steps.version.outputs.msix_version }}"
+
+          # Create staging directory
+          New-Item -ItemType Directory -Path staging -Force
+          New-Item -ItemType Directory -Path staging\assets -Force
+
+          # Copy built app
+          Copy-Item build\Release\ymind.exe staging\
+
+          # Deploy Qt runtime DLLs (shared/dynamic linking for LGPL)
+          windeployqt --release --no-translations --no-opengl-sw staging\ymind.exe
+
+          # Copy MSIX manifest and patch version
+          $manifest = Get-Content packaging\msstore\AppxManifest.xml -Raw
+          $manifest = $manifest -replace 'Version="1\.0\.0\.0"', "Version=`"$ver`""
+          Set-Content -Path staging\AppxManifest.xml -Value $manifest
+
+          # Copy icon assets
+          Copy-Item packaging\msstore\assets\*.png staging\assets\
+
+          # Include LGPL license text (Qt LGPL compliance)
+          Invoke-WebRequest -Uri "https://www.gnu.org/licenses/lgpl-3.0.txt" -OutFile staging\LGPL-3.0.txt
+
+          # Include app license
+          if (Test-Path LICENSE) {
+            Copy-Item LICENSE staging\LICENSE.txt
+          }
+
+          Write-Host "Staging contents:"
+          Get-ChildItem staging -Recurse | ForEach-Object { Write-Host $_.FullName }
+
+      - name: Create MSIX
+        shell: pwsh
+        run: |
+          $ver = "${{ steps.version.outputs.version }}"
+
+          # makeappx is in the Windows SDK
+          $sdkDir = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\10.*" -Directory |
+                    Sort-Object Name -Descending | Select-Object -First 1
+          $makeappx = Join-Path $sdkDir.FullName "x64\makeappx.exe"
+
+          if (-not (Test-Path $makeappx)) {
+            Write-Error "makeappx.exe not found at $makeappx"
+            exit 1
+          }
+
+          Write-Host "Using: $makeappx"
+          & $makeappx pack /d staging /p "YMind-${ver}.msix" /o
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+          Write-Host "Created YMind-${ver}.msix"
+          Get-Item "YMind-${ver}.msix" | Select-Object Name, Length
+
+      - name: Upload MSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: ymind-msix
+          path: YMind-*.msix
+
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: YMind-*.msix
