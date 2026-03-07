@@ -4,7 +4,10 @@ A desktop mind map editor built with C++ and Qt6. Create, edit, and organize hie
 
 ## Screenshots
 
-![Screenshot](./img/Screenshot.png)
+![Screenshot](./img/StartPage.png)
+![Screenshot](./img/LightTheme.png)
+![Screenshot](./img/DarkTheme.png)
+![Screenshot](./img/AutoLayout.gif)
 
 ## Features
 
