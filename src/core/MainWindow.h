@@ -30,6 +30,7 @@ private:
     void updateContentVisibility();
 
     void openSettings();
+    void openAbout();
     void saveWindowState();
     void restoreWindowState();
     void setupAutoSaveTimer();

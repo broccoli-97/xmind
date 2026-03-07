@@ -7,6 +7,7 @@
 #include "scene/MindMapScene.h"
 #include "scene/MindMapView.h"
 #include "ui/OutlineWidget.h"
+#include "core/AboutDialog.h"
 #include "core/SettingsDialog.h"
 #include "ui/TabManager.h"
 #include "ui/ThemeManager.h"
@@ -524,6 +525,15 @@ void MainWindow::setupMenuBar() {
     auto* settingsAct = styleMenu->addAction("&Settings...");
     settingsAct->setShortcut(QKeySequence("Ctrl+,"));
     connect(settingsAct, &QAction::triggered, this, &MainWindow::openSettings);
+
+    // ---- Help menu ----
+    auto* helpMenu = menuBar()->addMenu("&Help");
+
+    auto* aboutAct = helpMenu->addAction("About &YMind...");
+    connect(aboutAct, &QAction::triggered, this, &MainWindow::openAbout);
+
+    auto* aboutQtAct = helpMenu->addAction("About &Qt...");
+    connect(aboutQtAct, &QAction::triggered, qApp, &QApplication::aboutQt);
 }
 
 // ---------------------------------------------------------------------------
@@ -598,6 +608,11 @@ void MainWindow::refreshOutline() {
 // ---------------------------------------------------------------------------
 void MainWindow::openSettings() {
     SettingsDialog dlg(this);
+    dlg.exec();
+}
+
+void MainWindow::openAbout() {
+    AboutDialog dlg(this);
     dlg.exec();
 }
 

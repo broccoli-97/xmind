@@ -8,7 +8,7 @@ int main(int argc, char* argv[]) {
     app.setStyle(QStyleFactory::create("Fusion"));
     app.setOrganizationName("YMind");
     app.setApplicationName("YMind");
-    app.setApplicationVersion("1.0.0");
+    app.setApplicationVersion(YMIND_VERSION);
 
     MainWindow window;
     window.show();

@@ -32,6 +32,7 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets Svg PrintSupport)
 
 add_library(ymind_lib OBJECT
     # Core – application infrastructure
+    src/core/AboutDialog.h        src/core/AboutDialog.cpp
     src/core/AppSettings.h        src/core/AppSettings.cpp
     src/core/Commands.h           src/core/Commands.cpp
     src/core/FileManager.h        src/core/FileManager.cpp
@@ -66,6 +67,8 @@ add_library(ymind_lib OBJECT
 )
 
 target_include_directories(ymind_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+
+target_compile_definitions(ymind_lib PUBLIC YMIND_VERSION="${PROJECT_VERSION}")
 
 target_link_libraries(ymind_lib PUBLIC
     Qt6::Widgets
