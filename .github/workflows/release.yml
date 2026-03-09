@@ -4,6 +4,9 @@ on:
   push:
     tags: ['v*']
 
+permissions:
+  contents: write
+
 jobs:
   build:
     strategy:
@@ -46,12 +49,19 @@ jobs:
         if: runner.os != 'Linux'
         run: cd build && ctest -V -C Release
 
+      - name: Install linuxdeployqt (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          wget -q https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage -O linuxdeployqt
+          chmod +x linuxdeployqt
+
       - name: Package (Linux)
         if: runner.os == 'Linux'
         run: |
           mkdir -p dist
           cp build/ymind dist/
           chmod +x dist/ymind
+          ./linuxdeployqt dist/ymind -verbose=1
           tar czf ymind-${{ matrix.name }}.tar.gz -C dist .
 
       - name: Package (Windows)
@@ -66,9 +76,10 @@ jobs:
       - name: Package (macOS)
         if: runner.os == 'macOS'
         run: |
-          mkdir -p dist
-          cp build/ymind dist/
-          chmod +x dist/ymind
+          mkdir -p dist/YMind.app/Contents/MacOS
+          cp build/ymind dist/YMind.app/Contents/MacOS/
+          chmod +x dist/YMind.app/Contents/MacOS/ymind
+          macdeployqt dist/YMind.app -verbose=1
           tar czf ymind-${{ matrix.name }}.tar.gz -C dist .
 
       - name: Upload artifact
@@ -80,8 +91,6 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
     steps:
       - name: Download all artifacts
