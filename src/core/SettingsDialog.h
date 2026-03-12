@@ -27,4 +27,5 @@ private:
     QSpinBox* m_autoSaveIntervalSpin;
     QFontComboBox* m_fontFamilyCombo;
     QSpinBox* m_fontSizeSpin;
+    QCheckBox* m_checkUpdatesCheck;
 };

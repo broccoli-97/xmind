@@ -59,6 +59,13 @@ SettingsDialog::SettingsDialog(QWidget* parent) : QDialog(parent) {
     editorLayout->addRow(hint);
     mainLayout->addWidget(editorGroup);
 
+    // Updates group
+    auto* updatesGroup = new QGroupBox("Updates");
+    auto* updatesLayout = new QFormLayout(updatesGroup);
+    m_checkUpdatesCheck = new QCheckBox("Check for updates on startup");
+    updatesLayout->addRow(m_checkUpdatesCheck);
+    mainLayout->addWidget(updatesGroup);
+
     mainLayout->addStretch();
 
     // Button box
@@ -81,6 +88,7 @@ void SettingsDialog::loadCurrentSettings() {
     m_autoSaveIntervalSpin->setEnabled(s.autoSaveEnabled());
     m_fontSizeSpin->setValue(s.defaultFontSize());
     m_fontFamilyCombo->setCurrentFont(QFont(s.defaultFontFamily()));
+    m_checkUpdatesCheck->setChecked(s.checkForUpdatesEnabled());
 }
 
 void SettingsDialog::onSyncSystemTheme() {
@@ -96,4 +104,5 @@ void SettingsDialog::apply() {
     s.setAutoSaveIntervalMinutes(m_autoSaveIntervalSpin->value());
     s.setDefaultFontSize(m_fontSizeSpin->value());
     s.setDefaultFontFamily(m_fontFamilyCombo->currentFont().family());
+    s.setCheckForUpdatesEnabled(m_checkUpdatesCheck->isChecked());
 }

@@ -92,3 +92,11 @@ QByteArray AppSettings::windowState() const {
 void AppSettings::setWindowState(const QByteArray& state) {
     m_settings->setValue("window/state", state);
 }
+
+bool AppSettings::checkForUpdatesEnabled() const {
+    return m_settings->value("updates/checkOnStartup", true).toBool();
+}
+
+void AppSettings::setCheckForUpdatesEnabled(bool enabled) {
+    m_settings->setValue("updates/checkOnStartup", enabled);
+}

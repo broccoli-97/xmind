@@ -9,12 +9,14 @@
 #include "ui/OutlineWidget.h"
 #include "core/AboutDialog.h"
 #include "core/SettingsDialog.h"
+#include "core/UpdateChecker.h"
 #include "ui/TabManager.h"
 #include "ui/ThemeManager.h"
 
 #include <QAction>
 #include <QApplication>
 #include <QCloseEvent>
+#include <QDesktopServices>
 #include <QFileInfo>
 #include <QFrame>
 #include <QHBoxLayout>
@@ -22,6 +24,7 @@
 #include <QLabel>
 #include <QMenu>
 #include <QMenuBar>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QSignalBlocker>
 #include <QSplitter>
@@ -97,6 +100,21 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     connect(&AppSettings::instance(), &AppSettings::themeChanged, this, &MainWindow::applyTheme);
 
     restoreWindowState();
+
+    // Update checker
+    m_updateChecker = new UpdateChecker(this);
+    connect(m_updateChecker, &UpdateChecker::updateAvailable, this,
+            &MainWindow::showUpdateDialog);
+    connect(m_updateChecker, &UpdateChecker::upToDate, this, [this]() {
+        QMessageBox::information(this, "Check for Updates",
+                                 "You are running the latest version of YMind.");
+    });
+    connect(m_updateChecker, &UpdateChecker::checkFailed, this, [this](const QString& msg) {
+        QMessageBox::warning(this, "Check for Updates",
+                             "Could not check for updates:\n" + msg);
+    });
+    if (AppSettings::instance().checkForUpdatesEnabled())
+        QTimer::singleShot(3000, m_updateChecker, [this]() { m_updateChecker->checkForUpdates(false); });
 
     m_statusHelpLabel = new QLabel(
         "Enter: Add Child  |  Ctrl+Enter: Add Sibling  |  Del: Delete  |  "
@@ -529,6 +547,12 @@ void MainWindow::setupMenuBar() {
     // ---- Help menu ----
     auto* helpMenu = menuBar()->addMenu("&Help");
 
+    auto* checkUpdatesAct = helpMenu->addAction("Check for &Updates...");
+    connect(checkUpdatesAct, &QAction::triggered, this,
+            [this]() { m_updateChecker->checkForUpdates(true); });
+
+    helpMenu->addSeparator();
+
     auto* aboutAct = helpMenu->addAction("About &YMind...");
     connect(aboutAct, &QAction::triggered, this, &MainWindow::openAbout);
 
@@ -694,4 +718,23 @@ void MainWindow::applyTheme() {
                 card->setIcon(QIcon(IconFactory::makeTemplatePreview(tid, 160, 106)));
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// Update dialog
+// ---------------------------------------------------------------------------
+void MainWindow::showUpdateDialog(const QString& latestVersion, const QString& releaseUrl) {
+    QMessageBox box(this);
+    box.setWindowTitle("Update Available");
+    box.setIcon(QMessageBox::Information);
+    box.setText(QString("A new version of YMind is available.\n\n"
+                        "Current version: %1\n"
+                        "Latest version: %2")
+                    .arg(QCoreApplication::applicationVersion(), latestVersion));
+    box.setInformativeText("Would you like to open the download page?");
+    box.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+    box.setDefaultButton(QMessageBox::Yes);
+
+    if (box.exec() == QMessageBox::Yes)
+        QDesktopServices::openUrl(QUrl(releaseUrl));
 }

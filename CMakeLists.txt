@@ -26,7 +26,7 @@ endif()
 
 # ---- Dependencies ------------------------------------------------------------
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets Svg PrintSupport)
+find_package(Qt6 REQUIRED COMPONENTS Widgets Svg PrintSupport Network)
 
 # ---- Library (all sources except main.cpp) -----------------------------------
 
@@ -40,6 +40,7 @@ add_library(ymind_lib OBJECT
     src/core/SettingsDialog.h     src/core/SettingsDialog.cpp
     src/core/TemplateDescriptor.h src/core/TemplateDescriptor.cpp
     src/core/TemplateRegistry.h   src/core/TemplateRegistry.cpp
+    src/core/UpdateChecker.h      src/core/UpdateChecker.cpp
 
     # Scene – graphics-scene items
     src/scene/EdgeItem.h          src/scene/EdgeItem.cpp
@@ -74,6 +75,7 @@ target_link_libraries(ymind_lib PUBLIC
     Qt6::Widgets
     Qt6::Svg
     Qt6::PrintSupport
+    Qt6::Network
 )
 
 # ---- Executable --------------------------------------------------------------

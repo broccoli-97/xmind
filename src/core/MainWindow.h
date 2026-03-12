@@ -5,6 +5,7 @@
 class TabManager;
 class FileManager;
 class OutlineWidget;
+class UpdateChecker;
 class QLabel;
 class QTimer;
 class QSplitter;
@@ -38,10 +39,12 @@ private:
     void onAutoSaveSettingsChanged();
     void applyTheme();
     void refreshOutline();
+    void showUpdateDialog(const QString& latestVersion, const QString& releaseUrl);
 
     // Managers
     TabManager* m_tabManager = nullptr;
     FileManager* m_fileManager = nullptr;
+    UpdateChecker* m_updateChecker = nullptr;
 
     // Widgets
     OutlineWidget* m_outlineWidget = nullptr;

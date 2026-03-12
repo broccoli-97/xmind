@@ -35,6 +35,9 @@ public:
     QByteArray windowState() const;
     void setWindowState(const QByteArray& state);
 
+    bool checkForUpdatesEnabled() const;
+    void setCheckForUpdatesEnabled(bool enabled);
+
 signals:
     void themeChanged(AppTheme theme);
     void autoSaveSettingsChanged();
