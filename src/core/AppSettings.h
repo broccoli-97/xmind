@@ -38,6 +38,9 @@ public:
     bool checkForUpdatesEnabled() const;
     void setCheckForUpdatesEnabled(bool enabled);
 
+    QString language() const;
+    void setLanguage(const QString& lang);
+
 signals:
     void themeChanged(AppTheme theme);
     void autoSaveSettingsChanged();

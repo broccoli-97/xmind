@@ -26,7 +26,7 @@ endif()
 
 # ---- Dependencies ------------------------------------------------------------
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets Svg PrintSupport Network)
+find_package(Qt6 REQUIRED COMPONENTS Widgets Svg PrintSupport Network LinguistTools)
 
 # ---- Library (all sources except main.cpp) -----------------------------------
 
@@ -76,6 +76,17 @@ target_link_libraries(ymind_lib PUBLIC
     Qt6::Svg
     Qt6::PrintSupport
     Qt6::Network
+)
+
+# ---- Translations ------------------------------------------------------------
+
+set(TS_FILES
+    translations/ymind_zh_CN.ts
+)
+
+qt_add_translations(ymind_lib
+    TS_FILES ${TS_FILES}
+    RESOURCE_PREFIX "/translations"
 )
 
 # ---- Executable --------------------------------------------------------------

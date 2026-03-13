@@ -5,6 +5,7 @@
 #include "scene/MindMapScene.h"
 #include "scene/NodeItem.h"
 
+#include <QCoreApplication>
 #include <QFile>
 #include <QFileDialog>
 #include <QHBoxLayout>
@@ -24,13 +25,14 @@ QWidget* StartPage::create(QObject* /*receiver*/, std::function<void(const QStri
     outer->setAlignment(Qt::AlignCenter);
 
     // Title
-    auto* title = new QLabel("Create a New Mind Map");
+    auto* title = new QLabel(QCoreApplication::translate("StartPage", "Create a New Mind Map"));
     title->setObjectName("startPageTitle");
     title->setAlignment(Qt::AlignCenter);
     outer->addWidget(title);
 
     // Subtitle
-    auto* subtitle = new QLabel("Choose a template to get started");
+    auto* subtitle =
+        new QLabel(QCoreApplication::translate("StartPage", "Choose a template to get started"));
     subtitle->setObjectName("startPageSubtitle");
     subtitle->setAlignment(Qt::AlignCenter);
     outer->addWidget(subtitle);
@@ -64,7 +66,8 @@ QWidget* StartPage::create(QObject* /*receiver*/, std::function<void(const QStri
     outer->addSpacing(16);
 
     // Blank Canvas button + Load Template link
-    auto* blankBtn = new QPushButton("Blank Canvas");
+    auto* blankBtn =
+        new QPushButton(QCoreApplication::translate("StartPage", "Blank Canvas"));
     blankBtn->setObjectName("blankCanvasBtn");
     blankBtn->setFixedSize(160, 36);
     QObject::connect(blankBtn, &QPushButton::clicked, page, [onBlankCanvas]() { onBlankCanvas(); });
@@ -76,13 +79,18 @@ QWidget* StartPage::create(QObject* /*receiver*/, std::function<void(const QStri
 
     // "Load Template..." underlined link
     outer->addSpacing(8);
-    auto* loadLink = new QLabel("<a href=\"#\" style=\"color: inherit;\">Load Template...</a>");
+    auto* loadLink = new QLabel(
+        QString("<a href=\"#\" style=\"color: inherit;\">%1</a>")
+            .arg(QCoreApplication::translate("StartPage", "Load Template...")));
     loadLink->setObjectName("loadTemplateLink");
     loadLink->setAlignment(Qt::AlignCenter);
     loadLink->setCursor(Qt::PointingHandCursor);
     QObject::connect(loadLink, &QLabel::linkActivated, page, [page, onTemplate]() {
         QString filePath = QFileDialog::getOpenFileName(
-            page, "Load Template", QString(), "Template Files (*.json)");
+            page,
+            QCoreApplication::translate("StartPage", "Load Template"),
+            QString(),
+            QCoreApplication::translate("StartPage", "Template Files (*.json)"));
         if (filePath.isEmpty())
             return;
 

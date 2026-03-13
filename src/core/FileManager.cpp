@@ -23,8 +23,8 @@ void FileManager::newFile() {
 
 void FileManager::openFile() {
     QString filePath =
-        QFileDialog::getOpenFileName(m_window, "Open Mind Map", QString(),
-                                     "YMind Files (*.ymind);;JSON Files (*.json);;All Files (*)");
+        QFileDialog::getOpenFileName(m_window, tr("Open Mind Map"), QString(),
+                                     tr("YMind Files (*.ymind);;JSON Files (*.json);;All Files (*)"));
     if (filePath.isEmpty())
         return;
 
@@ -39,7 +39,7 @@ void FileManager::openFile() {
         auto* scene = m_tabManager->currentScene();
         auto* view = m_tabManager->currentView();
         if (!scene->loadFromFile(filePath)) {
-            QMessageBox::warning(m_window, "YMind", "Could not open file:\n" + filePath);
+            QMessageBox::warning(m_window, "YMind", tr("Could not open file:\n%1").arg(filePath));
             return;
         }
         m_tabManager->setCurrentFilePath(filePath);
@@ -55,7 +55,7 @@ void FileManager::openFile() {
         view->setScene(scene);
 
         if (!scene->loadFromFile(filePath)) {
-            QMessageBox::warning(m_window, "YMind", "Could not open file:\n" + filePath);
+            QMessageBox::warning(m_window, "YMind", tr("Could not open file:\n%1").arg(filePath));
             delete scene;
             delete view;
             return;
@@ -80,7 +80,7 @@ void FileManager::saveFile() {
     QString path = m_tabManager->currentFilePath();
 
     if (!scene->saveToFile(path)) {
-        QMessageBox::warning(m_window, "YMind", "Could not save file:\n" + path);
+        QMessageBox::warning(m_window, "YMind", tr("Could not save file:\n%1").arg(path));
     }
 
     int cur = m_tabManager->currentIndex();
@@ -92,8 +92,8 @@ void FileManager::saveFile() {
 
 void FileManager::saveFileAs() {
     QString filePath =
-        QFileDialog::getSaveFileName(m_window, "Save Mind Map", QString(),
-                                     "YMind Files (*.ymind);;JSON Files (*.json);;All Files (*)");
+        QFileDialog::getSaveFileName(m_window, tr("Save Mind Map"), QString(),
+                                     tr("YMind Files (*.ymind);;JSON Files (*.json);;All Files (*)"));
     if (filePath.isEmpty())
         return;
 
@@ -102,7 +102,7 @@ void FileManager::saveFileAs() {
 
     auto* scene = m_tabManager->currentScene();
     if (!scene->saveToFile(filePath)) {
-        QMessageBox::warning(m_window, "YMind", "Could not save file:\n" + filePath);
+        QMessageBox::warning(m_window, "YMind", tr("Could not save file:\n%1").arg(filePath));
         return;
     }
 
@@ -130,15 +130,15 @@ void FileManager::doExport(const QString& dialogTitle, const QString& filter,
 
     if (!exporter(filePath)) {
         QMessageBox::warning(m_window, "YMind",
-                             QString("Could not export %1:\n%2").arg(errorLabel, filePath));
+                             tr("Could not export %1:\n%2").arg(errorLabel, filePath));
         return;
     }
     if (auto* mw = qobject_cast<QMainWindow*>(m_window))
-        mw->statusBar()->showMessage("Exported to " + filePath, 3000);
+        mw->statusBar()->showMessage(tr("Exported to %1").arg(filePath), 3000);
 }
 
 void FileManager::exportAsText() {
-    doExport("Export as Text", "Text Files (*.txt);;All Files (*)", ".txt",
+    doExport(tr("Export as Text"), tr("Text Files (*.txt);;All Files (*)"), ".txt",
              [this](const QString& path) {
                  QFile file(path);
                  if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
@@ -147,11 +147,11 @@ void FileManager::exportAsText() {
                  file.close();
                  return true;
              },
-             "file");
+             tr("file"));
 }
 
 void FileManager::exportAsMarkdown() {
-    doExport("Export as Markdown", "Markdown Files (*.md);;All Files (*)", ".md",
+    doExport(tr("Export as Markdown"), tr("Markdown Files (*.md);;All Files (*)"), ".md",
              [this](const QString& path) {
                  QFile file(path);
                  if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
@@ -160,11 +160,11 @@ void FileManager::exportAsMarkdown() {
                  file.close();
                  return true;
              },
-             "file");
+             tr("file"));
 }
 
 void FileManager::exportAsPng() {
-    doExport("Export as PNG", "PNG Images (*.png);;All Files (*)", ".png",
+    doExport(tr("Export as PNG"), tr("PNG Images (*.png);;All Files (*)"), ".png",
              [this](const QString& path) {
                  return m_tabManager->currentScene()->exportToPng(path);
              },
@@ -172,7 +172,7 @@ void FileManager::exportAsPng() {
 }
 
 void FileManager::exportAsSvg() {
-    doExport("Export as SVG", "SVG Files (*.svg);;All Files (*)", ".svg",
+    doExport(tr("Export as SVG"), tr("SVG Files (*.svg);;All Files (*)"), ".svg",
              [this](const QString& path) {
                  return m_tabManager->currentScene()->exportToSvg(path);
              },
@@ -180,7 +180,7 @@ void FileManager::exportAsSvg() {
 }
 
 void FileManager::exportAsPdf() {
-    doExport("Export as PDF", "PDF Files (*.pdf);;All Files (*)", ".pdf",
+    doExport(tr("Export as PDF"), tr("PDF Files (*.pdf);;All Files (*)"), ".pdf",
              [this](const QString& path) {
                  return m_tabManager->currentScene()->exportToPdf(path);
              },
@@ -188,14 +188,14 @@ void FileManager::exportAsPdf() {
 }
 
 void FileManager::importFromText() {
-    QString filePath = QFileDialog::getOpenFileName(m_window, "Import from Text", QString(),
-                                                    "Text Files (*.txt);;All Files (*)");
+    QString filePath = QFileDialog::getOpenFileName(m_window, tr("Import from Text"), QString(),
+                                                    tr("Text Files (*.txt);;All Files (*)"));
     if (filePath.isEmpty())
         return;
 
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QMessageBox::warning(m_window, "YMind", "Could not read file:\n" + filePath);
+        QMessageBox::warning(m_window, "YMind", tr("Could not read file:\n%1").arg(filePath));
         return;
     }
     QString text = QString::fromUtf8(file.readAll());
@@ -206,7 +206,8 @@ void FileManager::importFromText() {
         auto* scene = m_tabManager->currentScene();
         auto* view = m_tabManager->currentView();
         if (!scene->importFromText(text)) {
-            QMessageBox::warning(m_window, "YMind", "Could not parse text file:\n" + filePath);
+            QMessageBox::warning(m_window, "YMind",
+                                 tr("Could not parse text file:\n%1").arg(filePath));
             return;
         }
         m_tabManager->setCurrentFilePath(QString());
@@ -221,7 +222,8 @@ void FileManager::importFromText() {
         view->setScene(scene);
 
         if (!scene->importFromText(text)) {
-            QMessageBox::warning(m_window, "YMind", "Could not parse text file:\n" + filePath);
+            QMessageBox::warning(m_window, "YMind",
+                                 tr("Could not parse text file:\n%1").arg(filePath));
             delete scene;
             delete view;
             return;
@@ -236,5 +238,5 @@ void FileManager::importFromText() {
     }
 
     if (auto* mw = qobject_cast<QMainWindow*>(m_window))
-        mw->statusBar()->showMessage("Imported from " + filePath, 3000);
+        mw->statusBar()->showMessage(tr("Imported from %1").arg(filePath), 3000);
 }
