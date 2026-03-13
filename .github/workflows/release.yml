@@ -29,6 +29,13 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Determine version
+        id: version
+        shell: bash
+        run: |
+          VER="${GITHUB_REF#refs/tags/v}"
+          echo "version=${VER}" >> "$GITHUB_OUTPUT"
+
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libcups2-dev
@@ -39,7 +46,7 @@ jobs:
           version: '6.7.*'
 
       - name: Configure
-        run: cmake -B build -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release
+        run: cmake -B build -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DAPP_VERSION=${{ steps.version.outputs.version }}
 
       - name: Build
         run: cmake --build build --config Release

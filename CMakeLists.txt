@@ -69,7 +69,8 @@ add_library(ymind_lib OBJECT
 
 target_include_directories(ymind_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-target_compile_definitions(ymind_lib PUBLIC YMIND_VERSION="${PROJECT_VERSION}")
+set(APP_VERSION "${PROJECT_VERSION}" CACHE STRING "Application version string")
+target_compile_definitions(ymind_lib PUBLIC YMIND_VERSION="${APP_VERSION}")
 
 target_link_libraries(ymind_lib PUBLIC
     Qt6::Widgets
