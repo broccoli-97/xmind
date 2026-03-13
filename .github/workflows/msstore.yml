@@ -12,13 +12,16 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   msix:
     runs-on: windows-latest
     name: Build MSIX
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Qt6
         uses: jurplel/install-qt-action@v4
