@@ -5,7 +5,10 @@
 
 #include <QMouseEvent>
 #include <QPainter>
+#include <QParallelAnimationGroup>
+#include <QPropertyAnimation>
 #include <QScrollBar>
+#include <QVariantAnimation>
 #include <QWheelEvent>
 #include <QtMath>
 
@@ -73,8 +76,116 @@ void MindMapView::zoomOut() {
 void MindMapView::zoomToFit() {
     if (!scene())
         return;
+
+    stopAnimations();
+
     QRectF bounds = scene()->itemsBoundingRect().adjusted(-80, -80, 80, 80);
+
+    // Snapshot current state
+    QTransform oldTransform = transform();
+    QPointF oldCenter = mapToScene(viewport()->rect().center());
+
+    // Let Qt compute the target
     fitInView(bounds, Qt::KeepAspectRatio);
+    QTransform newTransform = transform();
+    QPointF newCenter = mapToScene(viewport()->rect().center());
+
+    qreal oldScale = oldTransform.m11();
+    qreal newScale = newTransform.m11();
+
+    // Already at target — nothing to animate
+    if (qFuzzyCompare(oldScale, newScale) &&
+        (oldCenter - newCenter).manhattanLength() < 0.5) {
+        return;
+    }
+
+    // Restore old state, then animate
+    setTransform(oldTransform);
+    centerOn(oldCenter);
+
+    m_zoomAnimation = new QVariantAnimation(this);
+    m_zoomAnimation->setDuration(400);
+    m_zoomAnimation->setStartValue(0.0);
+    m_zoomAnimation->setEndValue(1.0);
+    m_zoomAnimation->setEasingCurve(QEasingCurve::OutCubic);
+
+    connect(m_zoomAnimation, &QVariantAnimation::valueChanged, this,
+            [this, oldScale, newScale, oldCenter, newCenter](const QVariant& value) {
+                qreal t = value.toReal();
+                qreal s = oldScale + (newScale - oldScale) * t;
+                QPointF c = oldCenter + (newCenter - oldCenter) * t;
+                setTransform(QTransform::fromScale(s, s));
+                centerOn(c);
+            });
+
+    connect(m_zoomAnimation, &QAbstractAnimation::finished, this, [this]() {
+        m_zoomAnimation->deleteLater();
+        m_zoomAnimation = nullptr;
+    });
+
+    m_zoomAnimation->start();
+}
+
+void MindMapView::ensureNodeVisible(QGraphicsItem* item) {
+    if (!item)
+        return;
+
+    stopAnimations();
+
+    // Snapshot current scrollbar positions
+    int oldH = horizontalScrollBar()->value();
+    int oldV = verticalScrollBar()->value();
+
+    // Let Qt compute the target scroll position
+    ensureVisible(item, 80, 80);
+
+    // Capture the target positions
+    int newH = horizontalScrollBar()->value();
+    int newV = verticalScrollBar()->value();
+
+    // Already visible — nothing to animate
+    if (oldH == newH && oldV == newV)
+        return;
+
+    // Restore original positions before animating
+    horizontalScrollBar()->setValue(oldH);
+    verticalScrollBar()->setValue(oldV);
+
+    // Animate horizontal scrollbar
+    auto* hAnim = new QPropertyAnimation(horizontalScrollBar(), "value");
+    hAnim->setDuration(300);
+    hAnim->setStartValue(oldH);
+    hAnim->setEndValue(newH);
+    hAnim->setEasingCurve(QEasingCurve::OutCubic);
+
+    // Animate vertical scrollbar
+    auto* vAnim = new QPropertyAnimation(verticalScrollBar(), "value");
+    vAnim->setDuration(300);
+    vAnim->setStartValue(oldV);
+    vAnim->setEndValue(newV);
+    vAnim->setEasingCurve(QEasingCurve::OutCubic);
+
+    m_scrollAnimation = new QParallelAnimationGroup(this);
+    m_scrollAnimation->addAnimation(hAnim);
+    m_scrollAnimation->addAnimation(vAnim);
+    connect(m_scrollAnimation, &QAbstractAnimation::finished, this, [this]() {
+        m_scrollAnimation->deleteLater();
+        m_scrollAnimation = nullptr;
+    });
+    m_scrollAnimation->start();
+}
+
+void MindMapView::stopAnimations() {
+    if (m_scrollAnimation) {
+        m_scrollAnimation->stop();
+        m_scrollAnimation->deleteLater();
+        m_scrollAnimation = nullptr;
+    }
+    if (m_zoomAnimation) {
+        m_zoomAnimation->stop();
+        m_zoomAnimation->deleteLater();
+        m_zoomAnimation = nullptr;
+    }
 }
 
 void MindMapView::drawBackground(QPainter* painter, const QRectF& rect) {

@@ -4,6 +4,7 @@
 #include "core/TemplateRegistry.h"
 #include "scene/EdgeItem.h"
 #include "layout/LayoutEngine.h"
+#include "scene/MindMapView.h"
 #include "scene/NodeItem.h"
 #include "ui/ThemeManager.h"
 
@@ -196,6 +197,12 @@ void MindMapScene::addChildToSelected() {
 
     auto* cmd = new AddNodeCommand(this, node, "New Topic");
     m_undoStack->push(cmd);
+
+    for (auto* view : views()) {
+        if (auto* mv = qobject_cast<MindMapView*>(view))
+            mv->ensureNodeVisible(cmd->createdNode());
+    }
+
     startEditing(cmd->createdNode());
 }
 
@@ -210,6 +217,12 @@ void MindMapScene::addSiblingToSelected() {
 
     auto* cmd = new AddNodeCommand(this, node->parentNode(), "New Topic");
     m_undoStack->push(cmd);
+
+    for (auto* view : views()) {
+        if (auto* mv = qobject_cast<MindMapView*>(view))
+            mv->ensureNodeVisible(cmd->createdNode());
+    }
+
     startEditing(cmd->createdNode());
 }
 
@@ -677,6 +690,12 @@ void MindMapScene::autoLayout() {
         anim->setEasingCurve(QEasingCurve::OutCubic);
         group->addAnimation(anim);
     }
-    connect(group, &QAbstractAnimation::finished, group, &QObject::deleteLater);
+    connect(group, &QAbstractAnimation::finished, this, [this, group]() {
+        group->deleteLater();
+        for (auto* view : views()) {
+            if (auto* mv = qobject_cast<MindMapView*>(view))
+                mv->zoomToFit();
+        }
+    });
     group->start();
 }
