@@ -12,13 +12,16 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   msix:
     runs-on: windows-latest
     name: Build MSIX
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Qt6
         uses: jurplel/install-qt-action@v4
@@ -44,7 +47,7 @@ jobs:
           echo "Version: ${VER}, MSIX: ${MSIX_VER}"
 
       - name: Configure
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DAPP_VERSION=${{ steps.version.outputs.version }}
 
       - name: Build
         run: cmake --build build --config Release

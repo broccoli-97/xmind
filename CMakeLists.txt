@@ -26,7 +26,7 @@ endif()
 
 # ---- Dependencies ------------------------------------------------------------
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets Svg PrintSupport)
+find_package(Qt6 REQUIRED COMPONENTS Widgets Svg PrintSupport Network LinguistTools)
 
 # ---- Library (all sources except main.cpp) -----------------------------------
 
@@ -40,6 +40,7 @@ add_library(ymind_lib OBJECT
     src/core/SettingsDialog.h     src/core/SettingsDialog.cpp
     src/core/TemplateDescriptor.h src/core/TemplateDescriptor.cpp
     src/core/TemplateRegistry.h   src/core/TemplateRegistry.cpp
+    src/core/UpdateChecker.h      src/core/UpdateChecker.cpp
 
     # Scene – graphics-scene items
     src/scene/EdgeItem.h          src/scene/EdgeItem.cpp
@@ -68,12 +69,25 @@ add_library(ymind_lib OBJECT
 
 target_include_directories(ymind_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-target_compile_definitions(ymind_lib PUBLIC YMIND_VERSION="${PROJECT_VERSION}")
+set(APP_VERSION "${PROJECT_VERSION}" CACHE STRING "Application version string")
+target_compile_definitions(ymind_lib PUBLIC YMIND_VERSION="${APP_VERSION}")
 
 target_link_libraries(ymind_lib PUBLIC
     Qt6::Widgets
     Qt6::Svg
     Qt6::PrintSupport
+    Qt6::Network
+)
+
+# ---- Translations ------------------------------------------------------------
+
+set(TS_FILES
+    translations/ymind_zh_CN.ts
+)
+
+qt_add_translations(ymind_lib
+    TS_FILES ${TS_FILES}
+    RESOURCE_PREFIX "/translations"
 )
 
 # ---- Executable --------------------------------------------------------------

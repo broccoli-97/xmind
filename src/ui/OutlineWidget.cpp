@@ -23,14 +23,14 @@ OutlineWidget::OutlineWidget(QWidget* parent) : QWidget(parent) {
     auto* titleRow = new QHBoxLayout();
     titleRow->setContentsMargins(0, 0, 0, 0);
     titleRow->setSpacing(0);
-    auto* titleLabel = new QLabel("Outline");
+    auto* titleLabel = new QLabel(tr("Outline"));
     titleLabel->setObjectName("outlineTitle");
     titleRow->addWidget(titleLabel);
     titleRow->addStretch();
     auto* closeBtn = new QToolButton(this);
     closeBtn->setIcon(IconFactory::makeToolIcon("close-panel"));
     closeBtn->setProperty("iconName", "close-panel");
-    closeBtn->setToolTip("Hide Outline");
+    closeBtn->setToolTip(tr("Hide Outline"));
     closeBtn->setAutoRaise(true);
     closeBtn->setFixedSize(20, 20);
     closeBtn->setIconSize(QSize(14, 14));

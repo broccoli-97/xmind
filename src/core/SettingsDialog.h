@@ -22,9 +22,11 @@ private:
     void apply();
 
     QComboBox* m_themeCombo;
+    QComboBox* m_languageCombo;
     QPushButton* m_syncSystemThemeBtn;
     QCheckBox* m_autoSaveCheck;
     QSpinBox* m_autoSaveIntervalSpin;
     QFontComboBox* m_fontFamilyCombo;
     QSpinBox* m_fontSizeSpin;
+    QCheckBox* m_checkUpdatesCheck;
 };

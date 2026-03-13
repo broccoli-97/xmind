@@ -92,3 +92,19 @@ QByteArray AppSettings::windowState() const {
 void AppSettings::setWindowState(const QByteArray& state) {
     m_settings->setValue("window/state", state);
 }
+
+bool AppSettings::checkForUpdatesEnabled() const {
+    return m_settings->value("updates/checkOnStartup", false).toBool();
+}
+
+void AppSettings::setCheckForUpdatesEnabled(bool enabled) {
+    m_settings->setValue("updates/checkOnStartup", enabled);
+}
+
+QString AppSettings::language() const {
+    return m_settings->value("appearance/language", "en").toString();
+}
+
+void AppSettings::setLanguage(const QString& lang) {
+    m_settings->setValue("appearance/language", lang);
+}

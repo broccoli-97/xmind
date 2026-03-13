@@ -7,6 +7,9 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     strategy:
@@ -24,7 +27,14 @@ jobs:
     name: Build (${{ matrix.name }})
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+
+      - name: Determine version
+        id: version
+        shell: bash
+        run: |
+          VER="${GITHUB_REF#refs/tags/v}"
+          echo "version=${VER}" >> "$GITHUB_OUTPUT"
 
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
@@ -36,7 +46,7 @@ jobs:
           version: '6.7.*'
 
       - name: Configure
-        run: cmake -B build -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release
+        run: cmake -B build -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DAPP_VERSION=${{ steps.version.outputs.version }}
 
       - name: Build
         run: cmake --build build --config Release

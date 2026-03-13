@@ -4,6 +4,7 @@
 #include "core/TemplateRegistry.h"
 #include "scene/EdgeItem.h"
 #include "layout/LayoutEngine.h"
+#include "scene/MindMapView.h"
 #include "scene/NodeItem.h"
 #include "ui/ThemeManager.h"
 
@@ -33,7 +34,7 @@ MindMapScene::MindMapScene(QObject* parent) : QGraphicsScene(parent) {
     connect(m_undoStack, &QUndoStack::cleanChanged, this,
             [this](bool clean) { setModified(!clean); });
 
-    m_rootNode = createRootNode("Central Topic");
+    m_rootNode = createRootNode(tr("Central Topic"));
 }
 
 NodeItem* MindMapScene::rootNode() const {
@@ -194,8 +195,14 @@ void MindMapScene::addChildToSelected() {
     if (!node)
         node = m_rootNode;
 
-    auto* cmd = new AddNodeCommand(this, node, "New Topic");
+    auto* cmd = new AddNodeCommand(this, node, tr("New Topic"));
     m_undoStack->push(cmd);
+
+    for (auto* view : views()) {
+        if (auto* mv = qobject_cast<MindMapView*>(view))
+            mv->ensureNodeVisible(cmd->createdNode());
+    }
+
     startEditing(cmd->createdNode());
 }
 
@@ -208,8 +215,14 @@ void MindMapScene::addSiblingToSelected() {
         return;
     }
 
-    auto* cmd = new AddNodeCommand(this, node->parentNode(), "New Topic");
+    auto* cmd = new AddNodeCommand(this, node->parentNode(), tr("New Topic"));
     m_undoStack->push(cmd);
+
+    for (auto* view : views()) {
+        if (auto* mv = qobject_cast<MindMapView*>(view))
+            mv->ensureNodeVisible(cmd->createdNode());
+    }
+
     startEditing(cmd->createdNode());
 }
 
@@ -442,7 +455,7 @@ bool MindMapScene::fromJson(const QJsonObject& json) {
     m_rootNode = nodeFromJson(rootObj, nullptr);
     if (!m_rootNode) {
         // Fallback: create default root
-        m_rootNode = createRootNode("Central Topic");
+        m_rootNode = createRootNode(tr("Central Topic"));
     }
 
     m_undoStack->clear();
@@ -643,7 +656,7 @@ bool MindMapScene::importFromText(const QString& text) {
     }
 
     if (!m_rootNode) {
-        m_rootNode = createRootNode("Central Topic");
+        m_rootNode = createRootNode(tr("Central Topic"));
     }
 
     autoLayout();
@@ -677,6 +690,12 @@ void MindMapScene::autoLayout() {
         anim->setEasingCurve(QEasingCurve::OutCubic);
         group->addAnimation(anim);
     }
-    connect(group, &QAbstractAnimation::finished, group, &QObject::deleteLater);
+    connect(group, &QAbstractAnimation::finished, this, [this, group]() {
+        group->deleteLater();
+        for (auto* view : views()) {
+            if (auto* mv = qobject_cast<MindMapView*>(view))
+                mv->zoomToFit();
+        }
+    });
     group->start();
 }

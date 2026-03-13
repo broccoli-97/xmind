@@ -2,6 +2,9 @@
 
 #include <QGraphicsView>
 
+class QParallelAnimationGroup;
+class QVariantAnimation;
+
 class MindMapView : public QGraphicsView {
     Q_OBJECT
 
@@ -12,6 +15,7 @@ public slots:
     void zoomIn();
     void zoomOut();
     void zoomToFit();
+    void ensureNodeVisible(QGraphicsItem* item);
 
 protected:
     void wheelEvent(QWheelEvent* event) override;
@@ -21,6 +25,10 @@ protected:
     void drawBackground(QPainter* painter, const QRectF& rect) override;
 
 private:
+    void stopAnimations();
+
     bool m_panning = false;
     QPoint m_lastPanPoint;
+    QParallelAnimationGroup* m_scrollAnimation = nullptr;
+    QVariantAnimation* m_zoomAnimation = nullptr;
 };

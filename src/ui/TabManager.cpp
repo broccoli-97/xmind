@@ -37,7 +37,7 @@ void TabManager::init(QAction* undoAct, QAction* redoAct) {
     // Create "+" button
     m_newTabBtn = new QToolButton(m_parentWidget);
     m_newTabBtn->setText("+");
-    m_newTabBtn->setToolTip("New Tab (Ctrl+T)");
+    m_newTabBtn->setToolTip(tr("New Tab (Ctrl+T)"));
     m_newTabBtn->setAutoRaise(true);
     m_newTabBtn->setFixedSize(28, 28);
     m_newTabBtn->setObjectName("newTabBtn");
@@ -133,7 +133,7 @@ void TabManager::addTab(MindMapScene* scene, MindMapView* view, QStackedWidget* 
     {
         QSignalBlocker blocker(m_tabBar);
         m_tabs.append(tab);
-        QString label = filePath.isEmpty() ? "Untitled" : QFileInfo(filePath).fileName();
+        QString label = filePath.isEmpty() ? tr("Untitled") : QFileInfo(filePath).fileName();
         m_tabBar->addTab(label);
         m_contentStack->addWidget(stack);
         updateTabIcon(m_tabs.size() - 1);
@@ -214,10 +214,10 @@ void TabManager::connectUndoStack() {
     connect(stack, &QUndoStack::canUndoChanged, m_undoAct, &QAction::setEnabled);
     connect(stack, &QUndoStack::canRedoChanged, m_redoAct, &QAction::setEnabled);
     connect(stack, &QUndoStack::undoTextChanged, this, [this](const QString& text) {
-        m_undoAct->setText(text.isEmpty() ? "&Undo" : "&Undo " + text);
+        m_undoAct->setText(text.isEmpty() ? tr("&Undo") : tr("&Undo %1").arg(text));
     });
     connect(stack, &QUndoStack::redoTextChanged, this, [this](const QString& text) {
-        m_redoAct->setText(text.isEmpty() ? "&Redo" : "&Redo " + text);
+        m_redoAct->setText(text.isEmpty() ? tr("&Redo") : tr("&Redo %1").arg(text));
     });
     m_undoAct->setEnabled(stack->canUndo());
     m_redoAct->setEnabled(stack->canRedo());
@@ -227,7 +227,7 @@ void TabManager::updateTabText(int index) {
     if (index < 0 || index >= m_tabs.size())
         return;
     const auto& tab = m_tabs[index];
-    QString label = tab.filePath.isEmpty() ? "Untitled" : QFileInfo(tab.filePath).fileName();
+    QString label = tab.filePath.isEmpty() ? tr("Untitled") : QFileInfo(tab.filePath).fileName();
     if (tab.scene->isModified())
         label.prepend("* ");
     m_tabBar->setTabText(index, label);
@@ -278,12 +278,12 @@ bool TabManager::maybeSaveTab(int index) {
     if (!scene->isModified())
         return true;
 
-    QString name = m_tabs[index].filePath.isEmpty() ? "Untitled"
+    QString name = m_tabs[index].filePath.isEmpty() ? tr("Untitled")
                                                     : QFileInfo(m_tabs[index].filePath).fileName();
 
     auto ret = QMessageBox::warning(m_parentWidget, "YMind",
-                                    QString("The mind map \"%1\" has been modified.\n"
-                                            "Do you want to save your changes?")
+                                    tr("The mind map \"%1\" has been modified.\n"
+                                       "Do you want to save your changes?")
                                         .arg(name),
                                     QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
 
@@ -343,15 +343,15 @@ void TabManager::onTabBarContextMenu(const QPoint& pos) {
 
     QMenu menu(m_parentWidget);
 
-    auto* newTabAct = menu.addAction("New Tab");
+    auto* newTabAct = menu.addAction(tr("New Tab"));
     connect(newTabAct, &QAction::triggered, this, &TabManager::addNewTab);
 
     if (index >= 0) {
         menu.addSeparator();
-        auto* closeAct = menu.addAction("Close");
+        auto* closeAct = menu.addAction(tr("Close"));
         connect(closeAct, &QAction::triggered, this, [this, index]() { closeTab(index); });
 
-        auto* closeOthersAct = menu.addAction("Close Others");
+        auto* closeOthersAct = menu.addAction(tr("Close Others"));
         connect(closeOthersAct, &QAction::triggered, this, [this, index]() {
             for (int i = m_tabs.size() - 1; i > index; --i)
                 closeTab(i);

@@ -9,12 +9,14 @@
 #include "ui/OutlineWidget.h"
 #include "core/AboutDialog.h"
 #include "core/SettingsDialog.h"
+#include "core/UpdateChecker.h"
 #include "ui/TabManager.h"
 #include "ui/ThemeManager.h"
 
 #include <QAction>
 #include <QApplication>
 #include <QCloseEvent>
+#include <QDesktopServices>
 #include <QFileInfo>
 #include <QFrame>
 #include <QHBoxLayout>
@@ -22,6 +24,7 @@
 #include <QLabel>
 #include <QMenu>
 #include <QMenuBar>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QSignalBlocker>
 #include <QSplitter>
@@ -98,10 +101,25 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 
     restoreWindowState();
 
+    // Update checker
+    m_updateChecker = new UpdateChecker(this);
+    connect(m_updateChecker, &UpdateChecker::updateAvailable, this,
+            &MainWindow::showUpdateDialog);
+    connect(m_updateChecker, &UpdateChecker::upToDate, this, [this]() {
+        QMessageBox::information(this, tr("Check for Updates"),
+                                 tr("You are running the latest version of YMind."));
+    });
+    connect(m_updateChecker, &UpdateChecker::checkFailed, this, [this](const QString& msg) {
+        QMessageBox::warning(this, tr("Check for Updates"),
+                             tr("Could not check for updates:\n%1").arg(msg));
+    });
+    if (AppSettings::instance().checkForUpdatesEnabled())
+        QTimer::singleShot(3000, m_updateChecker, [this]() { m_updateChecker->checkForUpdates(false); });
+
     m_statusHelpLabel = new QLabel(
-        "Enter: Add Child  |  Ctrl+Enter: Add Sibling  |  Del: Delete  |  "
-        "F2/Double-click: Edit  |  Ctrl+L: Auto Layout  |  Scroll: Zoom  |  "
-        "Middle/Right-drag: Pan",
+        tr("Enter: Add Child  |  Ctrl+Enter: Add Sibling  |  Del: Delete  |  "
+           "F2/Double-click: Edit  |  Ctrl+L: Auto Layout  |  Scroll: Zoom  |  "
+           "Middle/Right-drag: Pan"),
         this);
     m_statusHelpLabel->setAlignment(Qt::AlignCenter);
     statusBar()->addWidget(m_statusHelpLabel, 1);
@@ -150,7 +168,7 @@ void MainWindow::setupCentralLayout() {
     m_toggleOutlineBtn = new QToolButton(this);
     m_toggleOutlineBtn->setIcon(IconFactory::makeToolIcon("sidebar"));
     m_toggleOutlineBtn->setProperty("iconName", "sidebar");
-    m_toggleOutlineBtn->setToolTip("Toggle Outline Panel");
+    m_toggleOutlineBtn->setToolTip(tr("Toggle Outline Panel"));
     m_toggleOutlineBtn->setCheckable(true);
     m_toggleOutlineBtn->setChecked(true);
     m_toggleOutlineBtn->setAutoRaise(true);
@@ -162,7 +180,7 @@ void MainWindow::setupCentralLayout() {
     m_toggleToolbarBtn = new QToolButton(this);
     m_toggleToolbarBtn->setIcon(IconFactory::makeToolIcon("toolbar"));
     m_toggleToolbarBtn->setProperty("iconName", "toolbar");
-    m_toggleToolbarBtn->setToolTip("Toggle Toolbar");
+    m_toggleToolbarBtn->setToolTip(tr("Toggle Toolbar"));
     m_toggleToolbarBtn->setCheckable(true);
     m_toggleToolbarBtn->setChecked(true);
     m_toggleToolbarBtn->setAutoRaise(true);
@@ -212,7 +230,7 @@ void MainWindow::setupCentralLayout() {
 // Actions (undo/redo)
 // ---------------------------------------------------------------------------
 void MainWindow::setupActions() {
-    m_undoAct = new QAction("&Undo", this);
+    m_undoAct = new QAction(tr("&Undo"), this);
     m_undoAct->setShortcut(QKeySequence::Undo);
     m_undoAct->setEnabled(false);
     connect(m_undoAct, &QAction::triggered, this, [this]() {
@@ -221,7 +239,7 @@ void MainWindow::setupActions() {
             scene->undoStack()->undo();
     });
 
-    m_redoAct = new QAction("&Redo", this);
+    m_redoAct = new QAction(tr("&Redo"), this);
     m_redoAct->setShortcuts({QKeySequence::Redo, QKeySequence("Ctrl+Y")});
     m_redoAct->setEnabled(false);
     connect(m_redoAct, &QAction::triggered, this, [this]() {
@@ -268,7 +286,7 @@ void MainWindow::setupToolBar() {
     };
 
     // Undo/Redo at the very left
-    m_undoBtn = addButton("undo", "Undo", "Undo last action (Ctrl+Z)");
+    m_undoBtn = addButton("undo", tr("Undo"), tr("Undo last action (Ctrl+Z)"));
     m_undoBtn->setEnabled(false);
     connect(m_undoBtn, &QToolButton::clicked, this, [this]() {
         auto* scene = m_tabManager->currentScene();
@@ -279,7 +297,7 @@ void MainWindow::setupToolBar() {
         m_undoBtn->setEnabled(m_undoAct->isEnabled());
     });
 
-    m_redoBtn = addButton("redo", "Redo", "Redo last action (Ctrl+Y)");
+    m_redoBtn = addButton("redo", tr("Redo"), tr("Redo last action (Ctrl+Y)"));
     m_redoBtn->setEnabled(false);
     connect(m_redoBtn, &QToolButton::clicked, this, [this]() {
         auto* scene = m_tabManager->currentScene();
@@ -292,37 +310,37 @@ void MainWindow::setupToolBar() {
 
     addSeparator();
 
-    auto* addChildBtn = addButton("add-child", "Add Child", "Add a child node (Enter)");
+    auto* addChildBtn = addButton("add-child", tr("Add Child"), tr("Add a child node (Enter)"));
     connect(addChildBtn, &QToolButton::clicked, this,
             [this]() { if (auto* s = m_tabManager->currentScene()) s->addChildToSelected(); });
 
     auto* addSiblingBtn =
-        addButton("add-sibling", "Add Sibling", "Add a sibling node (Ctrl+Enter)");
+        addButton("add-sibling", tr("Add Sibling"), tr("Add a sibling node (Ctrl+Enter)"));
     connect(addSiblingBtn, &QToolButton::clicked, this,
             [this]() { if (auto* s = m_tabManager->currentScene()) s->addSiblingToSelected(); });
 
-    auto* deleteBtn = addButton("delete", "Delete", "Delete selected node (Del)");
+    auto* deleteBtn = addButton("delete", tr("Delete"), tr("Delete selected node (Del)"));
     connect(deleteBtn, &QToolButton::clicked, this,
             [this]() { if (auto* s = m_tabManager->currentScene()) s->deleteSelected(); });
 
     addSeparator();
 
     auto* layoutBtn =
-        addButton("auto-layout", "Auto Layout", "Automatically arrange all nodes (Ctrl+L)");
+        addButton("auto-layout", tr("Auto Layout"), tr("Automatically arrange all nodes (Ctrl+L)"));
     connect(layoutBtn, &QToolButton::clicked, this,
             [this]() { if (auto* s = m_tabManager->currentScene()) s->autoLayout(); });
 
     addSeparator();
 
-    auto* zoomInBtn = addButton("zoom-in", "Zoom In", "Zoom in (Ctrl++)");
+    auto* zoomInBtn = addButton("zoom-in", tr("Zoom In"), tr("Zoom in (Ctrl++)"));
     connect(zoomInBtn, &QToolButton::clicked, this,
             [this]() { if (auto* v = m_tabManager->currentView()) v->zoomIn(); });
 
-    auto* zoomOutBtn = addButton("zoom-out", "Zoom Out", "Zoom out (Ctrl+-)");
+    auto* zoomOutBtn = addButton("zoom-out", tr("Zoom Out"), tr("Zoom out (Ctrl+-)"));
     connect(zoomOutBtn, &QToolButton::clicked, this,
             [this]() { if (auto* v = m_tabManager->currentView()) v->zoomOut(); });
 
-    auto* fitBtn = addButton("fit-view", "Fit View", "Fit all nodes in view (Ctrl+0)");
+    auto* fitBtn = addButton("fit-view", tr("Fit View"), tr("Fit all nodes in view (Ctrl+0)"));
     connect(fitBtn, &QToolButton::clicked, this,
             [this]() { if (auto* v = m_tabManager->currentView()) v->zoomToFit(); });
 
@@ -331,19 +349,19 @@ void MainWindow::setupToolBar() {
     auto* exportBtn = new QToolButton(m_toolbarWidget);
     exportBtn->setProperty("iconName", "export");
     exportBtn->setIcon(IconFactory::makeToolIcon("export"));
-    exportBtn->setText("Export");
-    exportBtn->setToolTip("Export mind map");
+    exportBtn->setText(tr("Export"));
+    exportBtn->setToolTip(tr("Export mind map"));
     exportBtn->setPopupMode(QToolButton::InstantPopup);
     exportBtn->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
     exportBtn->setAutoRaise(true);
     exportBtn->setIconSize(QSize(24, 24));
     auto* exportBtnMenu = new QMenu(exportBtn);
-    exportBtnMenu->addAction("As Text...", m_fileManager, &FileManager::exportAsText);
-    exportBtnMenu->addAction("As Markdown...", m_fileManager, &FileManager::exportAsMarkdown);
+    exportBtnMenu->addAction(tr("As Text..."), m_fileManager, &FileManager::exportAsText);
+    exportBtnMenu->addAction(tr("As Markdown..."), m_fileManager, &FileManager::exportAsMarkdown);
     exportBtnMenu->addSeparator();
-    exportBtnMenu->addAction("As PNG...", m_fileManager, &FileManager::exportAsPng);
-    exportBtnMenu->addAction("As SVG...", m_fileManager, &FileManager::exportAsSvg);
-    exportBtnMenu->addAction("As PDF...", m_fileManager, &FileManager::exportAsPdf);
+    exportBtnMenu->addAction(tr("As PNG..."), m_fileManager, &FileManager::exportAsPng);
+    exportBtnMenu->addAction(tr("As SVG..."), m_fileManager, &FileManager::exportAsSvg);
+    exportBtnMenu->addAction(tr("As PDF..."), m_fileManager, &FileManager::exportAsPdf);
     exportBtn->setMenu(exportBtnMenu);
     layout->addWidget(exportBtn);
 
@@ -354,7 +372,7 @@ void MainWindow::setupToolBar() {
     auto* closeBtn = new QToolButton(m_toolbarWidget);
     closeBtn->setIcon(IconFactory::makeToolIcon("close-panel"));
     closeBtn->setProperty("iconName", "close-panel");
-    closeBtn->setToolTip("Hide Toolbar");
+    closeBtn->setToolTip(tr("Hide Toolbar"));
     closeBtn->setAutoRaise(true);
     closeBtn->setFixedSize(20, 20);
     closeBtn->setIconSize(QSize(14, 14));
@@ -371,100 +389,100 @@ void MainWindow::setupToolBar() {
 // ---------------------------------------------------------------------------
 void MainWindow::setupMenuBar() {
     // ---- File menu ----
-    auto* fileMenu = menuBar()->addMenu("&File");
+    auto* fileMenu = menuBar()->addMenu(tr("&File"));
 
-    auto* newAct = fileMenu->addAction("&New");
+    auto* newAct = fileMenu->addAction(tr("&New"));
     newAct->setShortcut(QKeySequence::New);
     connect(newAct, &QAction::triggered, m_fileManager, &FileManager::newFile);
 
-    auto* newTabAct = fileMenu->addAction("New &Tab");
+    auto* newTabAct = fileMenu->addAction(tr("New &Tab"));
     newTabAct->setShortcut(QKeySequence("Ctrl+T"));
     connect(newTabAct, &QAction::triggered, m_tabManager, &TabManager::addNewTab);
 
-    auto* openAct = fileMenu->addAction("&Open...");
+    auto* openAct = fileMenu->addAction(tr("&Open..."));
     openAct->setShortcut(QKeySequence::Open);
     connect(openAct, &QAction::triggered, m_fileManager, &FileManager::openFile);
 
     fileMenu->addSeparator();
 
-    auto* saveAct = fileMenu->addAction("&Save");
+    auto* saveAct = fileMenu->addAction(tr("&Save"));
     saveAct->setShortcut(QKeySequence::Save);
     connect(saveAct, &QAction::triggered, m_fileManager, &FileManager::saveFile);
 
-    auto* saveAsAct = fileMenu->addAction("Save &As...");
+    auto* saveAsAct = fileMenu->addAction(tr("Save &As..."));
     saveAsAct->setShortcut(QKeySequence::SaveAs);
     connect(saveAsAct, &QAction::triggered, m_fileManager, &FileManager::saveFileAs);
 
     fileMenu->addSeparator();
 
-    auto* closeTabAct = fileMenu->addAction("&Close Tab");
+    auto* closeTabAct = fileMenu->addAction(tr("&Close Tab"));
     closeTabAct->setShortcut(QKeySequence("Ctrl+W"));
     connect(closeTabAct, &QAction::triggered, this,
             [this]() { m_tabManager->closeTab(m_tabManager->currentIndex()); });
 
     fileMenu->addSeparator();
 
-    auto* exportMenu = fileMenu->addMenu("&Export");
+    auto* exportMenu = fileMenu->addMenu(tr("&Export"));
 
-    auto* exportTextAct = exportMenu->addAction("As &Text...");
+    auto* exportTextAct = exportMenu->addAction(tr("As &Text..."));
     connect(exportTextAct, &QAction::triggered, m_fileManager, &FileManager::exportAsText);
 
-    auto* exportMdAct = exportMenu->addAction("As &Markdown...");
+    auto* exportMdAct = exportMenu->addAction(tr("As &Markdown..."));
     connect(exportMdAct, &QAction::triggered, m_fileManager, &FileManager::exportAsMarkdown);
 
     exportMenu->addSeparator();
 
-    auto* exportPngAct = exportMenu->addAction("As &PNG...");
+    auto* exportPngAct = exportMenu->addAction(tr("As &PNG..."));
     connect(exportPngAct, &QAction::triggered, m_fileManager, &FileManager::exportAsPng);
 
-    auto* exportSvgAct = exportMenu->addAction("As &SVG...");
+    auto* exportSvgAct = exportMenu->addAction(tr("As &SVG..."));
     connect(exportSvgAct, &QAction::triggered, m_fileManager, &FileManager::exportAsSvg);
 
-    auto* exportPdfAct = exportMenu->addAction("As P&DF...");
+    auto* exportPdfAct = exportMenu->addAction(tr("As P&DF..."));
     connect(exportPdfAct, &QAction::triggered, m_fileManager, &FileManager::exportAsPdf);
 
-    auto* importAct = fileMenu->addAction("&Import from Text...");
+    auto* importAct = fileMenu->addAction(tr("&Import from Text..."));
     connect(importAct, &QAction::triggered, m_fileManager, &FileManager::importFromText);
 
     fileMenu->addSeparator();
 
-    auto* exitAct = fileMenu->addAction("E&xit");
+    auto* exitAct = fileMenu->addAction(tr("E&xit"));
     exitAct->setShortcut(QKeySequence::Quit);
     connect(exitAct, &QAction::triggered, this, &QWidget::close);
 
     // ---- Edit menu ----
-    auto* editMenu = menuBar()->addMenu("&Edit");
+    auto* editMenu = menuBar()->addMenu(tr("&Edit"));
 
     editMenu->addAction(m_undoAct);
     editMenu->addAction(m_redoAct);
     editMenu->addSeparator();
 
-    auto* deleteAct = editMenu->addAction("&Delete");
-    deleteAct->setToolTip("Delete selected node (Del)");
+    auto* deleteAct = editMenu->addAction(tr("&Delete"));
+    deleteAct->setToolTip(tr("Delete selected node (Del)"));
     connect(deleteAct, &QAction::triggered, this,
             [this]() { if (auto* s = m_tabManager->currentScene()) s->deleteSelected(); });
 
     // ---- View menu ----
-    auto* viewMenu = menuBar()->addMenu("&View");
+    auto* viewMenu = menuBar()->addMenu(tr("&View"));
 
-    auto* zoomInAct = viewMenu->addAction("Zoom &In");
+    auto* zoomInAct = viewMenu->addAction(tr("Zoom &In"));
     zoomInAct->setShortcut(QKeySequence::ZoomIn);
     connect(zoomInAct, &QAction::triggered, this,
             [this]() { if (auto* v = m_tabManager->currentView()) v->zoomIn(); });
 
-    auto* zoomOutAct = viewMenu->addAction("Zoom &Out");
+    auto* zoomOutAct = viewMenu->addAction(tr("Zoom &Out"));
     zoomOutAct->setShortcut(QKeySequence::ZoomOut);
     connect(zoomOutAct, &QAction::triggered, this,
             [this]() { if (auto* v = m_tabManager->currentView()) v->zoomOut(); });
 
-    auto* fitAct = viewMenu->addAction("&Fit to View");
+    auto* fitAct = viewMenu->addAction(tr("&Fit to View"));
     fitAct->setShortcut(QKeySequence("Ctrl+0"));
     connect(fitAct, &QAction::triggered, this,
             [this]() { if (auto* v = m_tabManager->currentView()) v->zoomToFit(); });
 
     viewMenu->addSeparator();
 
-    m_toggleToolbarAct = viewMenu->addAction("&Toolbar");
+    m_toggleToolbarAct = viewMenu->addAction(tr("&Toolbar"));
     m_toggleToolbarAct->setCheckable(true);
     m_toggleToolbarAct->setChecked(true);
     connect(m_toggleToolbarAct, &QAction::toggled, this, [this](bool checked) {
@@ -475,7 +493,7 @@ void MainWindow::setupMenuBar() {
         updateContentVisibility();
     });
 
-    m_toggleOutlineAct = viewMenu->addAction("&Outline");
+    m_toggleOutlineAct = viewMenu->addAction(tr("&Outline"));
     m_toggleOutlineAct->setCheckable(true);
     m_toggleOutlineAct->setChecked(true);
     connect(m_toggleOutlineAct, &QAction::toggled, this, [this](bool checked) {
@@ -499,40 +517,46 @@ void MainWindow::setupMenuBar() {
     });
 
     // ---- Layout menu ----
-    auto* layoutMenu = menuBar()->addMenu("&Layout");
+    auto* layoutMenu = menuBar()->addMenu(tr("&Layout"));
 
-    auto* autoLayoutAct = layoutMenu->addAction("&Auto Layout");
+    auto* autoLayoutAct = layoutMenu->addAction(tr("&Auto Layout"));
     autoLayoutAct->setShortcut(QKeySequence("Ctrl+L"));
     connect(autoLayoutAct, &QAction::triggered, this,
             [this]() { if (auto* s = m_tabManager->currentScene()) s->autoLayout(); });
 
     // ---- Insert menu ----
-    auto* insertMenu = menuBar()->addMenu("&Insert");
+    auto* insertMenu = menuBar()->addMenu(tr("&Insert"));
 
-    m_addChildAct = insertMenu->addAction("Add &Child");
-    m_addChildAct->setToolTip("Add a child node (Enter)");
+    m_addChildAct = insertMenu->addAction(tr("Add &Child"));
+    m_addChildAct->setToolTip(tr("Add a child node (Enter)"));
     connect(m_addChildAct, &QAction::triggered, this,
             [this]() { if (auto* s = m_tabManager->currentScene()) s->addChildToSelected(); });
 
-    m_addSiblingAct = insertMenu->addAction("Add &Sibling");
-    m_addSiblingAct->setToolTip("Add a sibling node (Ctrl+Enter)");
+    m_addSiblingAct = insertMenu->addAction(tr("Add &Sibling"));
+    m_addSiblingAct->setToolTip(tr("Add a sibling node (Ctrl+Enter)"));
     connect(m_addSiblingAct, &QAction::triggered, this,
             [this]() { if (auto* s = m_tabManager->currentScene()) s->addSiblingToSelected(); });
 
     // ---- Style menu ----
-    auto* styleMenu = menuBar()->addMenu("&Style");
+    auto* styleMenu = menuBar()->addMenu(tr("&Style"));
 
-    auto* settingsAct = styleMenu->addAction("&Settings...");
+    auto* settingsAct = styleMenu->addAction(tr("&Settings..."));
     settingsAct->setShortcut(QKeySequence("Ctrl+,"));
     connect(settingsAct, &QAction::triggered, this, &MainWindow::openSettings);
 
     // ---- Help menu ----
-    auto* helpMenu = menuBar()->addMenu("&Help");
+    auto* helpMenu = menuBar()->addMenu(tr("&Help"));
 
-    auto* aboutAct = helpMenu->addAction("About &YMind...");
+    auto* checkUpdatesAct = helpMenu->addAction(tr("Check for &Updates..."));
+    connect(checkUpdatesAct, &QAction::triggered, this,
+            [this]() { m_updateChecker->checkForUpdates(true); });
+
+    helpMenu->addSeparator();
+
+    auto* aboutAct = helpMenu->addAction(tr("About &YMind..."));
     connect(aboutAct, &QAction::triggered, this, &MainWindow::openAbout);
 
-    auto* aboutQtAct = helpMenu->addAction("About &Qt...");
+    auto* aboutQtAct = helpMenu->addAction(tr("About &Qt..."));
     connect(aboutQtAct, &QAction::triggered, qApp, &QApplication::aboutQt);
 }
 
@@ -552,7 +576,7 @@ void MainWindow::closeEvent(QCloseEvent* event) {
 // Window title
 // ---------------------------------------------------------------------------
 void MainWindow::updateWindowTitle() {
-    QString title = "YMind - Mind Map Editor";
+    QString title = tr("YMind - Mind Map Editor");
     QString filePath = m_tabManager->currentFilePath();
     if (!filePath.isEmpty()) {
         title = QFileInfo(filePath).fileName() + " - YMind";
@@ -651,7 +675,7 @@ void MainWindow::onAutoSaveTimeout() {
         }
     }
     updateWindowTitle();
-    statusBar()->showMessage("Auto-saved", 3000);
+    statusBar()->showMessage(tr("Auto-saved"), 3000);
 }
 
 void MainWindow::onAutoSaveSettingsChanged() {
@@ -694,4 +718,23 @@ void MainWindow::applyTheme() {
                 card->setIcon(QIcon(IconFactory::makeTemplatePreview(tid, 160, 106)));
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// Update dialog
+// ---------------------------------------------------------------------------
+void MainWindow::showUpdateDialog(const QString& latestVersion, const QString& releaseUrl) {
+    QMessageBox box(this);
+    box.setWindowTitle(tr("Update Available"));
+    box.setIcon(QMessageBox::Information);
+    box.setText(tr("A new version of YMind is available.\n\n"
+                   "Current version: %1\n"
+                   "Latest version: %2")
+                    .arg(QCoreApplication::applicationVersion(), latestVersion));
+    box.setInformativeText(tr("Would you like to open the download page?"));
+    box.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+    box.setDefaultButton(QMessageBox::Yes);
+
+    if (box.exec() == QMessageBox::Yes)
+        QDesktopServices::openUrl(QUrl(releaseUrl));
 }
