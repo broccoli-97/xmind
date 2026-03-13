@@ -47,7 +47,7 @@ jobs:
           echo "Version: ${VER}, MSIX: ${MSIX_VER}"
 
       - name: Configure
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DAPP_VERSION=${{ steps.version.outputs.version }}
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release "-DAPP_VERSION=${{ steps.version.outputs.version }}"
 
       - name: Build
         run: cmake --build build --config Release

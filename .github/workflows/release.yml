@@ -46,7 +46,7 @@ jobs:
           version: '6.7.*'
 
       - name: Configure
-        run: cmake -B build -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DAPP_VERSION=${{ steps.version.outputs.version }}
+        run: cmake -B build -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release "-DAPP_VERSION=${{ steps.version.outputs.version }}"
 
       - name: Build
         run: cmake --build build --config Release
@@ -108,6 +108,12 @@ jobs:
         with:
           path: artifacts
           merge-multiple: true
+
+      - name: Delete existing release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release delete "${{ github.ref_name }}" --yes || true
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
