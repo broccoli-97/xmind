@@ -55,14 +55,14 @@ void TemplateRegistry::loadBuiltins() {
     {
         TemplateDescriptor td;
         td.id = "builtin.mindmap";
-        td.name = "Mind Map";
-        td.description = "Central topic with bilateral branches";
+        td.name = tr("Mind Map");
+        td.description = tr("Central topic with bilateral branches");
         td.layout = {"bilateral", 100.0, 16.0};
         td.lightColors = lightCS;
         td.darkColors = darkCS;
-        td.content.text = "Central Topic";
-        td.content.children = {{"Branch 1", {}}, {"Branch 2", {}},
-                                {"Branch 3", {}}, {"Branch 4", {}}};
+        td.content.text = tr("Central Topic");
+        td.content.children = {{tr("Branch 1"), {}}, {tr("Branch 2"), {}},
+                                {tr("Branch 3"), {}}, {tr("Branch 4"), {}}};
         m_templates[td.id] = td;
         m_orderedIds.append(td.id);
     }
@@ -71,13 +71,13 @@ void TemplateRegistry::loadBuiltins() {
     {
         TemplateDescriptor td;
         td.id = "builtin.orgchart";
-        td.name = "Org Chart";
-        td.description = "Top-down organizational chart";
+        td.name = tr("Org Chart");
+        td.description = tr("Top-down organizational chart");
         td.layout = {"topdown", 100.0, 16.0};
         td.lightColors = lightCS;
         td.darkColors = darkCS;
-        td.content.text = "CEO";
-        td.content.children = {{"Engineering", {}}, {"Marketing", {}}, {"Sales", {}}};
+        td.content.text = tr("CEO");
+        td.content.children = {{tr("Engineering"), {}}, {tr("Marketing"), {}}, {tr("Sales"), {}}};
         m_templates[td.id] = td;
         m_orderedIds.append(td.id);
     }
@@ -86,15 +86,15 @@ void TemplateRegistry::loadBuiltins() {
     {
         TemplateDescriptor td;
         td.id = "builtin.projectplan";
-        td.name = "Project Plan";
-        td.description = "Right-tree project plan with phases and tasks";
+        td.name = tr("Project Plan");
+        td.description = tr("Right-tree project plan with phases and tasks");
         td.layout = {"righttree", 100.0, 16.0};
         td.lightColors = lightCS;
         td.darkColors = darkCS;
-        td.content.text = "Project";
+        td.content.text = tr("Project");
         td.content.children = {
-            {"Phase 1", {{"Task 1.1", {}}, {"Task 1.2", {}}}},
-            {"Phase 2", {{"Task 2.1", {}}, {"Task 2.2", {}}}}
+            {tr("Phase 1"), {{tr("Task 1.1"), {}}, {tr("Task 1.2"), {}}}},
+            {tr("Phase 2"), {{tr("Task 2.1"), {}}, {tr("Task 2.2"), {}}}}
         };
         m_templates[td.id] = td;
         m_orderedIds.append(td.id);

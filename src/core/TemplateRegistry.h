@@ -2,11 +2,13 @@
 
 #include "core/TemplateDescriptor.h"
 
+#include <QCoreApplication>
 #include <QList>
 #include <QMap>
 #include <QString>
 
 class TemplateRegistry {
+    Q_DECLARE_TR_FUNCTIONS(TemplateRegistry)
 public:
     static TemplateRegistry& instance();
 

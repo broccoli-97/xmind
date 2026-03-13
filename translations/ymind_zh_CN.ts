@@ -601,4 +601,95 @@ Do you want to save your changes?</source>
         <translation>隐藏大纲</translation>
     </message>
 </context>
+<context>
+    <name>TemplateRegistry</name>
+    <message>
+        <source>Mind Map</source>
+        <translation>思维导图</translation>
+    </message>
+    <message>
+        <source>Central topic with bilateral branches</source>
+        <translation>中心主题与双侧分支</translation>
+    </message>
+    <message>
+        <source>Central Topic</source>
+        <translation>中心主题</translation>
+    </message>
+    <message>
+        <source>Branch 1</source>
+        <translation>分支 1</translation>
+    </message>
+    <message>
+        <source>Branch 2</source>
+        <translation>分支 2</translation>
+    </message>
+    <message>
+        <source>Branch 3</source>
+        <translation>分支 3</translation>
+    </message>
+    <message>
+        <source>Branch 4</source>
+        <translation>分支 4</translation>
+    </message>
+    <message>
+        <source>Org Chart</source>
+        <translation>组织架构图</translation>
+    </message>
+    <message>
+        <source>Top-down organizational chart</source>
+        <translation>自上而下的组织架构图</translation>
+    </message>
+    <message>
+        <source>CEO</source>
+        <translation>CEO</translation>
+    </message>
+    <message>
+        <source>Engineering</source>
+        <translation>工程部</translation>
+    </message>
+    <message>
+        <source>Marketing</source>
+        <translation>市场部</translation>
+    </message>
+    <message>
+        <source>Sales</source>
+        <translation>销售部</translation>
+    </message>
+    <message>
+        <source>Project Plan</source>
+        <translation>项目计划</translation>
+    </message>
+    <message>
+        <source>Right-tree project plan with phases and tasks</source>
+        <translation>右侧树状项目计划，含阶段和任务</translation>
+    </message>
+    <message>
+        <source>Project</source>
+        <translation>项目</translation>
+    </message>
+    <message>
+        <source>Phase 1</source>
+        <translation>阶段 1</translation>
+    </message>
+    <message>
+        <source>Phase 2</source>
+        <translation>阶段 2</translation>
+    </message>
+    <message>
+        <source>Task 1.1</source>
+        <translation>任务 1.1</translation>
+    </message>
+    <message>
+        <source>Task 1.2</source>
+        <translation>任务 1.2</translation>
+    </message>
+    <message>
+        <source>Task 2.1</source>
+        <translation>任务 2.1</translation>
+    </message>
+    <message>
+        <source>Task 2.2</source>
+        <translation>任务 2.2</translation>
+    </message>
+</context>
 </TS>
