@@ -386,6 +386,10 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
     width: 0;
 }
 
+QAbstractScrollArea::corner {
+    background-color: {{scrollBg}};
+}
+
 /* ---------------------------------------------------------------------------
    Combo Box
    --------------------------------------------------------------------------- */
