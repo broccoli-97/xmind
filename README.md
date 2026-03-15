@@ -1,5 +1,7 @@
 # YMind - Mind Map Editor
 
+[中文文档](README_zh.md)
+
 A desktop mind map editor built with C++ and Qt6. Create, edit, and organize hierarchical mind maps with an intuitive interface featuring tabbed editing, multiple layout styles, undo/redo, and theme support.
 
 ## Screenshots
