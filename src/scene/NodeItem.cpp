@@ -84,12 +84,11 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
     painter->setBrush(bg);
     painter->drawRoundedRect(m_rect, kRadius, kRadius);
 
-    // Text
+    // Text (word-wrapped within the padded area)
     painter->setPen(textColor);
     painter->setFont(m_font);
-    QFontMetricsF fm(m_font);
-    QString displayText = fm.elidedText(m_text, Qt::ElideRight, m_rect.width() - kPadding * 2);
-    painter->drawText(m_rect, Qt::AlignCenter, displayText);
+    QRectF textArea = m_rect.adjusted(kPadding, kPadding, -kPadding, -kPadding);
+    painter->drawText(textArea, Qt::AlignCenter | Qt::TextWrapAnywhere, m_text);
 }
 
 QString NodeItem::text() const {
@@ -232,8 +231,18 @@ void NodeItem::updateGeometry() {
     prepareGeometryChange();
     QFontMetricsF fm(m_font);
     qreal textW = fm.horizontalAdvance(m_text);
-    qreal textH = fm.height();
     qreal w = qMax(kMinWidth, qMin(kMaxWidth, textW + kPadding * 2));
-    qreal h = textH + kPadding * 2;
+
+    // When text exceeds available width, wrap to multiple lines
+    qreal availableTextW = w - kPadding * 2;
+    QRectF textRect =
+        fm.boundingRect(QRectF(0, 0, availableTextW, 0), Qt::TextWrapAnywhere, m_text);
+    qreal h = textRect.height() + kPadding * 2;
+
     m_rect = QRectF(-w / 2, -h / 2, w, h);
+
+    // Update connected edges since node geometry changed
+    for (auto* edge : m_edges) {
+        edge->updatePath();
+    }
 }
