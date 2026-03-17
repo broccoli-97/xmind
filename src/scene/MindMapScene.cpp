@@ -285,7 +285,7 @@ void MindMapScene::finishEditing() {
     m_editProxy = nullptr;
 
     if (!newText.isEmpty() && newText != oldText) {
-        m_undoStack->push(new EditTextCommand(node, oldText, newText));
+        m_undoStack->push(new EditTextCommand(this, node, oldText, newText));
     }
     clearSelection();
     node->setSelected(true);
