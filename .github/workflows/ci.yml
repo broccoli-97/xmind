@@ -7,12 +7,14 @@ on:
       - '**.md'
       - 'LICENSE'
       - '.gitignore'
+      - 'website/**'
   pull_request:
     branches: [master]
     paths-ignore:
       - '**.md'
       - 'LICENSE'
       - '.gitignore'
+      - 'website/**'
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true

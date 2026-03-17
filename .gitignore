@@ -9,3 +9,5 @@ out/
 templates/
 CLAUDE.md
 *.bat
+website/node_modules/
+website/dist/
