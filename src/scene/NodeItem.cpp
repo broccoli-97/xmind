@@ -2,18 +2,183 @@
 #include "core/AppSettings.h"
 #include "core/Commands.h"
 #include "core/TemplateDescriptor.h"
+#include "layout/LayoutStyle.h"
 #include "scene/EdgeItem.h"
 #include "scene/MindMapScene.h"
 #include "ui/ThemeManager.h"
 
 #include <QFontMetricsF>
+#include <QGraphicsSceneHoverEvent>
 #include <QGraphicsSceneMouseEvent>
+#include <QMetaObject>
 #include <QPainter>
 #include <QStyleOptionGraphicsItem>
+#include <QTimer>
+#include <QVariantAnimation>
+
+// ===========================================================================
+// AddButtonOverlay — separate child item so it never inflates NodeItem's
+//                    boundingRect and therefore cannot disturb the scene rect.
+// ===========================================================================
+
+class AddButtonOverlay : public QGraphicsItem {
+public:
+    explicit AddButtonOverlay(NodeItem* parentNode)
+        : QGraphicsItem(parentNode), m_node(parentNode) {
+        setAcceptHoverEvents(true);
+        setVisible(false);
+    }
+
+    void setButtonOpacity(qreal opacity) {
+        m_opacity = opacity;
+        setVisible(opacity > 0.0);
+        update();
+    }
+
+    qreal buttonOpacity() const { return m_opacity; }
+    bool isButtonHovered() const { return m_hovered; }
+
+    QRectF boundingRect() const override {
+        QRectF btn = m_node->addButtonRect();
+        constexpr qreal m = NodeItem::kHoverZoneMargin;
+        QRectF area = btn.adjusted(-m, -m, m, m);
+        return area.united(bridgeRect());
+    }
+
+    QPainterPath shape() const override {
+        QPainterPath path;
+        QRectF btn = m_node->addButtonRect();
+        constexpr qreal m = NodeItem::kHoverZoneMargin;
+        path.addEllipse(btn.adjusted(-m, -m, m, m));
+        path.addRect(bridgeRect());
+        return path;
+    }
+
+    void paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWidget*) override {
+        if (m_opacity < 0.01)
+            return;
+
+        auto* mindMapScene = dynamic_cast<MindMapScene*>(m_node->scene());
+        if (mindMapScene && mindMapScene->isEditing())
+            return;
+
+        painter->setRenderHint(QPainter::Antialiasing);
+        painter->save();
+        painter->setOpacity(m_opacity);
+
+        QRectF btnRect = m_node->addButtonRect();
+
+        // Resolve selection border color
+        const ThemeColors& globalTC = ThemeManager::colors();
+        QColor selectionBorder = globalTC.nodeSelectionBorder;
+        if (mindMapScene) {
+            const auto* td = mindMapScene->templateDescriptor();
+            if (td)
+                selectionBorder = td->activeColors().nodeSelectionBorder;
+        }
+
+        // Button background
+        QColor btnBg;
+        if (m_hovered) {
+            btnBg = selectionBorder;
+        } else {
+            btnBg = ThemeManager::isDark() ? QColor(255, 255, 255, 60) : QColor(0, 0, 0, 60);
+        }
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(btnBg);
+        painter->drawEllipse(btnRect);
+
+        // "+" icon
+        QColor plusColor = m_hovered        ? Qt::white
+                           : ThemeManager::isDark() ? QColor(255, 255, 255, 200)
+                                                    : QColor(0, 0, 0, 180);
+        QPen plusPen(plusColor, 2, Qt::SolidLine, Qt::RoundCap);
+        painter->setPen(plusPen);
+        QPointF center = btnRect.center();
+        constexpr qreal arm = NodeItem::kAddButtonRadius * 0.45;
+        painter->drawLine(QPointF(center.x() - arm, center.y()),
+                          QPointF(center.x() + arm, center.y()));
+        painter->drawLine(QPointF(center.x(), center.y() - arm),
+                          QPointF(center.x(), center.y() + arm));
+
+        painter->restore();
+    }
+
+protected:
+    void hoverEnterEvent(QGraphicsSceneHoverEvent*) override {
+        m_hovered = true;
+        setCursor(Qt::PointingHandCursor);
+        update();
+        // Cancel the parent node's pending leave timer
+        if (m_node->m_hoverLeaveTimer) {
+            m_node->m_hoverLeaveTimer->stop();
+            delete m_node->m_hoverLeaveTimer;
+            m_node->m_hoverLeaveTimer = nullptr;
+        }
+    }
+
+    void hoverLeaveEvent(QGraphicsSceneHoverEvent*) override {
+        m_hovered = false;
+        unsetCursor();
+        update();
+        // Trigger fade-out on the parent node
+        m_node->m_hovered = false;
+        m_node->startAddButtonAnimation(false);
+    }
+
+    void mousePressEvent(QGraphicsSceneMouseEvent* event) override {
+        if (event->button() == Qt::LeftButton && m_opacity > 0.5) {
+            event->accept();
+            auto* mindMapScene = dynamic_cast<MindMapScene*>(m_node->scene());
+            if (mindMapScene) {
+                mindMapScene->clearSelection();
+                m_node->setSelected(true);
+                QMetaObject::invokeMethod(
+                    mindMapScene, [mindMapScene]() { mindMapScene->addChildToSelected(); },
+                    Qt::QueuedConnection);
+            }
+            return;
+        }
+        QGraphicsItem::mousePressEvent(event);
+    }
+
+    void mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event) override {
+        event->accept(); // Eat double-clicks so they don't trigger text editing
+    }
+
+private:
+    QRectF bridgeRect() const {
+        QRectF btn = m_node->addButtonRect();
+        QRectF nodeRect = m_node->m_rect;
+        constexpr qreal m = NodeItem::kHoverZoneMargin;
+
+        switch (m_node->m_addButtonDir) {
+        case NodeItem::ButtonDirection::Right:
+            return QRectF(nodeRect.right() - 1, btn.top() - m,
+                          btn.left() - nodeRect.right() + 2, btn.height() + m * 2);
+        case NodeItem::ButtonDirection::Left:
+            return QRectF(btn.right() - 1, btn.top() - m, nodeRect.left() - btn.right() + 2,
+                          btn.height() + m * 2);
+        case NodeItem::ButtonDirection::Bottom:
+            return QRectF(btn.left() - m, nodeRect.bottom() - 1, btn.width() + m * 2,
+                          btn.top() - nodeRect.bottom() + 2);
+        }
+        return {};
+    }
+
+    NodeItem* m_node;
+    qreal m_opacity = 0.0;
+    bool m_hovered = false;
+};
+
+// ===========================================================================
+// NodeItem
+// ===========================================================================
 
 NodeItem::NodeItem(const QString& text, QGraphicsItem* parent)
     : QGraphicsObject(parent), m_text(text) {
     setFlags(ItemIsMovable | ItemIsSelectable | ItemSendsGeometryChanges);
+    setAcceptHoverEvents(true);
     setCacheMode(DeviceCoordinateCache);
     m_font.setPointSize(AppSettings::instance().defaultFontSize());
     m_font.setFamily(AppSettings::instance().defaultFontFamily());
@@ -245,4 +410,123 @@ void NodeItem::updateGeometry() {
     for (auto* edge : m_edges) {
         edge->updatePath();
     }
+}
+
+NodeItem::ButtonDirection NodeItem::addButtonDirection() const {
+    auto* mindMapScene = dynamic_cast<MindMapScene*>(scene());
+    if (!mindMapScene)
+        return ButtonDirection::Right;
+
+    // Determine effective layout style (template overrides scene default)
+    LayoutStyle style = mindMapScene->layoutStyle();
+    const auto* td = mindMapScene->templateDescriptor();
+    if (td)
+        style = algorithmNameToLayoutStyle(td->layout.algorithm);
+
+    switch (style) {
+    case LayoutStyle::TopDown:
+        return ButtonDirection::Bottom;
+    case LayoutStyle::RightTree:
+        return ButtonDirection::Right;
+    case LayoutStyle::Bilateral:
+    default:
+        if (!m_parentNode) {
+            // Root node: next child index determines direction
+            // Bilateral alternates even=right, odd=left
+            return (m_children.size() % 2 == 0) ? ButtonDirection::Right : ButtonDirection::Left;
+        }
+        // Non-root: inherit side from position relative to root (at origin)
+        return (pos().x() >= 0) ? ButtonDirection::Right : ButtonDirection::Left;
+    }
+}
+
+QRectF NodeItem::addButtonRect() const {
+    qreal diameter = kAddButtonRadius * 2;
+    switch (m_addButtonDir) {
+    case ButtonDirection::Left:
+        return QRectF(m_rect.left() - kAddButtonOffset - diameter, -kAddButtonRadius, diameter,
+                      diameter);
+    case ButtonDirection::Bottom:
+        return QRectF(-kAddButtonRadius, m_rect.bottom() + kAddButtonOffset, diameter, diameter);
+    case ButtonDirection::Right:
+    default:
+        return QRectF(m_rect.right() + kAddButtonOffset, -kAddButtonRadius, diameter, diameter);
+    }
+}
+
+void NodeItem::startAddButtonAnimation(bool fadeIn) {
+    if (m_addButtonAnimation) {
+        m_addButtonAnimation->stop();
+        m_addButtonAnimation->deleteLater();
+        m_addButtonAnimation = nullptr;
+    }
+
+    if (!m_addButtonOverlay)
+        return;
+
+    auto* anim = new QVariantAnimation(this);
+    anim->setDuration(200);
+    anim->setEasingCurve(QEasingCurve::InOutQuad);
+    anim->setStartValue(m_addButtonOverlay->buttonOpacity());
+    anim->setEndValue(fadeIn ? 1.0 : 0.0);
+
+    connect(anim, &QVariantAnimation::valueChanged, this, [this](const QVariant& value) {
+        if (m_addButtonOverlay)
+            m_addButtonOverlay->setButtonOpacity(value.toReal());
+    });
+
+    connect(anim, &QVariantAnimation::finished, this, [this, fadeIn, anim]() {
+        if (!fadeIn) {
+            setZValue(m_savedZValue);
+            if (m_addButtonOverlay)
+                m_addButtonOverlay->setVisible(false);
+        }
+        anim->deleteLater();
+        m_addButtonAnimation = nullptr;
+    });
+
+    m_addButtonAnimation = anim;
+    anim->start();
+}
+
+void NodeItem::hoverEnterEvent(QGraphicsSceneHoverEvent* event) {
+    Q_UNUSED(event);
+
+    // Cancel any pending fade-out from a previous brief leave
+    if (m_hoverLeaveTimer) {
+        m_hoverLeaveTimer->stop();
+        delete m_hoverLeaveTimer;
+        m_hoverLeaveTimer = nullptr;
+    }
+
+    if (!m_hovered) {
+        m_hovered = true;
+        m_addButtonDir = addButtonDirection();
+
+        // Raise above sibling nodes so the button is not occluded
+        m_savedZValue = zValue();
+        setZValue(50);
+
+        if (!m_addButtonOverlay)
+            m_addButtonOverlay = new AddButtonOverlay(this);
+
+        startAddButtonAnimation(true);
+    }
+}
+
+void NodeItem::hoverLeaveEvent(QGraphicsSceneHoverEvent* event) {
+    Q_UNUSED(event);
+
+    // Delay the fade-out so the button doesn't vanish during imprecise mouse movements
+    if (!m_hoverLeaveTimer) {
+        m_hoverLeaveTimer = new QTimer(this);
+        m_hoverLeaveTimer->setSingleShot(true);
+        connect(m_hoverLeaveTimer, &QTimer::timeout, this, [this]() {
+            m_hovered = false;
+            startAddButtonAnimation(false);
+            m_hoverLeaveTimer->deleteLater();
+            m_hoverLeaveTimer = nullptr;
+        });
+    }
+    m_hoverLeaveTimer->start(150);
 }
