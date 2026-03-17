@@ -177,16 +177,22 @@ void RemoveNodeCommand::undo() {
 // EditTextCommand
 // ===========================================================================
 
-EditTextCommand::EditTextCommand(NodeItem* node, const QString& oldText, const QString& newText,
-                                 QUndoCommand* parentCmd)
-    : QUndoCommand("Edit Text", parentCmd), m_node(node), m_oldText(oldText), m_newText(newText) {}
+EditTextCommand::EditTextCommand(MindMapScene* scene, NodeItem* node, const QString& oldText,
+                                 const QString& newText, QUndoCommand* parentCmd)
+    : QUndoCommand("Edit Text", parentCmd),
+      m_scene(scene),
+      m_node(node),
+      m_oldText(oldText),
+      m_newText(newText) {}
 
 void EditTextCommand::undo() {
     m_node->setText(m_oldText);
+    m_scene->autoLayout();
 }
 
 void EditTextCommand::redo() {
     m_node->setText(m_newText);
+    m_scene->autoLayout();
 }
 
 // ===========================================================================
