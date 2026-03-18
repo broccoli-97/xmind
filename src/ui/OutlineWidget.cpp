@@ -14,6 +14,7 @@
 OutlineWidget::OutlineWidget(QWidget* parent) : QWidget(parent) {
     setMinimumWidth(120);
     setObjectName("outlinePanel");
+    setAttribute(Qt::WA_StyledBackground, true);
 
     auto* layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
