@@ -43,10 +43,13 @@ add_library(ymind_lib OBJECT
     src/core/UpdateChecker.h      src/core/UpdateChecker.cpp
 
     # Scene – graphics-scene items
-    src/scene/EdgeItem.h          src/scene/EdgeItem.cpp
-    src/scene/MindMapScene.h      src/scene/MindMapScene.cpp
-    src/scene/MindMapView.h       src/scene/MindMapView.cpp
-    src/scene/NodeItem.h          src/scene/NodeItem.cpp
+    src/scene/EdgeItem.h              src/scene/EdgeItem.cpp
+    src/scene/InlineEditController.h  src/scene/InlineEditController.cpp
+    src/scene/MindMapExporter.h       src/scene/MindMapExporter.cpp
+    src/scene/MindMapScene.h          src/scene/MindMapScene.cpp
+    src/scene/MindMapSerializer.h     src/scene/MindMapSerializer.cpp
+    src/scene/MindMapView.h           src/scene/MindMapView.cpp
+    src/scene/NodeItem.h              src/scene/NodeItem.cpp
 
     # Layout – auto-layout algorithms
     src/layout/ILayoutAlgorithm.h

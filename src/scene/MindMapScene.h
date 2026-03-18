@@ -7,12 +7,11 @@
 
 class NodeItem;
 class EdgeItem;
-class QLineEdit;
-class QGraphicsProxyWidget;
 class QJsonObject;
 class QJsonArray;
 class QUndoStack;
 class TemplateDescriptor;
+class InlineEditController;
 
 class MindMapScene : public QGraphicsScene {
     Q_OBJECT
@@ -82,16 +81,13 @@ public slots:
 protected:
     void keyPressEvent(QKeyEvent* event) override;
     void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
-    bool eventFilter(QObject* obj, QEvent* event) override;
 
 private:
+    friend class MindMapSerializer;
+    friend class MindMapExporter;
+
     void finishEditing();
     void markModified();
-
-    QJsonObject nodeToJson(NodeItem* node) const;
-    NodeItem* nodeFromJson(const QJsonObject& json, NodeItem* parent);
-    void exportNodeToText(NodeItem* node, int indent, QString& output) const;
-    void exportNodeToMarkdown(NodeItem* node, int level, QString& output) const;
 
     NodeItem* m_rootNode = nullptr;
     QList<EdgeItem*> m_edges;
@@ -101,8 +97,6 @@ private:
     LayoutStyle m_layoutStyle = LayoutStyle::Bilateral;
     QString m_templateId;
 
-    // Editing state
-    NodeItem* m_editingNode = nullptr;
-    QGraphicsProxyWidget* m_editProxy = nullptr;
-    QLineEdit* m_editLineEdit = nullptr;
+    // Editing
+    InlineEditController* m_editController;
 };

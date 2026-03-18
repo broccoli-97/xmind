@@ -3,36 +3,26 @@
 #include "core/TemplateDescriptor.h"
 #include "core/TemplateRegistry.h"
 #include "scene/EdgeItem.h"
-#include "layout/LayoutEngine.h"
+#include "scene/InlineEditController.h"
+#include "scene/MindMapExporter.h"
+#include "scene/MindMapSerializer.h"
 #include "scene/MindMapView.h"
 #include "scene/NodeItem.h"
-#include "ui/ThemeManager.h"
 
 #include <QEasingCurve>
-#include <QFile>
-#include <QGraphicsProxyWidget>
 #include <QGraphicsSceneMouseEvent>
-#include <QGuiApplication>
-#include <QImage>
-#include <QInputMethod>
-#include <QJsonArray>
-#include <QJsonDocument>
 #include <QJsonObject>
 #include <QKeyEvent>
-#include <QLineEdit>
-#include <QPageSize>
-#include <QPainter>
 #include <QParallelAnimationGroup>
 #include <QPropertyAnimation>
-#include <QTextStream>
 #include <QUndoStack>
-#include <QtPrintSupport/QPrinter>
-#include <QtSvg/QSvgGenerator>
 
 MindMapScene::MindMapScene(QObject* parent) : QGraphicsScene(parent) {
     m_undoStack = new QUndoStack(this);
     connect(m_undoStack, &QUndoStack::cleanChanged, this,
             [this](bool clean) { setModified(!clean); });
+
+    m_editController = new InlineEditController(this, this);
 
     m_rootNode = createRootNode(tr("Central Topic"));
 }
@@ -76,8 +66,8 @@ NodeItem* MindMapScene::addNode(const QString& text, NodeItem* parent) {
     const auto* td = templateDescriptor();
     if (td) {
         LayoutParams params{td->layout.depthSpacing, td->layout.spreadSpacing};
-        node->setPos(LayoutEngine::initialChildPosition(
-            node, parent, m_rootNode, td->layout.algorithm, params));
+        node->setPos(LayoutEngine::initialChildPosition(node, parent, m_rootNode,
+                                                        td->layout.algorithm, params));
     } else {
         node->setPos(LayoutEngine::initialChildPosition(node, parent, m_rootNode, m_layoutStyle));
     }
@@ -143,7 +133,7 @@ QUndoStack* MindMapScene::undoStack() const {
 }
 
 bool MindMapScene::isEditing() const {
-    return m_editingNode != nullptr;
+    return m_editController->isEditing();
 }
 
 LayoutStyle MindMapScene::layoutStyle() const {
@@ -189,7 +179,7 @@ EdgeItem* MindMapScene::findEdge(NodeItem* parent, NodeItem* child) const {
 }
 
 void MindMapScene::addChildToSelected() {
-    if (m_editingNode)
+    if (m_editController->isEditing())
         finishEditing();
     NodeItem* node = selectedNode();
     if (!node)
@@ -207,7 +197,7 @@ void MindMapScene::addChildToSelected() {
 }
 
 void MindMapScene::addSiblingToSelected() {
-    if (m_editingNode)
+    if (m_editController->isEditing())
         finishEditing();
     NodeItem* node = selectedNode();
     if (!node || node == m_rootNode) {
@@ -227,7 +217,7 @@ void MindMapScene::addSiblingToSelected() {
 }
 
 void MindMapScene::deleteSelected() {
-    if (m_editingNode)
+    if (m_editController->isEditing())
         cancelEditing();
     NodeItem* node = selectedNode();
     if (node && node != m_rootNode) {
@@ -236,95 +226,19 @@ void MindMapScene::deleteSelected() {
 }
 
 void MindMapScene::startEditing(NodeItem* node) {
-    if (m_editingNode)
-        finishEditing();
-
-    m_editingNode = node;
-    m_editLineEdit = new QLineEdit(node->text());
-    m_editLineEdit->setAlignment(Qt::AlignCenter);
-    m_editLineEdit->selectAll();
-    m_editLineEdit->setAttribute(Qt::WA_InputMethodEnabled, true);
-
-    // Use theme-controlled global stylesheet; apply node's font locally
-    m_editLineEdit->setFont(node->font());
-
-    m_editProxy = addWidget(m_editLineEdit);
-    m_editProxy->setZValue(100);
-    m_editProxy->setFlag(QGraphicsItem::ItemAcceptsInputMethod, true);
-
-    QRectF rect = node->nodeRect();
-    QPointF nodePos = node->pos();
-    qreal w = qMax(rect.width() + 20, 180.0);
-    qreal h = rect.height();
-    m_editProxy->setPos(nodePos.x() - w / 2, nodePos.y() - h / 2);
-    m_editLineEdit->setFixedWidth(static_cast<int>(w));
-    m_editLineEdit->setFixedHeight(static_cast<int>(h));
-    m_editLineEdit->setFocus();
-
-    m_editLineEdit->installEventFilter(this);
+    m_editController->startEditing(node);
 }
 
 void MindMapScene::finishEditing() {
-    if (!m_editingNode || !m_editLineEdit)
-        return;
-
-    QString newText = m_editLineEdit->text().trimmed();
-    QString oldText = m_editingNode->text();
-    NodeItem* node = m_editingNode;
-
-    // Cleanly remove event filter before deleting UI
-    m_editLineEdit->removeEventFilter(this);
-
-    m_editingNode = nullptr;
-    m_editLineEdit = nullptr;
-
-    // Removing the proxy from the scene immediately is fine, but defer deletion
-    // to avoid destroying widgets while they are still handling events.
-    removeItem(m_editProxy);
-    m_editProxy->deleteLater();
-    m_editProxy = nullptr;
-
-    if (!newText.isEmpty() && newText != oldText) {
-        m_undoStack->push(new EditTextCommand(this, node, oldText, newText));
-    }
-    clearSelection();
-    node->setSelected(true);
+    m_editController->finishEditing();
 }
 
 void MindMapScene::cancelEditing() {
-    if (!m_editingNode)
-        return;
-
-    // Cleanly remove event filter if present
-    if (m_editLineEdit) {
-        m_editLineEdit->removeEventFilter(this);
-    }
-
-    m_editingNode = nullptr;
-    m_editLineEdit = nullptr;
-
-    removeItem(m_editProxy);
-    m_editProxy->deleteLater();
-    m_editProxy = nullptr;
-}
-
-bool MindMapScene::eventFilter(QObject* obj, QEvent* event) {
-    if (obj == m_editLineEdit && event->type() == QEvent::KeyPress) {
-        auto* keyEvent = static_cast<QKeyEvent*>(event);
-        if (keyEvent->key() == Qt::Key_Escape) {
-            cancelEditing();
-            return true;
-        }
-        if (keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter) {
-            finishEditing();
-            return true;
-        }
-    }
-    return QGraphicsScene::eventFilter(obj, event);
+    m_editController->cancelEditing();
 }
 
 void MindMapScene::keyPressEvent(QKeyEvent* event) {
-    if (m_editingNode) {
+    if (m_editController->isEditing()) {
         QGraphicsScene::keyPressEvent(event);
         return;
     }
@@ -356,16 +270,11 @@ void MindMapScene::keyPressEvent(QKeyEvent* event) {
 }
 
 void MindMapScene::mousePressEvent(QGraphicsSceneMouseEvent* event) {
-    if (m_editingNode && m_editProxy) {
-        QRectF proxyRect = m_editProxy->sceneBoundingRect();
-        if (!proxyRect.contains(event->scenePos())) {
-            finishEditing();
-        }
-    }
+    m_editController->handleMousePress(event->scenePos());
     QGraphicsScene::mousePressEvent(event);
 }
 
-// --- Serialization ---
+// --- Modified state ---
 
 bool MindMapScene::isModified() const {
     return m_modified;
@@ -383,125 +292,26 @@ void MindMapScene::markModified() {
         setModified(true);
 }
 
-QJsonObject MindMapScene::nodeToJson(NodeItem* node) const {
-    QJsonObject obj;
-    obj["text"] = node->text();
-    obj["x"] = node->pos().x();
-    obj["y"] = node->pos().y();
-
-    QJsonArray children;
-    for (auto* child : node->childNodes()) {
-        children.append(nodeToJson(child));
-    }
-    obj["children"] = children;
-    return obj;
-}
+// --- Serialization (delegates to MindMapSerializer) ---
 
 QJsonObject MindMapScene::toJson() const {
-    QJsonObject root;
-    root["format"] = QStringLiteral("ymind");
-    root["version"] = 2;
-    root["layoutStyle"] = static_cast<int>(m_layoutStyle);
-    if (!m_templateId.isEmpty())
-        root["templateId"] = m_templateId;
-    if (m_rootNode) {
-        root["root"] = nodeToJson(m_rootNode);
-    }
-    return root;
-}
-
-NodeItem* MindMapScene::nodeFromJson(const QJsonObject& json, NodeItem* parent) {
-    QString text = json["text"].toString("Topic");
-    qreal x = json["x"].toDouble(0);
-    qreal y = json["y"].toDouble(0);
-
-    NodeItem* node;
-    if (!parent) {
-        // This is the root node
-        node = createRootNode(text);
-        node->setPos(x, y);
-    } else {
-        node = addNode(text, parent);
-        if (node)
-            node->setPos(x, y);
-    }
-
-    if (!node)
-        return nullptr;
-
-    QJsonArray children = json["children"].toArray();
-    for (const auto& childVal : children) {
-        nodeFromJson(childVal.toObject(), node);
-    }
-    return node;
+    return MindMapSerializer(const_cast<MindMapScene*>(this)).toJson();
 }
 
 bool MindMapScene::fromJson(const QJsonObject& json) {
-    if (json["format"].toString() != "ymind")
-        return false;
-
-    clearScene();
-    m_batchLoading = true;
-
-    // Restore layout style (default to Bilateral for old files)
-    m_layoutStyle = static_cast<LayoutStyle>(json["layoutStyle"].toInt(0));
-
-    // Restore template ID; for old files (v1), map layoutStyle to builtin ID
-    if (json.contains("templateId")) {
-        m_templateId = json["templateId"].toString();
-    } else {
-        m_templateId = TemplateRegistry::builtinIdForLayoutStyle(json["layoutStyle"].toInt(0));
-    }
-
-    QJsonObject rootObj = json["root"].toObject();
-    m_rootNode = nodeFromJson(rootObj, nullptr);
-    if (!m_rootNode) {
-        // Fallback: create default root
-        m_rootNode = createRootNode(tr("Central Topic"));
-    }
-
-    m_undoStack->clear();
-    m_batchLoading = false;
-    setModified(false);
-    return true;
+    return MindMapSerializer(this).fromJson(json);
 }
 
 bool MindMapScene::saveToFile(const QString& filePath) {
-    QFile file(filePath);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
-        return false;
-
-    QJsonDocument doc(toJson());
-    file.write(doc.toJson(QJsonDocument::Indented));
-    file.close();
-
-    m_undoStack->setClean();
-    setModified(false);
-    return true;
+    return MindMapSerializer(this).saveToFile(filePath);
 }
 
 bool MindMapScene::loadFromFile(const QString& filePath) {
-    QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-        return false;
-
-    QByteArray data = file.readAll();
-    file.close();
-
-    QJsonParseError parseError;
-    QJsonDocument doc = QJsonDocument::fromJson(data, &parseError);
-    if (parseError.error != QJsonParseError::NoError)
-        return false;
-
-    if (!fromJson(doc.object()))
-        return false;
-
-    emit fileLoaded(filePath);
-    return true;
+    return MindMapSerializer(this).loadFromFile(filePath);
 }
 
 void MindMapScene::clearScene() {
-    if (m_editingNode)
+    if (m_editController->isEditing())
         cancelEditing();
 
     m_undoStack->clear();
@@ -533,149 +343,30 @@ void MindMapScene::clearScene() {
     setModified(false);
 }
 
-// --- Export ---
-
-void MindMapScene::exportNodeToText(NodeItem* node, int indent, QString& output) const {
-    output += QString(indent, '\t') + node->text() + '\n';
-    for (auto* child : node->childNodes()) {
-        exportNodeToText(child, indent + 1, output);
-    }
-}
+// --- Export/Import (delegates to MindMapExporter) ---
 
 QString MindMapScene::exportToText() const {
-    QString output;
-    if (m_rootNode)
-        exportNodeToText(m_rootNode, 0, output);
-    return output;
-}
-
-void MindMapScene::exportNodeToMarkdown(NodeItem* node, int level, QString& output) const {
-    if (level == 0) {
-        output += "# " + node->text() + "\n\n";
-    } else if (level == 1) {
-        output += "## " + node->text() + "\n\n";
-    } else {
-        output += QString((level - 2) * 2, ' ') + "- " + node->text() + '\n';
-    }
-    for (auto* child : node->childNodes()) {
-        exportNodeToMarkdown(child, level + 1, output);
-    }
-    if (level <= 1)
-        output += '\n';
+    return MindMapExporter(const_cast<MindMapScene*>(this)).exportToText();
 }
 
 QString MindMapScene::exportToMarkdown() const {
-    QString output;
-    if (m_rootNode)
-        exportNodeToMarkdown(m_rootNode, 0, output);
-    return output;
+    return MindMapExporter(const_cast<MindMapScene*>(this)).exportToMarkdown();
 }
 
 bool MindMapScene::exportToPng(const QString& filePath, int scaleFactor) {
-    QRectF contentRect = itemsBoundingRect().adjusted(-40, -40, 40, 40);
-    QSize imageSize(static_cast<int>(contentRect.width() * scaleFactor),
-                    static_cast<int>(contentRect.height() * scaleFactor));
-
-    QImage image(imageSize, QImage::Format_ARGB32_Premultiplied);
-    const auto* td = templateDescriptor();
-    QColor bgColor = td ? td->activeColors().exportBackground
-                        : ThemeManager::colors().exportBackground;
-    image.fill(bgColor);
-
-    QPainter painter(&image);
-    painter.setRenderHint(QPainter::Antialiasing);
-    render(&painter, QRectF(), contentRect);
-    painter.end();
-
-    return image.save(filePath, "PNG");
+    return MindMapExporter(this).exportToPng(filePath, scaleFactor);
 }
 
 bool MindMapScene::exportToSvg(const QString& filePath) {
-    QRectF contentRect = itemsBoundingRect().adjusted(-40, -40, 40, 40);
-
-    QSvgGenerator generator;
-    generator.setFileName(filePath);
-    generator.setSize(contentRect.size().toSize());
-    generator.setViewBox(QRectF(QPointF(0, 0), contentRect.size()));
-    generator.setTitle("YMind Export");
-
-    QPainter painter(&generator);
-    if (!painter.isActive())
-        return false;
-    painter.setRenderHint(QPainter::Antialiasing);
-    render(&painter, QRectF(), contentRect);
-    painter.end();
-
-    return true;
+    return MindMapExporter(this).exportToSvg(filePath);
 }
 
 bool MindMapScene::exportToPdf(const QString& filePath) {
-    QRectF contentRect = itemsBoundingRect().adjusted(-40, -40, 40, 40);
-
-    QPrinter printer(QPrinter::HighResolution);
-    printer.setOutputFormat(QPrinter::PdfFormat);
-    printer.setOutputFileName(filePath);
-    printer.setPageSize(QPageSize(contentRect.size().toSize(), QPageSize::Point));
-    printer.setPageMargins(QMarginsF(0, 0, 0, 0));
-
-    QPainter painter(&printer);
-    if (!painter.isActive())
-        return false;
-    painter.setRenderHint(QPainter::Antialiasing);
-    render(&painter, QRectF(), contentRect);
-    painter.end();
-
-    return true;
+    return MindMapExporter(this).exportToPdf(filePath);
 }
 
-// --- Import ---
-
 bool MindMapScene::importFromText(const QString& text) {
-    QStringList lines = text.split('\n', Qt::SkipEmptyParts);
-    if (lines.isEmpty())
-        return false;
-
-    clearScene();
-    m_batchLoading = true;
-
-    // Parse indented text into tree
-    // Stack tracks (indent_level, node) pairs
-    QList<QPair<int, NodeItem*>> stack;
-
-    for (const QString& line : lines) {
-        // Count leading tabs
-        int indent = 0;
-        while (indent < line.size() && line[indent] == '\t')
-            indent++;
-
-        QString nodeText = line.mid(indent).trimmed();
-        if (nodeText.isEmpty())
-            continue;
-
-        if (stack.isEmpty()) {
-            // First node becomes root
-            m_rootNode = createRootNode(nodeText);
-            stack.append({indent, m_rootNode});
-        } else {
-            // Find the parent: walk back up the stack to find the most recent
-            // node with a smaller indent
-            while (stack.size() > 1 && stack.last().first >= indent)
-                stack.removeLast();
-
-            NodeItem* parent = stack.last().second;
-            NodeItem* node = addNode(nodeText, parent);
-            stack.append({indent, node});
-        }
-    }
-
-    if (!m_rootNode) {
-        m_rootNode = createRootNode(tr("Central Topic"));
-    }
-
-    m_batchLoading = false;
-    autoLayout();
-    setModified(false);
-    return true;
+    return MindMapExporter(this).importFromText(text);
 }
 
 // --- Auto-layout ---
@@ -683,7 +374,7 @@ bool MindMapScene::importFromText(const QString& text) {
 void MindMapScene::autoLayout() {
     if (!m_rootNode)
         return;
-    if (m_editingNode)
+    if (m_editController->isEditing())
         finishEditing();
 
     QMap<NodeItem*, QPointF> positions;
