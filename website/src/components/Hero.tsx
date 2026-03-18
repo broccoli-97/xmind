@@ -48,7 +48,7 @@ export function Hero() {
                             <span className="h-3 w-3 rounded-full bg-green-400/80" />
                         </div>
                         <img
-                            src={`${base}img/Screenshot.png`}
+                            src={`${base}img/ScreenShot.png`}
                             alt="YMind Screenshot"
                             className="w-full"
                             loading="eager"
