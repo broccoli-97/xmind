@@ -1,13 +1,15 @@
 # YMind - 思维导图编辑器
 
+简体中文 | [English](README.md)
+
 一款使用 C++ 和 Qt6 构建的桌面思维导图编辑器。支持创建、编辑和组织层次化的思维导图，提供直观的界面，具备多标签编辑、多种布局样式、撤销/重做以及主题切换等功能。
 
 ## 截图
 
+![截图](./img/AutoLayout.gif)
 ![截图](./img/StartPage.png)
 ![截图](./img/LightTheme.png)
 ![截图](./img/DarkTheme.png)
-![截图](./img/AutoLayout.gif)
 
 ## 功能特性
 
