@@ -43,6 +43,9 @@ public:
     QRectF nodeRect() const;
     void moveSubtree(const QPointF& delta);
 
+    void showAddButton();
+    void hideAddButton();
+
 signals:
     void doubleClicked(NodeItem* node);
 

@@ -4,7 +4,9 @@
 #include "scene/NodeItem.h"
 #include "ui/ThemeManager.h"
 
+#include <QGraphicsSceneHoverEvent>
 #include <QPainter>
+#include <QPainterPathStroker>
 #include <QtMath>
 
 EdgeItem::EdgeItem(NodeItem* source, NodeItem* target, QGraphicsItem* parent)
@@ -12,6 +14,7 @@ EdgeItem::EdgeItem(NodeItem* source, NodeItem* target, QGraphicsItem* parent)
     setZValue(-1);
     setFlag(ItemIsSelectable, false);
     setFlag(ItemIsMovable, false);
+    setAcceptHoverEvents(true);
     updatePath();
 }
 
@@ -86,6 +89,7 @@ void EdgeItem::updatePath() {
     m_path.moveTo(start);
     m_path.cubicTo(cp1, cp2, end);
 
+    m_startPoint = start;
     m_boundingRect = m_path.boundingRect().adjusted(-5, -5, 5, 5);
 }
 
@@ -94,6 +98,36 @@ NodeItem* EdgeItem::sourceNode() const {
 }
 NodeItem* EdgeItem::targetNode() const {
     return m_target;
+}
+
+QPainterPath EdgeItem::shape() const {
+    QPainterPathStroker stroker;
+    stroker.setWidth(kHitWidth);
+    return stroker.createStroke(m_path);
+}
+
+void EdgeItem::hoverMoveEvent(QGraphicsSceneHoverEvent* event) {
+    qreal dist = QLineF(event->pos(), m_startPoint).length();
+    if (dist < kEdgeHoverProximity) {
+        if (!m_sourceHoverActive) {
+            m_sourceHoverActive = true;
+            m_source->showAddButton();
+        }
+    } else {
+        if (m_sourceHoverActive) {
+            m_sourceHoverActive = false;
+            m_source->hideAddButton();
+        }
+    }
+    QGraphicsItem::hoverMoveEvent(event);
+}
+
+void EdgeItem::hoverLeaveEvent(QGraphicsSceneHoverEvent* event) {
+    if (m_sourceHoverActive) {
+        m_sourceHoverActive = false;
+        m_source->hideAddButton();
+    }
+    QGraphicsItem::hoverLeaveEvent(event);
 }
 
 QVariant EdgeItem::itemChange(GraphicsItemChange change, const QVariant& value) {

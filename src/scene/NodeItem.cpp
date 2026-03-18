@@ -106,6 +106,10 @@ public:
 
 protected:
     void hoverEnterEvent(QGraphicsSceneHoverEvent*) override {
+        auto* mindMapScene = m_node->mindMapScene();
+        if (mindMapScene && mindMapScene->isEditing())
+            return;
+
         m_hovered = true;
         setCursor(Qt::PointingHandCursor);
         update();
@@ -128,8 +132,12 @@ protected:
 
     void mousePressEvent(QGraphicsSceneMouseEvent* event) override {
         if (event->button() == Qt::LeftButton && m_opacity > 0.5) {
+            auto* mindMapScene = m_node->mindMapScene();
+            if (mindMapScene && mindMapScene->isEditing()) {
+                event->ignore();
+                return;
+            }
             event->accept();
-        auto* mindMapScene = m_node->mindMapScene();
             if (mindMapScene) {
                 mindMapScene->clearSelection();
                 m_node->setSelected(true);
@@ -341,6 +349,47 @@ MindMapScene* NodeItem::mindMapScene() const {
     return m_mindMapScene;
 }
 
+void NodeItem::showAddButton() {
+    if (m_mindMapScene && m_mindMapScene->isEditing())
+        return;
+
+    // Cancel any pending fade-out from a previous brief leave
+    if (m_hoverLeaveTimer) {
+        m_hoverLeaveTimer->stop();
+        delete m_hoverLeaveTimer;
+        m_hoverLeaveTimer = nullptr;
+    }
+
+    if (!m_hovered) {
+        m_hovered = true;
+        m_addButtonDir = addButtonDirection();
+
+        // Raise above sibling nodes so the button is not occluded
+        m_savedZValue = zValue();
+        setZValue(50);
+
+        if (!m_addButtonOverlay)
+            m_addButtonOverlay = new AddButtonOverlay(this);
+
+        startAddButtonAnimation(true);
+    }
+}
+
+void NodeItem::hideAddButton() {
+    // Delay the fade-out so the button doesn't vanish during imprecise mouse movements
+    if (!m_hoverLeaveTimer) {
+        m_hoverLeaveTimer = new QTimer(this);
+        m_hoverLeaveTimer->setSingleShot(true);
+        connect(m_hoverLeaveTimer, &QTimer::timeout, this, [this]() {
+            m_hovered = false;
+            startAddButtonAnimation(false);
+            m_hoverLeaveTimer->deleteLater();
+            m_hoverLeaveTimer = nullptr;
+        });
+    }
+    m_hoverLeaveTimer->start(150);
+}
+
 QVariant NodeItem::itemChange(GraphicsItemChange change, const QVariant& value) {
     if (change == ItemPositionHasChanged) {
         for (auto* edge : m_edges) {
@@ -493,42 +542,10 @@ void NodeItem::startAddButtonAnimation(bool fadeIn) {
 
 void NodeItem::hoverEnterEvent(QGraphicsSceneHoverEvent* event) {
     Q_UNUSED(event);
-
-    // Cancel any pending fade-out from a previous brief leave
-    if (m_hoverLeaveTimer) {
-        m_hoverLeaveTimer->stop();
-        delete m_hoverLeaveTimer;
-        m_hoverLeaveTimer = nullptr;
-    }
-
-    if (!m_hovered) {
-        m_hovered = true;
-        m_addButtonDir = addButtonDirection();
-
-        // Raise above sibling nodes so the button is not occluded
-        m_savedZValue = zValue();
-        setZValue(50);
-
-        if (!m_addButtonOverlay)
-            m_addButtonOverlay = new AddButtonOverlay(this);
-
-        startAddButtonAnimation(true);
-    }
+    showAddButton();
 }
 
 void NodeItem::hoverLeaveEvent(QGraphicsSceneHoverEvent* event) {
     Q_UNUSED(event);
-
-    // Delay the fade-out so the button doesn't vanish during imprecise mouse movements
-    if (!m_hoverLeaveTimer) {
-        m_hoverLeaveTimer = new QTimer(this);
-        m_hoverLeaveTimer->setSingleShot(true);
-        connect(m_hoverLeaveTimer, &QTimer::timeout, this, [this]() {
-            m_hovered = false;
-            startAddButtonAnimation(false);
-            m_hoverLeaveTimer->deleteLater();
-            m_hoverLeaveTimer = nullptr;
-        });
-    }
-    m_hoverLeaveTimer->start(150);
+    hideAddButton();
 }
