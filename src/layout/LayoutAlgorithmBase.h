@@ -11,6 +11,7 @@ class LayoutAlgorithmBase : public ILayoutAlgorithm {
 public:
     // Layout constants (public so Commands/MindMapScene can reference them)
     static constexpr qreal kNodeHeight = 44.0;
+    static constexpr qreal kTopDownDepthRatio = 0.56;
 
 protected:
     // Axis abstraction -- parameterizes layout direction
@@ -60,6 +61,11 @@ protected:
                                       NodeItem* newNode,
                                       const QList<NodeItem*>& allNodes,
                                       const LayoutAxis& axis);
+
+    // Common initial-child-position logic for single-axis layouts
+    static QPointF initialChildPositionForAxis(NodeItem* newNode, NodeItem* parent,
+                                                NodeItem* root, const LayoutParams& p,
+                                                const LayoutAxis& axis);
 
     // Force-directed constants
     static constexpr int kMaxIterations = 100;

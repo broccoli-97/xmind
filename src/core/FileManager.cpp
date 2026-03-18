@@ -48,7 +48,7 @@ void FileManager::openFile() {
             tab.stack->setCurrentIndex(1);
         m_tabManager->updateTabText(cur);
         view->zoomToFit();
-        emit m_tabManager->currentTabChanged(cur);
+        m_tabManager->notifyTabChanged(cur);
     } else {
         auto* scene = new MindMapScene(m_window);
         auto* view = new MindMapView(m_window);
@@ -87,7 +87,7 @@ void FileManager::saveFile() {
     if (cur >= 0) {
         m_tabManager->updateTabText(cur);
     }
-    emit m_tabManager->currentTabChanged(cur);
+    m_tabManager->notifyTabChanged(cur);
 }
 
 void FileManager::saveFileAs() {
@@ -111,7 +111,7 @@ void FileManager::saveFileAs() {
     if (cur >= 0) {
         m_tabManager->updateTabText(cur);
     }
-    emit m_tabManager->currentTabChanged(cur);
+    m_tabManager->notifyTabChanged(cur);
 }
 
 // ---------------------------------------------------------------------------
@@ -215,7 +215,7 @@ void FileManager::importFromText() {
         if (tab.stack)
             tab.stack->setCurrentIndex(1);
         view->zoomToFit();
-        emit m_tabManager->currentTabChanged(cur);
+        m_tabManager->notifyTabChanged(cur);
     } else {
         auto* scene = new MindMapScene(m_window);
         auto* view = new MindMapView(m_window);

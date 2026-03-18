@@ -1,6 +1,6 @@
 #include "core/TemplateRegistry.h"
+#include "ui/ThemeManager.h"
 
-#include <QColor>
 #include <QDir>
 #include <QFile>
 #include <QJsonDocument>
@@ -12,44 +12,27 @@ TemplateRegistry& TemplateRegistry::instance() {
 }
 
 // ---------------------------------------------------------------------------
-// Helper: build a TemplateColorScheme from raw values (matches ThemeManager)
+// Helper: convert ThemeColors to TemplateColorScheme (shared fields only)
 // ---------------------------------------------------------------------------
-static TemplateColorScheme makeColorScheme(
-    const QColor& canvasBg, const QColor& gridDot,
-    const QColor (&palette)[6],
-    const QColor& shadow, const QColor& selBorder, const QColor& text,
-    int edgeLighten, const QColor& exportBg)
-{
+static TemplateColorScheme colorSchemeFromTheme(const ThemeColors& tc) {
     TemplateColorScheme cs;
-    cs.canvasBackground = canvasBg;
-    cs.canvasGridDot = gridDot;
-    for (int i = 0; i < 6; ++i) cs.nodePalette[i] = palette[i];
-    cs.nodeShadow = shadow;
-    cs.nodeSelectionBorder = selBorder;
-    cs.nodeText = text;
-    cs.edgeLightenFactor = edgeLighten;
-    cs.exportBackground = exportBg;
+    cs.canvasBackground = tc.canvasBackground;
+    cs.canvasGridDot = tc.canvasGridDot;
+    for (int i = 0; i < 6; ++i)
+        cs.nodePalette[i] = tc.nodePalette[i];
+    cs.nodeShadow = tc.nodeShadow;
+    cs.nodeSelectionBorder = tc.nodeSelectionBorder;
+    cs.nodeText = tc.nodeText;
+    cs.edgeLightenFactor = tc.edgeLightenFactor;
+    cs.exportBackground = tc.exportBackground;
     return cs;
 }
 
 void TemplateRegistry::loadBuiltins() {
-    // ----- Light / Dark palettes (copied from ThemeManager.cpp) -----
-    const QColor lightPalette[6] = {
-        QColor("#1565C0"), QColor("#2E7D32"), QColor("#E65100"),
-        QColor("#6A1B9A"), QColor("#C62828"), QColor("#00838F")};
-    const QColor darkPalette[6] = {
-        QColor("#42A5F5"), QColor("#66BB6A"), QColor("#FFA726"),
-        QColor("#AB47BC"), QColor("#EF5350"), QColor("#26C6DA")};
-
-    auto lightCS = makeColorScheme(
-        QColor("#F8F9FA"), QColor("#D8D8D8"), lightPalette,
-        QColor(0,0,0,30), QColor("#FF6F00"), QColor("#FFFFFF"),
-        140, QColor("#FFFFFF"));
-
-    auto darkCS = makeColorScheme(
-        QColor("#1A1A2E"), QColor("#2A2A4A"), darkPalette,
-        QColor(0,0,0,50), QColor("#FFB300"), QColor("#FFFFFF"),
-        120, QColor("#1A1A2E"));
+    // Derive color schemes from the centralized ThemeManager definitions
+    // instead of duplicating color values here.
+    auto lightCS = colorSchemeFromTheme(ThemeManager::lightColors());
+    auto darkCS = colorSchemeFromTheme(ThemeManager::darkColors());
 
     // ---- Template 0: Mind Map (Bilateral) ----
     {

@@ -82,7 +82,6 @@ void TabManager::addNewTab() {
                 tabIdx = m_tabBar->currentIndex();
             }
 
-            m_currentFile.clear();
             m_tabs[tabIdx].filePath.clear();
 
             StartPage::loadTemplate(templateId, m_tabs[tabIdx].scene);
@@ -162,7 +161,6 @@ void TabManager::connectSceneSignals(MindMapScene* scene) {
                 updateTabText(i);
                 updateTabIcon(i);
                 if (i == m_tabBar->currentIndex()) {
-                    m_currentFile = path;
                     emit currentTabChanged(i);
                 }
                 break;
@@ -186,10 +184,6 @@ void TabManager::switchToTab(int index) {
 
     disconnectUndoStack();
 
-    m_scene = m_tabs[index].scene;
-    m_view = m_tabs[index].view;
-    m_currentFile = m_tabs[index].filePath;
-
     m_contentStack->setCurrentIndex(index);
 
     connectUndoStack();
@@ -197,9 +191,10 @@ void TabManager::switchToTab(int index) {
 }
 
 void TabManager::disconnectUndoStack() {
-    if (!m_scene)
+    auto* scene = currentScene();
+    if (!scene)
         return;
-    auto* stack = m_scene->undoStack();
+    auto* stack = scene->undoStack();
     disconnect(stack, nullptr, m_undoAct, nullptr);
     disconnect(stack, nullptr, m_redoAct, nullptr);
     disconnect(stack, &QUndoStack::undoTextChanged, this, nullptr);
@@ -208,9 +203,10 @@ void TabManager::disconnectUndoStack() {
 }
 
 void TabManager::connectUndoStack() {
-    if (!m_scene)
+    auto* scene = currentScene();
+    if (!scene)
         return;
-    auto* stack = m_scene->undoStack();
+    auto* stack = scene->undoStack();
     connect(stack, &QUndoStack::canUndoChanged, m_undoAct, &QAction::setEnabled);
     connect(stack, &QUndoStack::canRedoChanged, m_redoAct, &QAction::setEnabled);
     connect(stack, &QUndoStack::undoTextChanged, this, [this](const QString& text) {
@@ -288,19 +284,20 @@ bool TabManager::maybeSaveTab(int index) {
                                     QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
 
     if (ret == QMessageBox::Save) {
-        auto* prevScene = m_scene;
-        auto* prevView = m_view;
-        auto prevFile = m_currentFile;
-
-        m_scene = m_tabs[index].scene;
-        m_view = m_tabs[index].view;
-        m_currentFile = m_tabs[index].filePath;
+        // Temporarily switch to the tab that needs saving so FileManager
+        // operates on the correct scene/view/filePath.
+        int prevIndex = currentIndex();
+        if (prevIndex != index) {
+            QSignalBlocker blocker(m_tabBar);
+            m_tabBar->setCurrentIndex(index);
+        }
 
         emit saveRequested();
 
-        m_scene = prevScene;
-        m_view = prevView;
-        m_currentFile = prevFile;
+        if (prevIndex != index) {
+            QSignalBlocker blocker(m_tabBar);
+            m_tabBar->setCurrentIndex(prevIndex);
+        }
 
         return !m_tabs[index].scene->isModified();
     }
@@ -381,22 +378,34 @@ TabState& TabManager::tab(int index) {
 }
 
 MindMapScene* TabManager::currentScene() const {
-    return m_scene;
+    int idx = currentIndex();
+    if (idx >= 0 && idx < m_tabs.size())
+        return m_tabs[idx].scene;
+    return nullptr;
 }
 
 MindMapView* TabManager::currentView() const {
-    return m_view;
+    int idx = currentIndex();
+    if (idx >= 0 && idx < m_tabs.size())
+        return m_tabs[idx].view;
+    return nullptr;
 }
 
 QString TabManager::currentFilePath() const {
-    return m_currentFile;
+    int idx = currentIndex();
+    if (idx >= 0 && idx < m_tabs.size())
+        return m_tabs[idx].filePath;
+    return {};
 }
 
 void TabManager::setCurrentFilePath(const QString& path) {
-    m_currentFile = path;
-    int cur = m_tabBar->currentIndex();
+    int cur = currentIndex();
     if (cur >= 0 && cur < m_tabs.size())
         m_tabs[cur].filePath = path;
+}
+
+void TabManager::notifyTabChanged(int index) {
+    emit currentTabChanged(index);
 }
 
 QTabBar* TabManager::tabBar() const {

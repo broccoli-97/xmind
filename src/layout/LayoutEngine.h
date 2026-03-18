@@ -24,12 +24,6 @@ public:
                                         const QString& algorithmName,
                                         const LayoutParams& params);
 
-    // Layout constants kept for backward compatibility
-    static constexpr qreal kHSpacing = 220.0;
-    static constexpr qreal kVSpacing = 16.0;
-    static constexpr qreal kNodeHeight = 44.0;
-    static constexpr qreal kTopDownLevelSpacing = 100.0;
-
 private:
     static const ILayoutAlgorithm* resolveAlgorithm(const QString& name);
     static LayoutParams defaultParams();

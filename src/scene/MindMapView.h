@@ -26,6 +26,11 @@ protected:
 
 private:
     void stopAnimations();
+    bool canZoomIn() const;
+    bool canZoomOut() const;
+
+    static constexpr qreal kMinScale = 0.1;
+    static constexpr qreal kMaxScale = 10.0;
 
     bool m_panning = false;
     QPoint m_lastPanPoint;

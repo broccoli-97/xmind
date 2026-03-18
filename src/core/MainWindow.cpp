@@ -72,20 +72,17 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
         updateWindowTitle();
         refreshOutline();
         updateContentVisibility();
-    });
 
-    connect(m_tabManager, &TabManager::saveRequested, m_fileManager, &FileManager::saveFile);
-
-    // Connect undo stack indexChanged -> refreshOutline when tab changes
-    connect(m_tabManager, &TabManager::currentTabChanged, this, [this](int) {
+        // Reconnect undo stack -> refreshOutline for the new tab's scene
         auto* scene = m_tabManager->currentScene();
         if (scene) {
-            // Disconnect previous connections to avoid duplicates
             disconnect(scene->undoStack(), &QUndoStack::indexChanged, this, nullptr);
             connect(scene->undoStack(), &QUndoStack::indexChanged, this,
                     &MainWindow::refreshOutline);
         }
     });
+
+    connect(m_tabManager, &TabManager::saveRequested, m_fileManager, &FileManager::saveFile);
 
     m_tabManager->addNewTab();
 

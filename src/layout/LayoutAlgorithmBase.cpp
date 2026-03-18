@@ -34,7 +34,7 @@ LayoutAlgorithmBase::LayoutAxis LayoutAlgorithmBase::makeLeftAxis(const LayoutPa
 LayoutAlgorithmBase::LayoutAxis LayoutAlgorithmBase::makeTopDownAxis(const LayoutParams& p) {
     // TopDown uses a smaller depth spacing (56% of the configured value to match
     // the original kTopDownGap=56 vs kHGap=100 ratio)
-    return {true, p.depthSpacing * 0.56, p.spreadSpacing, +1};
+    return {true, p.depthSpacing * kTopDownDepthRatio, p.spreadSpacing, +1};
 }
 
 // ===========================================================================
@@ -367,4 +367,51 @@ void LayoutAlgorithmBase::forceDirectedRefinement(
         if (maxDisp < kConvergenceThreshold)
             break;
     }
+}
+
+// ===========================================================================
+// Common initial-child-position logic for single-axis layouts
+// ===========================================================================
+
+QPointF LayoutAlgorithmBase::initialChildPositionForAxis(NodeItem* newNode, NodeItem* parent,
+                                                          NodeItem* root, const LayoutParams& p,
+                                                          const LayoutAxis& axis) {
+    QPointF parentPos = parent->pos();
+    auto allChildren = parent->childNodes();
+
+    QList<NodeItem*> existingSiblings;
+    for (auto* child : allChildren) {
+        if (child != newNode)
+            existingSiblings.append(child);
+    }
+
+    QList<NodeItem*> allNodes;
+    collectAllNodes(root, allNodes);
+    allNodes.removeOne(newNode);
+
+    qreal parentHalfDepth = axis.nodeDepthSpan(parent) / 2;
+    qreal newNodeHalfDepth = axis.nodeDepthSpan(newNode) / 2;
+    qreal depth = axis.depth(parentPos)
+        + axis.depthDirection * (parentHalfDepth + axis.depthSpacing + newNodeHalfDepth);
+
+    qreal spread = axis.spread(parentPos);
+
+    if (!existingSiblings.isEmpty()) {
+        qreal maxSpreadEnd = -1e18;
+        for (auto* sib : existingSiblings) {
+            qreal s = axis.spread(sib->pos());
+            qreal halfSpan = axis.nodeSpan(sib) / 2;
+            qreal end = s + halfSpan;
+            if (end > maxSpreadEnd)
+                maxSpreadEnd = end;
+        }
+        spread = maxSpreadEnd + p.spreadSpacing + axis.nodeSpan(newNode) / 2;
+    }
+
+    spread = findAvailableSpread(spread, depth, newNode, allNodes, axis);
+
+    QPointF pos;
+    axis.setSpread(pos, spread);
+    axis.setDepth(pos, depth);
+    return pos;
 }

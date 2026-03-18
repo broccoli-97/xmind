@@ -18,9 +18,13 @@ public:
     NodeItem* sourceNode() const;
     NodeItem* targetNode() const;
 
+protected:
+    QVariant itemChange(GraphicsItemChange change, const QVariant& value) override;
+
 private:
     NodeItem* m_source;
     NodeItem* m_target;
+    MindMapScene* m_mindMapScene = nullptr;
     QPainterPath m_path;
     QRectF m_boundingRect;
 };

@@ -49,6 +49,8 @@ public:
     // Centralized color access
     static bool isDark();
     static const ThemeColors& colors();
+    static const ThemeColors& lightColors();
+    static const ThemeColors& darkColors();
 
     // System theme detection and contrast checking
     static bool isSystemDarkMode();

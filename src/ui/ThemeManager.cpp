@@ -75,6 +75,14 @@ const ThemeColors& ThemeManager::colors() {
     return isDark() ? kDarkColors : kLightColors;
 }
 
+const ThemeColors& ThemeManager::lightColors() {
+    return kLightColors;
+}
+
+const ThemeColors& ThemeManager::darkColors() {
+    return kDarkColors;
+}
+
 // ---------------------------------------------------------------------------
 // Generate a close-button icon for the tab bar and return its file path
 // ---------------------------------------------------------------------------

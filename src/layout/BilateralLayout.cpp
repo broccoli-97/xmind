@@ -39,16 +39,6 @@ QPointF BilateralLayout::initialChildPosition(NodeItem* newNode, NodeItem* paren
     QPointF parentPos = parent->pos();
     auto allChildren = parent->childNodes();
 
-    QList<NodeItem*> existingSiblings;
-    for (auto* child : allChildren) {
-        if (child != newNode)
-            existingSiblings.append(child);
-    }
-
-    QList<NodeItem*> allNodes;
-    collectAllNodes(root, allNodes);
-    allNodes.removeOne(newNode);
-
     // Determine side
     qreal xDir;
     if (parent == root) {
@@ -59,13 +49,23 @@ QPointF BilateralLayout::initialChildPosition(NodeItem* newNode, NodeItem* paren
     }
     LayoutAxis axis = (xDir > 0) ? makeRightAxis(p) : makeLeftAxis(p);
 
-    // Only consider siblings on the same side
+    // Filter siblings to same side only
+    QList<NodeItem*> existingSiblings;
+    for (auto* child : allChildren) {
+        if (child != newNode)
+            existingSiblings.append(child);
+    }
+
     QList<NodeItem*> relevantSiblings;
     for (auto* sib : existingSiblings) {
         if ((xDir > 0 && sib->pos().x() > parentPos.x()) ||
             (xDir < 0 && sib->pos().x() < parentPos.x()))
             relevantSiblings.append(sib);
     }
+
+    QList<NodeItem*> allNodes;
+    collectAllNodes(root, allNodes);
+    allNodes.removeOne(newNode);
 
     qreal parentHalfDepth = axis.nodeDepthSpan(parent) / 2;
     qreal newNodeHalfDepth = axis.nodeDepthSpan(newNode) / 2;

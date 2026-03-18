@@ -49,6 +49,9 @@ public:
     QString currentFilePath() const;
     void setCurrentFilePath(const QString& path);
 
+    // Notify observers that tab content/state has changed (e.g. after save/load)
+    void notifyTabChanged(int index);
+
     QTabBar* tabBar() const;
     QToolButton* newTabButton() const;
     QStackedWidget* contentStack() const;
@@ -74,7 +77,4 @@ private:
     QAction* m_redoAct = nullptr;
 
     QList<TabState> m_tabs;
-    MindMapScene* m_scene = nullptr;
-    MindMapView* m_view = nullptr;
-    QString m_currentFile;
 };

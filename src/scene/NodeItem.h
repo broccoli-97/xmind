@@ -64,6 +64,7 @@ private:
     ButtonDirection addButtonDirection() const;
     QRectF addButtonRect() const;
     void startAddButtonAnimation(bool fadeIn);
+    MindMapScene* mindMapScene() const;
 
     QString m_text;
     QFont m_font;
@@ -75,6 +76,7 @@ private:
     QPointF m_dragOrigPos;
     bool m_dragging = false;
     bool m_hovered = false;
+    MindMapScene* m_mindMapScene = nullptr;
     qreal m_savedZValue = 0.0;
     ButtonDirection m_addButtonDir = ButtonDirection::Right;
     QVariantAnimation* m_addButtonAnimation = nullptr;

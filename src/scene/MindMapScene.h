@@ -97,6 +97,7 @@ private:
     QList<EdgeItem*> m_edges;
     QUndoStack* m_undoStack;
     bool m_modified = false;
+    bool m_batchLoading = false;
     LayoutStyle m_layoutStyle = LayoutStyle::Bilateral;
     QString m_templateId;
 

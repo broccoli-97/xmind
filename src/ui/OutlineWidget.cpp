@@ -100,11 +100,22 @@ void OutlineWidget::buildSubtree(NodeItem* node, QTreeWidgetItem* parentItem) {
 void OutlineWidget::onItemClicked(QTreeWidgetItem* item, int /*column*/) {
     quintptr ptr = item->data(0, Qt::UserRole).value<quintptr>();
     auto* node = reinterpret_cast<NodeItem*>(ptr);
-    if (!node)
+    if (!node || !m_scene)
         return;
 
-    if (m_scene)
-        m_scene->clearSelection();
+    // Validate the pointer against existing scene nodes to avoid dangling references
+    bool found = false;
+    const auto sceneItems = m_scene->items();
+    for (auto* sceneItem : sceneItems) {
+        if (sceneItem == node) {
+            found = true;
+            break;
+        }
+    }
+    if (!found)
+        return;
+
+    m_scene->clearSelection();
     node->setSelected(true);
     if (m_view)
         m_view->centerOn(node);

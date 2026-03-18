@@ -22,44 +22,5 @@ QMap<NodeItem*, QPointF> RightTreeLayout::computeLayout(NodeItem* root,
 QPointF RightTreeLayout::initialChildPosition(NodeItem* newNode, NodeItem* parent,
                                                NodeItem* root,
                                                const LayoutParams& p) const {
-    QPointF parentPos = parent->pos();
-    auto allChildren = parent->childNodes();
-
-    QList<NodeItem*> existingSiblings;
-    for (auto* child : allChildren) {
-        if (child != newNode)
-            existingSiblings.append(child);
-    }
-
-    QList<NodeItem*> allNodes;
-    collectAllNodes(root, allNodes);
-    allNodes.removeOne(newNode);
-
-    LayoutAxis axis = makeRightAxis(p);
-
-    qreal parentHalfDepth = axis.nodeDepthSpan(parent) / 2;
-    qreal newNodeHalfDepth = axis.nodeDepthSpan(newNode) / 2;
-    qreal depth = axis.depth(parentPos)
-        + axis.depthDirection * (parentHalfDepth + axis.depthSpacing + newNodeHalfDepth);
-
-    qreal spread = axis.spread(parentPos);
-
-    if (!existingSiblings.isEmpty()) {
-        qreal maxSpreadEnd = -1e18;
-        for (auto* sib : existingSiblings) {
-            qreal s = axis.spread(sib->pos());
-            qreal halfSpan = axis.nodeSpan(sib) / 2;
-            qreal end = s + halfSpan;
-            if (end > maxSpreadEnd)
-                maxSpreadEnd = end;
-        }
-        spread = maxSpreadEnd + p.spreadSpacing + axis.nodeSpan(newNode) / 2;
-    }
-
-    spread = findAvailableSpread(spread, depth, newNode, allNodes, axis);
-
-    QPointF pos;
-    axis.setSpread(pos, spread);
-    axis.setDepth(pos, depth);
-    return pos;
+    return initialChildPositionForAxis(newNode, parent, root, p, makeRightAxis(p));
 }

@@ -26,9 +26,8 @@ void EdgeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option
     int lighten = ThemeManager::colors().edgeLightenFactor;
     qreal edgeWidth = 2.5;
 
-    auto* mindMapScene = dynamic_cast<MindMapScene*>(scene());
-    if (mindMapScene) {
-        const auto* td = mindMapScene->templateDescriptor();
+    if (m_mindMapScene) {
+        const auto* td = m_mindMapScene->templateDescriptor();
         if (td) {
             lighten = td->activeColors().edgeLightenFactor;
             edgeWidth = td->edgeStyle.width;
@@ -95,4 +94,11 @@ NodeItem* EdgeItem::sourceNode() const {
 }
 NodeItem* EdgeItem::targetNode() const {
     return m_target;
+}
+
+QVariant EdgeItem::itemChange(GraphicsItemChange change, const QVariant& value) {
+    if (change == ItemSceneHasChanged) {
+        m_mindMapScene = dynamic_cast<MindMapScene*>(scene());
+    }
+    return QGraphicsItem::itemChange(change, value);
 }

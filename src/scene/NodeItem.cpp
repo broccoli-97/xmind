@@ -58,7 +58,7 @@ public:
         if (m_opacity < 0.01)
             return;
 
-        auto* mindMapScene = dynamic_cast<MindMapScene*>(m_node->scene());
+    auto* mindMapScene = m_node->mindMapScene();
         if (mindMapScene && mindMapScene->isEditing())
             return;
 
@@ -129,7 +129,7 @@ protected:
     void mousePressEvent(QGraphicsSceneMouseEvent* event) override {
         if (event->button() == Qt::LeftButton && m_opacity > 0.5) {
             event->accept();
-            auto* mindMapScene = dynamic_cast<MindMapScene*>(m_node->scene());
+        auto* mindMapScene = m_node->mindMapScene();
             if (mindMapScene) {
                 mindMapScene->clearSelection();
                 m_node->setSelected(true);
@@ -211,7 +211,7 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
     QColor selectionBorder = globalTC.nodeSelectionBorder;
     QColor textColor = globalTC.nodeText;
 
-    auto* mindMapScene = dynamic_cast<MindMapScene*>(scene());
+    auto* mindMapScene = m_mindMapScene;
     if (mindMapScene) {
         const auto* td = mindMapScene->templateDescriptor();
         if (td) {
@@ -306,9 +306,8 @@ int NodeItem::level() const {
 }
 
 QColor NodeItem::nodeColor() const {
-    auto* mindMapScene = dynamic_cast<MindMapScene*>(scene());
-    if (mindMapScene) {
-        const auto* td = mindMapScene->templateDescriptor();
+    if (m_mindMapScene) {
+        const auto* td = m_mindMapScene->templateDescriptor();
         if (td)
             return td->activeColors().nodePalette[level() % 6];
     }
@@ -338,11 +337,17 @@ void NodeItem::moveSubtree(const QPointF& delta) {
     }
 }
 
+MindMapScene* NodeItem::mindMapScene() const {
+    return m_mindMapScene;
+}
+
 QVariant NodeItem::itemChange(GraphicsItemChange change, const QVariant& value) {
     if (change == ItemPositionHasChanged) {
         for (auto* edge : m_edges) {
             edge->updatePath();
         }
+    } else if (change == ItemSceneHasChanged) {
+        m_mindMapScene = dynamic_cast<MindMapScene*>(scene());
     }
     return QGraphicsObject::itemChange(change, value);
 }
@@ -365,9 +370,8 @@ void NodeItem::mouseMoveEvent(QGraphicsSceneMouseEvent* event) {
     // Close any open editing widget when a drag starts — mouseMoveEvent is
     // only delivered while a button is held, so any call here means the user
     // is dragging rather than editing.
-    auto* mindMapScene = dynamic_cast<MindMapScene*>(scene());
-    if (mindMapScene && mindMapScene->isEditing()) {
-        mindMapScene->cancelEditing();
+    if (m_mindMapScene && m_mindMapScene->isEditing()) {
+        m_mindMapScene->cancelEditing();
     }
 
     if (m_dragging) {
@@ -383,9 +387,8 @@ void NodeItem::mouseMoveEvent(QGraphicsSceneMouseEvent* event) {
 
 void NodeItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event) {
     if (m_dragging && pos() != m_dragOrigPos) {
-        auto* mindMapScene = dynamic_cast<MindMapScene*>(scene());
-        if (mindMapScene) {
-            mindMapScene->undoStack()->push(new MoveNodeCommand(this, m_dragOrigPos, pos()));
+        if (m_mindMapScene) {
+            m_mindMapScene->undoStack()->push(new MoveNodeCommand(this, m_dragOrigPos, pos()));
         }
     }
     m_dragging = false;
@@ -413,13 +416,12 @@ void NodeItem::updateGeometry() {
 }
 
 NodeItem::ButtonDirection NodeItem::addButtonDirection() const {
-    auto* mindMapScene = dynamic_cast<MindMapScene*>(scene());
-    if (!mindMapScene)
+    if (!m_mindMapScene)
         return ButtonDirection::Right;
 
     // Determine effective layout style (template overrides scene default)
-    LayoutStyle style = mindMapScene->layoutStyle();
-    const auto* td = mindMapScene->templateDescriptor();
+    LayoutStyle style = m_mindMapScene->layoutStyle();
+    const auto* td = m_mindMapScene->templateDescriptor();
     if (td)
         style = algorithmNameToLayoutStyle(td->layout.algorithm);
 

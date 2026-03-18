@@ -26,8 +26,13 @@ MindMapView::MindMapView(QWidget* parent) : QGraphicsView(parent) {
 }
 
 void MindMapView::wheelEvent(QWheelEvent* event) {
-    qreal factor = (event->angleDelta().y() > 0) ? 1.15 : 1.0 / 1.15;
-    scale(factor, factor);
+    if (event->angleDelta().y() > 0) {
+        if (canZoomIn())
+            scale(1.15, 1.15);
+    } else {
+        if (canZoomOut())
+            scale(1.0 / 1.15, 1.0 / 1.15);
+    }
     event->accept();
 }
 
@@ -66,11 +71,21 @@ void MindMapView::mouseReleaseEvent(QMouseEvent* event) {
 }
 
 void MindMapView::zoomIn() {
-    scale(1.2, 1.2);
+    if (canZoomIn())
+        scale(1.2, 1.2);
 }
 
 void MindMapView::zoomOut() {
-    scale(1.0 / 1.2, 1.0 / 1.2);
+    if (canZoomOut())
+        scale(1.0 / 1.2, 1.0 / 1.2);
+}
+
+bool MindMapView::canZoomIn() const {
+    return transform().m11() < kMaxScale;
+}
+
+bool MindMapView::canZoomOut() const {
+    return transform().m11() > kMinScale;
 }
 
 void MindMapView::zoomToFit() {

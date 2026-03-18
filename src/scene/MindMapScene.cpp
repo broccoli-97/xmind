@@ -379,7 +379,8 @@ void MindMapScene::setModified(bool modified) {
 }
 
 void MindMapScene::markModified() {
-    setModified(true);
+    if (!m_batchLoading)
+        setModified(true);
 }
 
 QJsonObject MindMapScene::nodeToJson(NodeItem* node) const {
@@ -440,6 +441,7 @@ bool MindMapScene::fromJson(const QJsonObject& json) {
         return false;
 
     clearScene();
+    m_batchLoading = true;
 
     // Restore layout style (default to Bilateral for old files)
     m_layoutStyle = static_cast<LayoutStyle>(json["layoutStyle"].toInt(0));
@@ -459,6 +461,7 @@ bool MindMapScene::fromJson(const QJsonObject& json) {
     }
 
     m_undoStack->clear();
+    m_batchLoading = false;
     setModified(false);
     return true;
 }
@@ -510,15 +513,20 @@ void MindMapScene::clearScene() {
     }
     m_edges.clear();
 
-    // Remove all nodes (removeNode handles recursive children)
+    // Remove all nodes directly (edges are already cleared above)
     if (m_rootNode) {
-        // Remove children first (recursive)
-        auto children = m_rootNode->childNodes();
-        for (auto* child : children) {
-            removeNode(child);
+        QList<NodeItem*> allNodes;
+        std::function<void(NodeItem*)> collectNodes = [&](NodeItem* node) {
+            for (auto* child : node->childNodes())
+                collectNodes(child);
+            allNodes.append(node);
+        };
+        collectNodes(m_rootNode);
+
+        for (auto* node : allNodes) {
+            removeItem(node);
+            delete node;
         }
-        removeItem(m_rootNode);
-        delete m_rootNode;
         m_rootNode = nullptr;
     }
 
@@ -592,6 +600,8 @@ bool MindMapScene::exportToSvg(const QString& filePath) {
     generator.setTitle("YMind Export");
 
     QPainter painter(&generator);
+    if (!painter.isActive())
+        return false;
     painter.setRenderHint(QPainter::Antialiasing);
     render(&painter, QRectF(), contentRect);
     painter.end();
@@ -609,6 +619,8 @@ bool MindMapScene::exportToPdf(const QString& filePath) {
     printer.setPageMargins(QMarginsF(0, 0, 0, 0));
 
     QPainter painter(&printer);
+    if (!painter.isActive())
+        return false;
     painter.setRenderHint(QPainter::Antialiasing);
     render(&painter, QRectF(), contentRect);
     painter.end();
@@ -624,6 +636,7 @@ bool MindMapScene::importFromText(const QString& text) {
         return false;
 
     clearScene();
+    m_batchLoading = true;
 
     // Parse indented text into tree
     // Stack tracks (indent_level, node) pairs
@@ -659,6 +672,7 @@ bool MindMapScene::importFromText(const QString& text) {
         m_rootNode = createRootNode(tr("Central Topic"));
     }
 
+    m_batchLoading = false;
     autoLayout();
     setModified(false);
     return true;
