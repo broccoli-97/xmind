@@ -109,12 +109,6 @@ jobs:
           path: artifacts
           merge-multiple: true
 
-      - name: Delete existing release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: gh release delete "${{ github.ref_name }}" --yes || true
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
