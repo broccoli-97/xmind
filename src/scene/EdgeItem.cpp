@@ -28,16 +28,20 @@ void EdgeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option
 
     int lighten = ThemeManager::colors().edgeLightenFactor;
     qreal edgeWidth = 2.5;
+    QString colorSource = QStringLiteral("target");
 
     if (m_mindMapScene) {
         const auto* td = m_mindMapScene->templateDescriptor();
         if (td) {
             lighten = td->activeColors().edgeLightenFactor;
             edgeWidth = td->edgeStyle.width;
+            colorSource = td->edgeStyle.colorSource;
         }
     }
 
-    QColor color = m_target->nodeColor().lighter(lighten);
+    QColor base = (colorSource == QLatin1String("branch")) ? m_target->branchColor()
+                                                           : m_target->nodeColor();
+    QColor color = base.lighter(lighten);
     painter->setPen(QPen(color, edgeWidth, Qt::SolidLine, Qt::RoundCap));
     painter->setBrush(Qt::NoBrush);
     painter->drawPath(m_path);
@@ -51,16 +55,31 @@ void EdgeItem::updatePath() {
     QRectF srcRect = m_source->nodeRect();
     QRectF tgtRect = m_target->nodeRect();
 
+    // Resolve anchor mode from active template ("center" | "baseline").
+    QString anchor = QStringLiteral("center");
+    if (m_mindMapScene) {
+        if (const auto* td = m_mindMapScene->templateDescriptor())
+            anchor = td->edgeStyle.anchor;
+    }
+    const bool baseline = (anchor == QLatin1String("baseline"));
+
     QPointF start, end;
     qreal dx = tgtPos.x() - srcPos.x();
 
+    // Vertical offset for "baseline" anchor: line meets the bottom of the
+    // node's text rect rather than the vertical centre. Yields the
+    // "text floats above the line" look.
+    auto vOffset = [baseline](const QRectF& r) {
+        return baseline ? r.bottom() : 0.0;
+    };
+
     if (qAbs(dx) > 10) {
         if (dx > 0) {
-            start = QPointF(srcPos.x() + srcRect.right(), srcPos.y());
-            end = QPointF(tgtPos.x() + tgtRect.left(), tgtPos.y());
+            start = QPointF(srcPos.x() + srcRect.right(), srcPos.y() + vOffset(srcRect));
+            end = QPointF(tgtPos.x() + tgtRect.left(), tgtPos.y() + vOffset(tgtRect));
         } else {
-            start = QPointF(srcPos.x() + srcRect.left(), srcPos.y());
-            end = QPointF(tgtPos.x() + tgtRect.right(), tgtPos.y());
+            start = QPointF(srcPos.x() + srcRect.left(), srcPos.y() + vOffset(srcRect));
+            end = QPointF(tgtPos.x() + tgtRect.right(), tgtPos.y() + vOffset(tgtRect));
         }
     } else {
         qreal dy = tgtPos.y() - srcPos.y();

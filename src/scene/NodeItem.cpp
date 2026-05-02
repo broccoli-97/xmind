@@ -195,7 +195,54 @@ NodeItem::NodeItem(const QString& text, QGraphicsItem* parent)
 
 NodeItem::~NodeItem() = default;
 
+// ----- Style resolution helpers -----------------------------------------------
+// Centralize the "template field if set, else NodeItem constant" fallback so
+// updateGeometry/paint/shape can all read the same effective values.
+
+namespace {
+
+const TemplateDescriptor* nodeTemplate(const MindMapScene* scene) {
+    return scene ? scene->templateDescriptor() : nullptr;
+}
+
+qreal effPadding(const TemplateDescriptor* td) {
+    return td ? td->nodeStyle.padding : NodeItem::kPadding;
+}
+qreal effRadius(const TemplateDescriptor* td) {
+    return td ? td->nodeStyle.borderRadius : NodeItem::kRadius;
+}
+qreal effMinWidth(const TemplateDescriptor* td) {
+    return td ? td->nodeStyle.minWidth : NodeItem::kMinWidth;
+}
+qreal effMaxWidth(const TemplateDescriptor* td) {
+    return td ? td->nodeStyle.maxWidth : NodeItem::kMaxWidth;
+}
+
+// Resolve which shape to draw for a given node level.
+QString effShape(const TemplateDescriptor* td, int level) {
+    if (!td)
+        return QStringLiteral("roundedRect");
+    if (level == 0 && !td->nodeStyle.rootShape.isEmpty())
+        return td->nodeStyle.rootShape;
+    return td->nodeStyle.shape;
+}
+
+bool effDrawShadow(const TemplateDescriptor* td, const QString& shape) {
+    if (shape != QLatin1String("roundedRect"))
+        return false; // shadow only makes sense behind a filled body
+    return td ? td->nodeStyle.drawShadow : true;
+}
+
+} // namespace
+
 QRectF NodeItem::boundingRect() const {
+    const auto* td = nodeTemplate(m_mindMapScene);
+    QString shape = effShape(td, level());
+    bool withShadow = effDrawShadow(td, shape);
+    if (!withShadow) {
+        // No shadow → the rect itself plus a tiny anti-alias margin is enough.
+        return m_rect.adjusted(-2, -2, 2, 2);
+    }
     constexpr qreal kShadowSpread = 10.0;
     constexpr qreal kShadowOffsetY = 4.0;
     constexpr qreal kMargin = 2.0;
@@ -204,8 +251,16 @@ QRectF NodeItem::boundingRect() const {
 }
 
 QPainterPath NodeItem::shape() const {
+    const auto* td = nodeTemplate(m_mindMapScene);
+    QString s = effShape(td, level());
     QPainterPath path;
-    path.addRoundedRect(m_rect, kRadius, kRadius);
+    if (s == QLatin1String("none") || s == QLatin1String("underline")) {
+        // For shapeless / underline styles, hit-test the text rect (a bit
+        // padded) so clicks on the text still select the node.
+        path.addRect(m_rect.adjusted(-2, -2, 2, 2));
+    } else {
+        path.addRoundedRect(m_rect, effRadius(td), effRadius(td));
+    }
     return path;
 }
 
@@ -220,47 +275,94 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
     QColor textColor = globalTC.nodeText;
 
     auto* mindMapScene = m_mindMapScene;
-    if (mindMapScene) {
-        const auto* td = mindMapScene->templateDescriptor();
-        if (td) {
-            const auto& tc = td->activeColors();
-            shadowColor = tc.nodeShadow;
-            selectionBorder = tc.nodeSelectionBorder;
-            textColor = tc.nodeText;
+    const TemplateDescriptor* td = nodeTemplate(mindMapScene);
+    if (td) {
+        const auto& tc = td->activeColors();
+        shadowColor = tc.nodeShadow;
+        selectionBorder = tc.nodeSelectionBorder;
+        textColor = tc.nodeText;
+    }
+
+    const QString shape = effShape(td, level());
+    const qreal radius = effRadius(td);
+    const qreal padding = effPadding(td);
+    const QColor bg = nodeColor();
+
+    // ----- Drop shadow -------------------------------------------------------
+    if (effDrawShadow(td, shape)) {
+        painter->setPen(Qt::NoPen);
+        constexpr int kShadowLayers = 5;
+        constexpr qreal kShadowSpread = 10.0;
+        constexpr qreal kShadowOffsetY = 4.0;
+        int layerAlpha = qBound(6, shadowColor.alpha() / 3, 20);
+        for (int i = kShadowLayers; i >= 1; --i) {
+            qreal expand = kShadowSpread * i / kShadowLayers;
+            QColor sc = shadowColor;
+            sc.setAlpha(layerAlpha);
+            painter->setBrush(sc);
+            QRectF sr = m_rect.adjusted(-expand, -expand, expand, expand)
+                            .translated(0, kShadowOffsetY);
+            painter->drawRoundedRect(sr, radius + expand, radius + expand);
         }
     }
 
-    QColor bg = nodeColor();
+    // ----- Body --------------------------------------------------------------
+    const bool selected = (option->state & QStyle::State_Selected);
 
-    // Soft multi-layer shadow for floating effect
-    painter->setPen(Qt::NoPen);
-    constexpr int kShadowLayers = 5;
-    constexpr qreal kShadowSpread = 10.0;
-    constexpr qreal kShadowOffsetY = 4.0;
-    int layerAlpha = qBound(6, shadowColor.alpha() / 3, 20);
-    for (int i = kShadowLayers; i >= 1; --i) {
-        qreal expand = kShadowSpread * i / kShadowLayers;
-        QColor sc = shadowColor;
-        sc.setAlpha(layerAlpha);
-        painter->setBrush(sc);
-        QRectF sr = m_rect.adjusted(-expand, -expand, expand, expand)
-                        .translated(0, kShadowOffsetY);
-        painter->drawRoundedRect(sr, kRadius + expand, kRadius + expand);
-    }
+    if (shape == QLatin1String("none")) {
+        // No fill, no border — just text. Selection shown as a thin tinted
+        // rounded rect around the text bounds.
+        if (selected) {
+            QColor sel = selectionBorder;
+            sel.setAlpha(120);
+            painter->setPen(QPen(sel, 1.5, Qt::DashLine));
+            painter->setBrush(Qt::NoBrush);
+            painter->drawRoundedRect(m_rect, 4, 4);
+        }
+    } else if (shape == QLatin1String("underline")) {
+        // Draw a horizontal accent line under the text instead of a body fill.
+        // When the template anchors edges to the baseline, the underline must
+        // be a *seamless continuation* of the parent's bezier endpoint:
+        //   - same stroke width as the edge (no 1.5x boost)
+        //   - centered exactly on m_rect.bottom() (same Y as edge endpoint),
+        //     not offset upward by half the line width
+        //   - extended to the rect edges (no inset margin)
+        // Otherwise (standalone accent under e.g. the root), keep the bolder,
+        // slightly inset look that reads better on its own.
+        const bool baselineAnchor =
+            td && td->edgeStyle.anchor == QLatin1String("baseline");
+        const qreal edgeW = td ? td->edgeStyle.width : 2.5;
+        const qreal lineW = baselineAnchor ? edgeW : edgeW * 1.5;
+        QPen underline(bg, lineW, Qt::SolidLine, Qt::RoundCap);
+        painter->setPen(underline);
+        painter->setBrush(Qt::NoBrush);
+        const qreal y = baselineAnchor ? m_rect.bottom()
+                                       : m_rect.bottom() - lineW * 0.5;
+        const qreal margin = baselineAnchor ? 0.0 : qMin<qreal>(padding, 4.0);
+        painter->drawLine(QPointF(m_rect.left() + margin, y),
+                          QPointF(m_rect.right() - margin, y));
 
-    // Body (borderless, selection highlight only)
-    if (option->state & QStyle::State_Selected) {
-        painter->setPen(QPen(selectionBorder, 3));
+        if (selected) {
+            QColor sel = selectionBorder;
+            sel.setAlpha(120);
+            painter->setPen(QPen(sel, 1.5, Qt::DashLine));
+            painter->setBrush(Qt::NoBrush);
+            painter->drawRoundedRect(m_rect, 4, 4);
+        }
     } else {
-        painter->setPen(Qt::NoPen);
+        if (selected) {
+            painter->setPen(QPen(selectionBorder, 3));
+        } else {
+            painter->setPen(Qt::NoPen);
+        }
+        painter->setBrush(bg);
+        painter->drawRoundedRect(m_rect, radius, radius);
     }
-    painter->setBrush(bg);
-    painter->drawRoundedRect(m_rect, kRadius, kRadius);
 
-    // Text (word-wrapped within the padded area)
+    // ----- Text --------------------------------------------------------------
     painter->setPen(textColor);
     painter->setFont(m_font);
-    QRectF textArea = m_rect.adjusted(kPadding, kPadding, -kPadding, -kPadding);
+    QRectF textArea = m_rect.adjusted(padding, padding, -padding, -padding);
     painter->drawText(textArea, Qt::AlignCenter | Qt::TextWrapAnywhere, m_text);
 }
 
@@ -314,12 +416,39 @@ int NodeItem::level() const {
 }
 
 QColor NodeItem::nodeColor() const {
-    if (m_mindMapScene) {
-        const auto* td = m_mindMapScene->templateDescriptor();
-        if (td)
-            return td->activeColors().nodePalette[level() % 6];
+    const auto* td = nodeTemplate(m_mindMapScene);
+    if (td) {
+        const auto& palette = td->activeColors().nodePalette;
+        if (td->nodeStyle.paletteSource == QLatin1String("branch"))
+            return branchColor();
+        return palette[level() % 6];
     }
     return ThemeManager::colors().nodePalette[level() % 6];
+}
+
+QColor NodeItem::branchColor() const {
+    // Walk up to find the level-1 ancestor (direct child of the root). Its
+    // index among the root's children determines the palette slot. The root
+    // itself uses palette[0] for visual consistency with its first branch.
+    const NodeItem* cur = this;
+    const NodeItem* parent = m_parentNode;
+    while (parent && parent->parentNode()) {
+        cur = parent;
+        parent = parent->parentNode();
+    }
+
+    int branchIndex = 0;
+    if (parent) {
+        // 'parent' is the root, 'cur' is its child (the branch root)
+        branchIndex = parent->childNodes().indexOf(const_cast<NodeItem*>(cur));
+        if (branchIndex < 0)
+            branchIndex = 0;
+    }
+
+    const auto* td = nodeTemplate(m_mindMapScene);
+    if (td)
+        return td->activeColors().nodePalette[branchIndex % 6];
+    return ThemeManager::colors().nodePalette[branchIndex % 6];
 }
 
 QFont NodeItem::font() const {
@@ -446,15 +575,20 @@ void NodeItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event) {
 
 void NodeItem::updateGeometry() {
     prepareGeometryChange();
+    const auto* td = nodeTemplate(m_mindMapScene);
+    const qreal pad = effPadding(td);
+    const qreal minW = effMinWidth(td);
+    const qreal maxW = effMaxWidth(td);
+
     QFontMetricsF fm(m_font);
     qreal textW = fm.horizontalAdvance(m_text);
-    qreal w = qMax(kMinWidth, qMin(kMaxWidth, textW + kPadding * 2));
+    qreal w = qMax(minW, qMin(maxW, textW + pad * 2));
 
     // When text exceeds available width, wrap to multiple lines
-    qreal availableTextW = w - kPadding * 2;
+    qreal availableTextW = w - pad * 2;
     QRectF textRect =
         fm.boundingRect(QRectF(0, 0, availableTextW, 0), Qt::TextWrapAnywhere, m_text);
-    qreal h = textRect.height() + kPadding * 2;
+    qreal h = textRect.height() + pad * 2;
 
     m_rect = QRectF(-w / 2, -h / 2, w, h);
 

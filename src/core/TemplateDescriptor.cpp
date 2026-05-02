@@ -59,6 +59,10 @@ TemplateNodeStyle TemplateNodeStyle::fromJson(const QJsonObject& json) {
     s.padding = json["padding"].toDouble(16.0);
     s.minWidth = json["minWidth"].toDouble(120.0);
     s.maxWidth = json["maxWidth"].toDouble(300.0);
+    s.shape = json["shape"].toString("roundedRect");
+    s.rootShape = json["rootShape"].toString();
+    s.drawShadow = json["drawShadow"].toBool(true);
+    s.paletteSource = json["paletteSource"].toString("level");
     return s;
 }
 
@@ -68,6 +72,11 @@ QJsonObject TemplateNodeStyle::toJson() const {
     obj["padding"] = padding;
     obj["minWidth"] = minWidth;
     obj["maxWidth"] = maxWidth;
+    obj["shape"] = shape;
+    if (!rootShape.isEmpty())
+        obj["rootShape"] = rootShape;
+    obj["drawShadow"] = drawShadow;
+    obj["paletteSource"] = paletteSource;
     return obj;
 }
 
@@ -78,12 +87,16 @@ QJsonObject TemplateNodeStyle::toJson() const {
 TemplateEdgeStyle TemplateEdgeStyle::fromJson(const QJsonObject& json) {
     TemplateEdgeStyle s;
     s.width = json["width"].toDouble(2.5);
+    s.colorSource = json["colorSource"].toString("target");
+    s.anchor = json["anchor"].toString("center");
     return s;
 }
 
 QJsonObject TemplateEdgeStyle::toJson() const {
     QJsonObject obj;
     obj["width"] = width;
+    obj["colorSource"] = colorSource;
+    obj["anchor"] = anchor;
     return obj;
 }
 

@@ -87,6 +87,10 @@ void tst_TemplateDescriptor::nodeStyleRoundTrip() {
     s.padding = 12.0;
     s.minWidth = 80.0;
     s.maxWidth = 250.0;
+    s.shape = "none";
+    s.rootShape = "underline";
+    s.drawShadow = false;
+    s.paletteSource = "branch";
 
     QJsonObject json = s.toJson();
     TemplateNodeStyle s2 = TemplateNodeStyle::fromJson(json);
@@ -95,6 +99,10 @@ void tst_TemplateDescriptor::nodeStyleRoundTrip() {
     QCOMPARE(s2.padding, 12.0);
     QCOMPARE(s2.minWidth, 80.0);
     QCOMPARE(s2.maxWidth, 250.0);
+    QCOMPARE(s2.shape, QString("none"));
+    QCOMPARE(s2.rootShape, QString("underline"));
+    QCOMPARE(s2.drawShadow, false);
+    QCOMPARE(s2.paletteSource, QString("branch"));
 }
 
 void tst_TemplateDescriptor::nodeStyleDefaults() {
@@ -104,6 +112,10 @@ void tst_TemplateDescriptor::nodeStyleDefaults() {
     QCOMPARE(s.padding, 16.0);
     QCOMPARE(s.minWidth, 120.0);
     QCOMPARE(s.maxWidth, 300.0);
+    QCOMPARE(s.shape, QString("roundedRect"));
+    QCOMPARE(s.rootShape, QString());
+    QCOMPARE(s.drawShadow, true);
+    QCOMPARE(s.paletteSource, QString("level"));
 }
 
 // ---------------------------------------------------------------------------
@@ -113,16 +125,22 @@ void tst_TemplateDescriptor::nodeStyleDefaults() {
 void tst_TemplateDescriptor::edgeStyleRoundTrip() {
     TemplateEdgeStyle e;
     e.width = 3.5;
+    e.colorSource = "branch";
+    e.anchor = "baseline";
 
     QJsonObject json = e.toJson();
     TemplateEdgeStyle e2 = TemplateEdgeStyle::fromJson(json);
 
     QCOMPARE(e2.width, 3.5);
+    QCOMPARE(e2.colorSource, QString("branch"));
+    QCOMPARE(e2.anchor, QString("baseline"));
 }
 
 void tst_TemplateDescriptor::edgeStyleDefaults() {
     TemplateEdgeStyle e = TemplateEdgeStyle::fromJson(QJsonObject());
     QCOMPARE(e.width, 2.5);
+    QCOMPARE(e.colorSource, QString("target"));
+    QCOMPARE(e.anchor, QString("center"));
 }
 
 // ---------------------------------------------------------------------------

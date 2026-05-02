@@ -35,6 +35,10 @@ public:
 
     int level() const;
     QColor nodeColor() const;
+    // Color of the level-1 ancestor's palette slot. Every node in the same
+    // top-level branch returns the same color. Used by templates whose
+    // paletteSource/colorSource is "branch".
+    QColor branchColor() const;
     QFont font() const;
 
     void addEdge(EdgeItem* edge);
@@ -86,11 +90,14 @@ private:
     QTimer* m_hoverLeaveTimer = nullptr;
     AddButtonOverlay* m_addButtonOverlay = nullptr;
 
+    static constexpr qreal kAddButtonRadius = 12.0;
+    static constexpr qreal kAddButtonOffset = 6.0;
+    static constexpr qreal kHoverZoneMargin = 10.0;
+
+public:
+    // Defaults applied when the active template doesn't override them.
     static constexpr qreal kMinWidth = 120.0;
     static constexpr qreal kMaxWidth = 300.0;
     static constexpr qreal kPadding = 16.0;
     static constexpr qreal kRadius = 10.0;
-    static constexpr qreal kAddButtonRadius = 12.0;
-    static constexpr qreal kAddButtonOffset = 6.0;
-    static constexpr qreal kHoverZoneMargin = 10.0;
 };
