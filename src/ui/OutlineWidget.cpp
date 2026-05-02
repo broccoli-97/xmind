@@ -1,5 +1,6 @@
 #include "ui/OutlineWidget.h"
 #include "ui/IconFactory.h"
+#include "ui/OutlineItemDelegate.h"
 #include "scene/MindMapScene.h"
 #include "scene/MindMapView.h"
 #include "scene/NodeItem.h"
@@ -48,6 +49,8 @@ OutlineWidget::OutlineWidget(QWidget* parent) : QWidget(parent) {
     m_tree->setExpandsOnDoubleClick(false);
     m_tree->setRootIsDecorated(true);
     m_tree->setFocusPolicy(Qt::NoFocus);
+    m_tree->setMouseTracking(true); // enable hover state for the rounded hover pill
+    m_tree->setItemDelegate(new OutlineItemDelegate(m_tree));
     connect(m_tree, &QTreeWidget::itemClicked, this, &OutlineWidget::onItemClicked);
     layout->addWidget(m_tree, 1);
 }

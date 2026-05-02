@@ -63,6 +63,7 @@ add_library(ymind_lib OBJECT
 
     # UI – widgets and theming
     src/ui/IconFactory.h          src/ui/IconFactory.cpp
+    src/ui/OutlineItemDelegate.h  src/ui/OutlineItemDelegate.cpp
     src/ui/OutlineWidget.h        src/ui/OutlineWidget.cpp
     src/ui/StartPage.h            src/ui/StartPage.cpp
     src/ui/StyleSheetGenerator.h  src/ui/StyleSheetGenerator.cpp
