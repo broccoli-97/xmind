@@ -6,6 +6,7 @@
 #include "ui/IconFactory.h"
 #include "scene/MindMapScene.h"
 #include "scene/MindMapView.h"
+#include "scene/NodeItem.h"
 #include "ui/OutlineWidget.h"
 #include "core/AboutDialog.h"
 #include "core/SettingsDialog.h"
@@ -19,12 +20,15 @@
 #include <QDesktopServices>
 #include <QFileInfo>
 #include <QFrame>
+#include <QGraphicsItem>
 #include <QHBoxLayout>
+#include <QInputDialog>
 #include <QKeySequence>
 #include <QLabel>
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QPointer>
 #include <QPushButton>
 #include <QSignalBlocker>
 #include <QSplitter>
@@ -35,6 +39,7 @@
 #include <QTimer>
 #include <QToolButton>
 #include <QUndoStack>
+#include <QUrl>
 #include <QVBoxLayout>
 
 // ---------------------------------------------------------------------------
@@ -537,6 +542,16 @@ void MainWindow::setupMenuBar() {
     // ---- Style menu ----
     auto* styleMenu = menuBar()->addMenu(tr("&Style"));
 
+    auto* switchStyleAct = styleMenu->addAction(tr("Switch &Style..."));
+    connect(switchStyleAct, &QAction::triggered, this, &MainWindow::switchStyle);
+
+    auto* browseStylesAct = styleMenu->addAction(tr("&Browse Templates Online..."));
+    connect(browseStylesAct, &QAction::triggered, this, []() {
+        QDesktopServices::openUrl(QUrl("https://broccoli-97.github.io/xmind/templates/"));
+    });
+
+    styleMenu->addSeparator();
+
     auto* settingsAct = styleMenu->addAction(tr("&Settings..."));
     settingsAct->setShortcut(QKeySequence("Ctrl+,"));
     connect(settingsAct, &QAction::triggered, this, &MainWindow::openSettings);
@@ -630,6 +645,62 @@ void MainWindow::refreshOutline() {
 void MainWindow::openSettings() {
     SettingsDialog dlg(this);
     dlg.exec();
+}
+
+// ---------------------------------------------------------------------------
+// Switch the active template/style on the currently visible scene. Lets the
+// user re-skin a map without losing its content.
+// ---------------------------------------------------------------------------
+void MainWindow::switchStyle() {
+    auto* scene = m_tabManager->currentScene();
+    if (!scene)
+        return;
+
+    auto templates = TemplateRegistry::instance().allTemplates();
+    if (templates.isEmpty())
+        return;
+
+    QStringList names;
+    QStringList ids;
+    int currentIdx = 0;
+    for (const auto* td : templates) {
+        names << td->name;
+        ids << td->id;
+        if (td->id == scene->templateId())
+            currentIdx = ids.size() - 1;
+    }
+
+    bool ok = false;
+    QString chosen = QInputDialog::getItem(this, tr("Switch Style"),
+                                           tr("Choose a style:"), names, currentIdx,
+                                           /*editable=*/false, &ok);
+    if (!ok)
+        return;
+    int idx = names.indexOf(chosen);
+    if (idx < 0)
+        return;
+
+    // Mirror ThemeManager::applyTheme: invalidate device caches so all items
+    // repaint with the new template's colors / shapes, then restore the cache.
+    const auto items = scene->items();
+    for (auto* item : items)
+        item->setCacheMode(QGraphicsItem::NoCache);
+    if (auto* view = m_tabManager->currentView())
+        view->viewport()->update();
+
+    scene->setTemplateId(ids[idx]);
+    scene->autoLayout();
+
+    QPointer<QGraphicsScene> guard(scene);
+    QTimer::singleShot(0, this, [guard]() {
+        if (!guard)
+            return;
+        const auto its = guard->items();
+        for (auto* item : its) {
+            if (dynamic_cast<NodeItem*>(item))
+                item->setCacheMode(QGraphicsItem::DeviceCoordinateCache);
+        }
+    });
 }
 
 void MainWindow::openAbout() {

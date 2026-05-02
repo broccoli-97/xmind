@@ -31,6 +31,7 @@ private:
     void updateContentVisibility();
 
     void openSettings();
+    void switchStyle();
     void openAbout();
     void saveWindowState();
     void restoreWindowState();

@@ -4,6 +4,7 @@ export const en: Record<string, string> = {
     'nav.layouts': 'Layouts',
     'nav.animation': 'Animation',
     'nav.themes': 'Themes',
+    'nav.templates': 'Templates',
     'nav.download': 'Download',
 
     // Hero
@@ -94,6 +95,22 @@ export const en: Record<string, string> = {
     'download.macos.desc': 'Native ARM app bundle for Apple Silicon.',
     'download.button': 'Download Latest',
     'download.releases': 'All Releases',
+
+    // Templates Library
+    'templates.title': 'Templates Library',
+    'templates.subtitle':
+        'Drop-in style files that change the look of your mind maps. The app already loads any .json from your templates folder; download more here.',
+    'templates.howto.title': 'How to install',
+    'templates.howto.body':
+        'Templates are plain .json files. The app scans a templates folder on startup and exposes everything it finds in Style → Switch Style.',
+    'templates.howto.step1':
+        'Download a .json file from a card below.',
+    'templates.howto.step2':
+        'Place it in your YMind templates folder (Linux/macOS: ~/.local/share/YMind/templates/, Windows: %APPDATA%/YMind/templates/), or use File → Load Template…',
+    'templates.howto.step3':
+        'Restart YMind, then pick the new style under Style → Switch Style.',
+    'templates.download': 'Download',
+    'templates.loaderror': 'Could not load templates manifest',
 
     // Footer
     'footer.license': 'Released under the Apache 2.0 License.',
