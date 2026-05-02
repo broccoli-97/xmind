@@ -7,6 +7,10 @@ deploy/
 *.zip
 out/
 templates/
+# But the website ships its own bundled-templates directory (manifest.json +
+# downloadable .json styles) that must be included in the GitHub Pages build.
+!website/public/templates/
+!website/public/templates/**
 CLAUDE.md
 *.bat
 website/node_modules/

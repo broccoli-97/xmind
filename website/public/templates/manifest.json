@@ -1,0 +1,12 @@
+{
+    "$schema": "ymind-templates-manifest-v1",
+    "templates": [
+        {
+            "id": "user.lined",
+            "name": "Lined",
+            "description": "Curved colored lines, text floats above the line. No node rectangles.",
+            "file": "lined.json",
+            "previewColors": ["#E53935", "#FB8C00", "#1E88E5", "#FDD835", "#8E24AA"]
+        }
+    ]
+}

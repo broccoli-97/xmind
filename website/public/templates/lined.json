@@ -1,0 +1,99 @@
+{
+    "$schema": "ymind-template-v1",
+    "id": "user.lined",
+    "name": "Lined",
+    "description": "Curved colored lines with text floating above each line. No node rectangles — the line itself is the visual element. Inspired by hand-drawn mind maps.",
+    "layout": {
+        "algorithm": "bilateral",
+        "depthSpacing": 120.0,
+        "spreadSpacing": 22.0
+    },
+    "colors": {
+        "light": {
+            "canvasBackground": "#FAFAFA",
+            "canvasGridDot": "#E0E0E0",
+            "nodePalette": [
+                "#E53935",
+                "#FB8C00",
+                "#1E88E5",
+                "#FDD835",
+                "#8E24AA",
+                "#43A047"
+            ],
+            "nodeShadow": "#00000000",
+            "nodeSelectionBorder": "#FF6F00",
+            "nodeText": "#2C2C2C",
+            "edgeLightenFactor": 100,
+            "exportBackground": "#FFFFFF"
+        },
+        "dark": {
+            "canvasBackground": "#1A1A2E",
+            "canvasGridDot": "#2A2A4A",
+            "nodePalette": [
+                "#EF5350",
+                "#FFA726",
+                "#42A5F5",
+                "#FFEE58",
+                "#AB47BC",
+                "#66BB6A"
+            ],
+            "nodeShadow": "#00000000",
+            "nodeSelectionBorder": "#FFB300",
+            "nodeText": "#E8E8E8",
+            "edgeLightenFactor": 100,
+            "exportBackground": "#1A1A2E"
+        }
+    },
+    "nodeStyle": {
+        "borderRadius": 4.0,
+        "padding": 6.0,
+        "minWidth": 60.0,
+        "maxWidth": 240.0,
+        "shape": "none",
+        "rootShape": "underline",
+        "drawShadow": false,
+        "paletteSource": "branch"
+    },
+    "edgeStyle": {
+        "width": 2.5,
+        "colorSource": "branch",
+        "anchor": "baseline"
+    },
+    "content": {
+        "text": "Mind Mapping",
+        "children": [
+            {
+                "text": "Why Mind Mapping?",
+                "children": [
+                    { "text": "Disrupting linear thinking" },
+                    { "text": "Allows easy reorganization" },
+                    { "text": "Helps us think \"radiantly\"" }
+                ]
+            },
+            {
+                "text": "Main benefits",
+                "children": [
+                    { "text": "Enables creative thinking" },
+                    { "text": "Combats perfectionism" },
+                    { "text": "Iterative thinking" }
+                ]
+            },
+            { "text": "Visual thinking" },
+            {
+                "text": "Helpful for pre-writing",
+                "children": [
+                    { "text": "Escape the blinking cursor" },
+                    { "text": "Healthy ideation strategies" }
+                ]
+            },
+            {
+                "text": "How to Mind Map",
+                "children": [
+                    { "text": "Begin with an idea" },
+                    { "text": "Build connections outward" },
+                    { "text": "Reorganize as needed" }
+                ]
+            }
+        ]
+    }
+}
