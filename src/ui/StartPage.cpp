@@ -153,7 +153,7 @@ QWidget* StartPage::create(QObject* /*receiver*/, std::function<void(const QStri
     browseLink->setAlignment(Qt::AlignCenter);
     browseLink->setCursor(Qt::PointingHandCursor);
     QObject::connect(browseLink, &QLabel::linkActivated, page, []() {
-        QDesktopServices::openUrl(QUrl("https://broccoli-97.github.io/xmind/templates/"));
+        QDesktopServices::openUrl(QUrl("https://broccoli-97.github.io/xmind/#templates"));
     });
     auto* browseRow = new QHBoxLayout();
     browseRow->setAlignment(Qt::AlignCenter);

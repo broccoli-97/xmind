@@ -547,7 +547,7 @@ void MainWindow::setupMenuBar() {
 
     auto* browseStylesAct = styleMenu->addAction(tr("&Browse Templates Online..."));
     connect(browseStylesAct, &QAction::triggered, this, []() {
-        QDesktopServices::openUrl(QUrl("https://broccoli-97.github.io/xmind/templates/"));
+        QDesktopServices::openUrl(QUrl("https://broccoli-97.github.io/xmind/#templates"));
     });
 
     styleMenu->addSeparator();
