@@ -6,6 +6,7 @@
 #include "scene/NodeItem.h"
 
 #include <QCoreApplication>
+#include <QDesktopServices>
 #include <QFile>
 #include <QFileDialog>
 #include <QHBoxLayout>
@@ -14,6 +15,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QUndoStack>
+#include <QUrl>
 #include <QVBoxLayout>
 
 QWidget* StartPage::create(QObject* /*receiver*/, std::function<void(const QString&)> onTemplate,
@@ -37,28 +39,48 @@ QWidget* StartPage::create(QObject* /*receiver*/, std::function<void(const QStri
     subtitle->setAlignment(Qt::AlignCenter);
     outer->addWidget(subtitle);
 
-    // Template cards row — only the 3 builtins
+    // Template cards row — only the 4 builtins
     auto* cardRow = new QWidget();
     auto* cardLayout = new QHBoxLayout(cardRow);
     cardLayout->setAlignment(Qt::AlignCenter);
     cardLayout->setSpacing(24);
 
-    QStringList builtinIds = {"builtin.mindmap", "builtin.orgchart", "builtin.projectplan"};
+    QStringList builtinIds = {"builtin.mindmap", "builtin.orgchart", "builtin.projectplan",
+                              "builtin.lined"};
     for (const auto& id : builtinIds) {
         const auto* td = TemplateRegistry::instance().templateById(id);
         if (!td) continue;
 
+        // Each card is a vertical tile: clickable thumbnail on top, native
+        // text label below. Pulling text out of the pixmap eliminates the
+        // blurry-when-scaled text and lets the title use crisp system text.
+        auto* tile = new QWidget();
+        auto* tileLayout = new QVBoxLayout(tile);
+        tileLayout->setContentsMargins(0, 0, 0, 0);
+        tileLayout->setSpacing(8);
+        tileLayout->setAlignment(Qt::AlignHCenter);
+
         auto* card = new QPushButton();
         card->setObjectName("templateCard");
-        card->setFixedSize(180, 140);
-        card->setIconSize(QSize(160, 106));
-        card->setIcon(QIcon(IconFactory::makeTemplatePreview(td->id, 160, 106)));
-        card->setToolTip(td->name);
+        card->setFixedSize(180, 124);
+        card->setIconSize(QSize(160, 100));
+        card->setIcon(QIcon(IconFactory::makeTemplatePreview(td->id, 160, 100)));
+        card->setToolTip(td->description.isEmpty() ? td->name : td->description);
         card->setProperty("templateId", td->id);
         QString templateId = td->id;
         QObject::connect(card, &QPushButton::clicked, page,
                          [onTemplate, templateId]() { onTemplate(templateId); });
-        cardLayout->addWidget(card);
+
+        auto* nameLabel = new QLabel(td->name);
+        nameLabel->setObjectName("templateCardName");
+        nameLabel->setAlignment(Qt::AlignCenter);
+        // The card thumbnail above is the click target; keep the label as a
+        // plain caption (default cursor) so we don't promise clickability we
+        // don't deliver.
+
+        tileLayout->addWidget(card);
+        tileLayout->addWidget(nameLabel);
+        cardLayout->addWidget(tile);
     }
     outer->addWidget(cardRow);
 
@@ -120,6 +142,23 @@ QWidget* StartPage::create(QObject* /*receiver*/, std::function<void(const QStri
     linkRow->setAlignment(Qt::AlignCenter);
     linkRow->addWidget(loadLink);
     outer->addLayout(linkRow);
+
+    // "Browse templates online…" link — opens the GitHub Pages templates page
+    // where users can grab additional .json styles to drop in their templates
+    // folder.
+    auto* browseLink = new QLabel(
+        QString("<a href=\"#\" style=\"color: inherit;\">%1</a>")
+            .arg(QCoreApplication::translate("StartPage", "Browse templates online...")));
+    browseLink->setObjectName("loadTemplateLink");
+    browseLink->setAlignment(Qt::AlignCenter);
+    browseLink->setCursor(Qt::PointingHandCursor);
+    QObject::connect(browseLink, &QLabel::linkActivated, page, []() {
+        QDesktopServices::openUrl(QUrl("https://broccoli-97.github.io/xmind/templates/"));
+    });
+    auto* browseRow = new QHBoxLayout();
+    browseRow->setAlignment(Qt::AlignCenter);
+    browseRow->addWidget(browseLink);
+    outer->addLayout(browseRow);
 
     return page;
 }

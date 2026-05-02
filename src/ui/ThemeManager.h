@@ -31,13 +31,6 @@ struct ThemeColors {
     // Icons
     QColor iconBaseColor;
 
-    // Template preview
-    QColor previewBackground;
-    QColor previewLine;
-    QColor previewNodeBorder;
-    QColor previewNodeFill;
-    QColor previewText;
-
     // Tab close button
     QColor closeIconColor;
 };

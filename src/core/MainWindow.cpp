@@ -712,7 +712,7 @@ void MainWindow::applyTheme() {
         for (auto* card : cards) {
             QString tid = card->property("templateId").toString();
             if (!tid.isEmpty())
-                card->setIcon(QIcon(IconFactory::makeTemplatePreview(tid, 160, 106)));
+                card->setIcon(QIcon(IconFactory::makeTemplatePreview(tid, 160, 100)));
         }
     }
 }

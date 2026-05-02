@@ -36,11 +36,6 @@ static const ThemeColors kLightColors = {
     /* editorBorder        */ QColor("#1565C0"),
     /* editorText          */ QColor("#333333"),
     /* iconBaseColor       */ QColor("#3b3838"),
-    /* previewBackground   */ QColor("#F0F2F5"),
-    /* previewLine         */ QColor("#B0B0B0"),
-    /* previewNodeBorder   */ QColor("#1565C0"),
-    /* previewNodeFill     */ QColor("#DBEAF8"),
-    /* previewText         */ QColor("#666666"),
     /* closeIconColor      */ QColor("#5A5A5A"),
 };
 
@@ -59,11 +54,6 @@ static const ThemeColors kDarkColors = {
     /* editorBorder        */ QColor("#42A5F5"),
     /* editorText          */ QColor("#E0E0E0"),
     /* iconBaseColor       */ QColor("#FFFFFF"),
-    /* previewBackground   */ QColor("#1E1E1E"),
-    /* previewLine         */ QColor("#555555"),
-    /* previewNodeBorder   */ QColor("#007ACC"),
-    /* previewNodeFill     */ QColor("#094771"),
-    /* previewText         */ QColor("#888888"),
     /* closeIconColor      */ QColor("#CCCCCC"),
 };
 

@@ -539,6 +539,17 @@ QPushButton#templateCard:pressed {
     background-color: {{cardPressedBg}};
 }
 
+/* Caption shown beneath each template card on the Start Page. Rendered as a
+   native QLabel (not baked into the card pixmap) so the text stays crisp. */
+QLabel#templateCardName {
+    color: {{cardFg}};
+    font-size: 13px;
+    font-weight: 500;
+    background: transparent;
+    padding: 0px;
+    border: none;
+}
+
 /* ---------------------------------------------------------------------------
    Blank Canvas Button (Start Page)
    --------------------------------------------------------------------------- */
