@@ -2,6 +2,8 @@
 #include "core/Commands.h"
 #include "core/TemplateDescriptor.h"
 #include "core/TemplateRegistry.h"
+#include "core/ThemeDescriptor.h"
+#include "core/ThemeRegistry.h"
 #include "scene/EdgeItem.h"
 #include "scene/InlineEditController.h"
 #include "scene/MindMapExporter.h"
@@ -168,6 +170,28 @@ const TemplateDescriptor* MindMapScene::templateDescriptor() const {
     if (m_templateId.isEmpty())
         return nullptr;
     return TemplateRegistry::instance().templateById(m_templateId);
+}
+
+QString MindMapScene::themeId() const {
+    return m_themeId;
+}
+
+void MindMapScene::setThemeId(const QString& id) {
+    m_themeId = id;
+    // Force every node to drop its device-coord cache so a theme swap repaints
+    // with the new fill/border/edge style instead of the stale cached pixmap.
+    const auto items = this->items();
+    for (auto* it : items) {
+        it->setCacheMode(QGraphicsItem::NoCache);
+        it->update();
+    }
+    for (auto* v : views())
+        v->viewport()->update();
+}
+
+const ThemeDescriptor* MindMapScene::themeDescriptor() const {
+    QString id = m_themeId.isEmpty() ? ThemeRegistry::defaultThemeId() : m_themeId;
+    return ThemeRegistry::instance().themeById(id);
 }
 
 EdgeItem* MindMapScene::findEdge(NodeItem* parent, NodeItem* child) const {

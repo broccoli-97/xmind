@@ -7,7 +7,11 @@
         <file alias="orgchart.json">templates/orgchart.json</file>
         <file alias="projectplan.json">templates/projectplan.json</file>
         <file alias="lined.json">templates/lined.json</file>
-        <file alias="outlined.json">templates/outlined.json</file>
-        <file alias="tinted.json">templates/tinted.json</file>
+    </qresource>
+    <qresource prefix="/themes">
+        <file alias="default.json">themes/default.json</file>
+        <file alias="morandi.json">themes/morandi.json</file>
+        <file alias="outlined.json">themes/outlined.json</file>
+        <file alias="tinted.json">themes/tinted.json</file>
     </qresource>
 </RCC>

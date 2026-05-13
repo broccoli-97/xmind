@@ -1,13 +1,8 @@
 {
-    "$schema": "ymind-template-v1",
+    "$schema": "ymind-theme-v1",
     "id": "builtin.tinted",
     "name": "Tinted",
     "description": "Soft tinted fills with colored borders — Excalidraw-style",
-    "layout": {
-        "algorithm": "bilateral",
-        "depthSpacing": 100.0,
-        "spreadSpacing": 16.0
-    },
     "nodeStyle": {
         "shape": "roundedRect",
         "borderRadius": 10.0,

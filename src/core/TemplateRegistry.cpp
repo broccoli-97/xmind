@@ -1,6 +1,5 @@
 #include "core/TemplateRegistry.h"
 #include "core/BuiltinTemplateStrings.h" // keeps lupdate picking up built-in strings
-#include "ui/ThemeManager.h"
 
 #include <QCoreApplication>
 #include <QDebug>
@@ -16,24 +15,6 @@ TemplateRegistry& TemplateRegistry::instance() {
 
 namespace {
 
-// Convert ThemeColors → TemplateColorScheme for the inheritance fallback used
-// when a built-in JSON omits the "colors" block.
-TemplateColorScheme colorSchemeFromTheme(const ThemeColors& tc) {
-    TemplateColorScheme cs;
-    cs.canvasBackground = tc.canvasBackground;
-    cs.canvasGridDot = tc.canvasGridDot;
-    for (int i = 0; i < 6; ++i)
-        cs.nodePalette[i] = tc.nodePalette[i];
-    cs.nodeShadow = tc.nodeShadow;
-    cs.nodeSelectionBorder = tc.nodeSelectionBorder;
-    cs.nodeText = tc.nodeText;
-    cs.edgeLightenFactor = tc.edgeLightenFactor;
-    cs.exportBackground = tc.exportBackground;
-    return cs;
-}
-
-// Translate built-in template strings under the "TemplateRegistry" context.
-// Source strings are listed in BuiltinTemplateStrings.h so lupdate finds them.
 QString translateBuiltin(const QString& s) {
     if (s.isEmpty())
         return s;
@@ -49,20 +30,13 @@ void translateContent(TemplateContentNode& n) {
 } // namespace
 
 void TemplateRegistry::loadBuiltins() {
-    // Built-ins live as JSON files baked into the binary via Qt resources.
-    // Missing colors inherit from ThemeManager so a global palette change
-    // (canvas, palette, etc.) reaches every built-in automatically.
-    const TemplateColorScheme lightDefaults = colorSchemeFromTheme(ThemeManager::lightColors());
-    const TemplateColorScheme darkDefaults = colorSchemeFromTheme(ThemeManager::darkColors());
-
-    // Order here drives the order shown on the Start Page.
+    // Each built-in is a layout + starter content. Visual styling is a
+    // separate concern handled by ThemeRegistry.
     const QStringList kBuiltinPaths = {
         ":/templates/mindmap.json",
         ":/templates/orgchart.json",
         ":/templates/projectplan.json",
         ":/templates/lined.json",
-        ":/templates/outlined.json",
-        ":/templates/tinted.json",
     };
 
     for (const QString& path : kBuiltinPaths) {
@@ -79,8 +53,7 @@ void TemplateRegistry::loadBuiltins() {
             continue;
         }
 
-        TemplateDescriptor td =
-            TemplateDescriptor::fromJson(doc.object(), lightDefaults, darkDefaults);
+        TemplateDescriptor td = TemplateDescriptor::fromJson(doc.object());
         if (td.id.isEmpty()) {
             qWarning() << "TemplateRegistry: built-in" << path << "missing id";
             continue;
@@ -95,39 +68,51 @@ void TemplateRegistry::loadBuiltins() {
     }
 }
 
+void TemplateRegistry::loadFromFile(const QString& filePath) {
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly))
+        return;
+
+    QJsonParseError err;
+    QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &err);
+    if (err.error != QJsonParseError::NoError)
+        return;
+
+    QJsonObject obj = doc.object();
+    if (obj["$schema"].toString() != QLatin1String("ymind-template-v1"))
+        return;
+
+    TemplateDescriptor td = TemplateDescriptor::fromJson(obj);
+    if (td.id.isEmpty())
+        return;
+
+    if (!m_templates.contains(td.id)) {
+        m_templates[td.id] = td;
+        m_orderedIds.append(td.id);
+    }
+}
+
 void TemplateRegistry::loadFromDirectory(const QString& dirPath) {
     QDir dir(dirPath);
     if (!dir.exists())
         return;
 
-    const TemplateColorScheme lightDefaults = colorSchemeFromTheme(ThemeManager::lightColors());
-    const TemplateColorScheme darkDefaults = colorSchemeFromTheme(ThemeManager::darkColors());
-
     const auto files = dir.entryList({"*.json"}, QDir::Files);
-    for (const QString& fileName : files) {
-        QFile file(dir.absoluteFilePath(fileName));
-        if (!file.open(QIODevice::ReadOnly))
-            continue;
+    for (const QString& fileName : files)
+        loadFromFile(dir.absoluteFilePath(fileName));
 
-        QJsonParseError err;
-        QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &err);
-        if (err.error != QJsonParseError::NoError)
+    // Folder-packaged templates: each subdir may contain a template.json.
+    const auto subdirs = dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+    for (const QString& sub : subdirs) {
+        QDir subDir(dir.absoluteFilePath(sub));
+        QString tFile = subDir.absoluteFilePath("template.json");
+        if (QFile::exists(tFile)) {
+            loadFromFile(tFile);
             continue;
-
-        QJsonObject obj = doc.object();
-        if (obj["$schema"].toString() != "ymind-template-v1")
-            continue;
-
-        TemplateDescriptor td =
-            TemplateDescriptor::fromJson(obj, lightDefaults, darkDefaults);
-        if (td.id.isEmpty())
-            continue;
-
-        // Don't overwrite builtins
-        if (!m_templates.contains(td.id)) {
-            m_templates[td.id] = td;
-            m_orderedIds.append(td.id);
         }
+        const auto subFiles = subDir.entryList({"*.json"}, QDir::Files);
+        for (const QString& fileName : subFiles)
+            loadFromFile(subDir.absoluteFilePath(fileName));
     }
 }
 

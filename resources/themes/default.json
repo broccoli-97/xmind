@@ -1,0 +1,6 @@
+{
+    "$schema": "ymind-theme-v1",
+    "id": "builtin.default",
+    "name": "Default",
+    "description": "Classic look: solid colored fills with a soft drop shadow"
+}

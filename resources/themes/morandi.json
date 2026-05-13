@@ -1,0 +1,66 @@
+{
+    "$schema": "ymind-theme-v1",
+    "id": "builtin.morandi",
+    "name": "Morandi",
+    "description": "Low-saturation Morandi palette with soft 60% tinted fills",
+    "nodeStyle": {
+        "shape": "roundedRect",
+        "borderRadius": 8.0,
+        "padding": 14.0,
+        "fillMode": "tinted",
+        "fillAlpha": 0.60,
+        "borderWidth": 1.4,
+        "borderColorSource": "darker",
+        "drawShadow": false
+    },
+    "rootStyle": {
+        "fillAlpha": 0.78,
+        "borderWidth": 2.0,
+        "padding": 16.0
+    },
+    "edgeStyle": {
+        "width": 1.8,
+        "colorSource": "target",
+        "anchor": "center",
+        "curvature": 0.55,
+        "colorModifier": "same",
+        "lineCap": "round"
+    },
+    "backgroundPattern": "dots",
+    "colors": {
+        "light": {
+            "canvasBackground": "#F4F0EB",
+            "canvasGridDot": "#E1DBD3",
+            "nodePalette": [
+                "#A99687",
+                "#94A28D",
+                "#A6B0BA",
+                "#C2B091",
+                "#A99AA8",
+                "#9FA89D"
+            ],
+            "nodeShadow": "#00000000",
+            "nodeSelectionBorder": "#8C6F58",
+            "nodeText": "#3B342E",
+            "edgeLightenFactor": 100,
+            "exportBackground": "#F4F0EB"
+        },
+        "dark": {
+            "canvasBackground": "#2A2724",
+            "canvasGridDot": "#403A35",
+            "nodePalette": [
+                "#B9A797",
+                "#A5B5A1",
+                "#B7C0CA",
+                "#D6C29F",
+                "#BAA8B8",
+                "#AFB9AC"
+            ],
+            "nodeShadow": "#00000000",
+            "nodeSelectionBorder": "#E0B084",
+            "nodeText": "#EAE1D6",
+            "edgeLightenFactor": 100,
+            "exportBackground": "#2A2724"
+        }
+    }
+}

@@ -17,6 +17,11 @@ public:
 
     void registerTemplate(const TemplateDescriptor& td);
 
+private:
+    void loadFromFile(const QString& filePath);
+
+public:
+
     const TemplateDescriptor* templateById(const QString& id) const;
     QList<const TemplateDescriptor*> allTemplates() const;
 

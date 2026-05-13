@@ -28,10 +28,12 @@ QJsonObject MindMapSerializer::nodeToJson(NodeItem* node) const {
 QJsonObject MindMapSerializer::toJson() const {
     QJsonObject root;
     root["format"] = QStringLiteral("ymind");
-    root["version"] = 2;
+    root["version"] = 3;
     root["layoutStyle"] = static_cast<int>(m_scene->m_layoutStyle);
     if (!m_scene->m_templateId.isEmpty())
         root["templateId"] = m_scene->m_templateId;
+    if (!m_scene->m_themeId.isEmpty())
+        root["themeId"] = m_scene->m_themeId;
     if (m_scene->m_rootNode) {
         root["root"] = nodeToJson(m_scene->m_rootNode);
     }
@@ -74,12 +76,33 @@ bool MindMapSerializer::fromJson(const QJsonObject& json) {
     // Restore layout style (default to Bilateral for old files)
     m_scene->m_layoutStyle = static_cast<LayoutStyle>(json["layoutStyle"].toInt(0));
 
-    // Restore template ID; for old files (v1), map layoutStyle to builtin ID
+    // Restore template ID; for old files (v1), map layoutStyle to builtin ID.
     if (json.contains("templateId")) {
         m_scene->m_templateId = json["templateId"].toString();
     } else {
         m_scene->m_templateId =
             TemplateRegistry::builtinIdForLayoutStyle(json["layoutStyle"].toInt(0));
+    }
+
+    // Restore theme ID, with legacy migration. Pre-v3 files conflated visual
+    // styling into templateId. Outlined/Tinted/Morandi were really themes
+    // disguised as templates — their templateId becomes a theme, and the
+    // templateId itself falls back to the layout's plain template. Lined
+    // is genuinely structural (underline shape, baseline edges) so it
+    // stays as a template; only its theme defaults to builtin.default.
+    if (json.contains("themeId")) {
+        m_scene->m_themeId = json["themeId"].toString();
+    } else {
+        QString legacy = m_scene->m_templateId;
+        if (legacy == QLatin1String("builtin.outlined") ||
+            legacy == QLatin1String("builtin.tinted") ||
+            legacy == QLatin1String("builtin.morandi")) {
+            m_scene->m_themeId = legacy;
+            m_scene->m_templateId =
+                TemplateRegistry::builtinIdForLayoutStyle(static_cast<int>(m_scene->m_layoutStyle));
+        } else {
+            m_scene->m_themeId = QStringLiteral("builtin.default");
+        }
     }
 
     QJsonObject rootObj = json["root"].toObject();

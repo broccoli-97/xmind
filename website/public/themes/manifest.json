@@ -1,0 +1,16 @@
+{
+    "$schema": "ymind-themes-manifest-v1",
+    "themes": [
+        {
+            "id": "morandi",
+            "name": "Morandi",
+            "description": "Low-saturation Morandi palette with soft 60% tinted fills. Light and dark variants included.",
+            "folder": "morandi",
+            "preview": {
+                "palette": ["#A99687", "#94A28D", "#A6B0BA", "#C2B091", "#A99AA8"],
+                "fillAlpha": 0.6,
+                "background": "#F4F0EB"
+            }
+        }
+    ]
+}

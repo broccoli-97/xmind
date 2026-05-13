@@ -2,6 +2,7 @@
 #include "core/AppSettings.h"
 #include "core/Commands.h"
 #include "core/TemplateDescriptor.h"
+#include "core/ThemeDescriptor.h"
 #include "layout/LayoutStyle.h"
 #include "scene/EdgeItem.h"
 #include "scene/MindMapScene.h"
@@ -68,13 +69,13 @@ public:
 
         QRectF btnRect = m_node->addButtonRect();
 
-        // Resolve selection border color
+        // Resolve selection border color from the active theme
         const ThemeColors& globalTC = ThemeManager::colors();
         QColor selectionBorder = globalTC.nodeSelectionBorder;
         if (mindMapScene) {
-            const auto* td = mindMapScene->templateDescriptor();
-            if (td)
-                selectionBorder = td->activeColors().nodeSelectionBorder;
+            const auto* th = mindMapScene->themeDescriptor();
+            if (th)
+                selectionBorder = th->activeColors().nodeSelectionBorder;
         }
 
         // Button background
@@ -201,49 +202,60 @@ NodeItem::~NodeItem() = default;
 
 namespace {
 
+const ThemeDescriptor* nodeTheme(const MindMapScene* scene) {
+    return scene ? scene->themeDescriptor() : nullptr;
+}
+
 const TemplateDescriptor* nodeTemplate(const MindMapScene* scene) {
     return scene ? scene->templateDescriptor() : nullptr;
 }
 
-// Effective node style for a given (template, level) — accounts for rootStyle override.
-const TemplateNodeStyle& effStyle(const TemplateDescriptor* td, int level) {
-    static const TemplateNodeStyle kDefault{};
-    if (!td)
-        return kDefault;
-    return td->nodeStyleForLevel(level);
+// Compose the effective node style for a given level. The theme provides the
+// base; the template may override a small set of structural fields (node
+// shape, paletteSource) so that templates like Lined keep their character
+// regardless of which theme is applied.
+ThemeNodeStyle effStyle(const ThemeDescriptor* th, const TemplateDescriptor* td,
+                        int level) {
+    ThemeNodeStyle s = th ? th->nodeStyleForLevel(level) : ThemeNodeStyle{};
+    if (td) {
+        if (level == 0 && !td->rootShapeOverride.isEmpty())
+            s.shape = td->rootShapeOverride;
+        else if (!td->nodeShapeOverride.isEmpty())
+            s.shape = td->nodeShapeOverride;
+        if (!td->paletteSourceOverride.isEmpty())
+            s.paletteSource = td->paletteSourceOverride;
+    }
+    return s;
 }
 
-qreal effPadding(const TemplateDescriptor* td, int level) {
-    return effStyle(td, level).padding;
+qreal effPadding(const ThemeDescriptor* th, const TemplateDescriptor* td, int level) {
+    return effStyle(th, td, level).padding;
 }
-qreal effRadius(const TemplateDescriptor* td, int level) {
-    return effStyle(td, level).borderRadius;
+qreal effRadius(const ThemeDescriptor* th, const TemplateDescriptor* td, int level) {
+    return effStyle(th, td, level).borderRadius;
 }
-qreal effMinWidth(const TemplateDescriptor* td, int level) {
-    return effStyle(td, level).minWidth;
+qreal effMinWidth(const ThemeDescriptor* th, const TemplateDescriptor* td, int level) {
+    return effStyle(th, td, level).minWidth;
 }
-qreal effMaxWidth(const TemplateDescriptor* td, int level) {
-    return effStyle(td, level).maxWidth;
-}
-
-// Resolve which shape to draw — the effective style already encodes rootShape
-// (via the rootStyle override synthesized in fromJson).
-QString effShape(const TemplateDescriptor* td, int level) {
-    return effStyle(td, level).shape;
+qreal effMaxWidth(const ThemeDescriptor* th, const TemplateDescriptor* td, int level) {
+    return effStyle(th, td, level).maxWidth;
 }
 
-bool effDrawShadow(const TemplateDescriptor* td, int level, const QString& shape) {
-    // Shadow only makes sense behind a filled body. Outlined/tinted/non-rounded
-    // shapes paint without one.
+QString effShape(const ThemeDescriptor* th, const TemplateDescriptor* td, int level) {
+    return effStyle(th, td, level).shape;
+}
+
+bool effDrawShadow(const ThemeDescriptor* th, const TemplateDescriptor* td, int level,
+                   const QString& shape) {
     if (shape != QLatin1String("roundedRect"))
         return false;
-    const auto& s = effStyle(td, level);
+    const auto s = effStyle(th, td, level);
     if (s.fillMode != QLatin1String("solid"))
         return false;
     return s.drawShadow;
 }
 
-QColor borderColorFor(const TemplateNodeStyle& s, const QColor& nodeColor,
+QColor borderColorFor(const ThemeNodeStyle& s, const QColor& nodeColor,
                       const QColor& fixedColor) {
     if (s.borderColorSource == QLatin1String("darker"))
         return nodeColor.darker(125);
@@ -255,15 +267,16 @@ QColor borderColorFor(const TemplateNodeStyle& s, const QColor& nodeColor,
 } // namespace
 
 QRectF NodeItem::boundingRect() const {
+    const auto* th = nodeTheme(m_mindMapScene);
     const auto* td = nodeTemplate(m_mindMapScene);
     const int lvl = level();
-    QString shape = effShape(td, lvl);
-    bool withShadow = effDrawShadow(td, lvl, shape);
+    QString shape = effShape(th, td, lvl);
+    bool withShadow = effDrawShadow(th, td, lvl, shape);
     if (!withShadow) {
         // No shadow → the rect itself plus a tiny anti-alias margin is enough.
         return m_rect.adjusted(-2, -2, 2, 2);
     }
-    const auto& s = effStyle(td, lvl);
+    const auto s = effStyle(th, td, lvl);
     constexpr qreal kMargin = 2.0;
     return m_rect.adjusted(-s.shadowSpread - kMargin, -s.shadowSpread - kMargin,
                            s.shadowSpread + kMargin,
@@ -271,16 +284,17 @@ QRectF NodeItem::boundingRect() const {
 }
 
 QPainterPath NodeItem::shape() const {
+    const auto* th = nodeTheme(m_mindMapScene);
     const auto* td = nodeTemplate(m_mindMapScene);
     const int lvl = level();
-    QString s = effShape(td, lvl);
+    QString s = effShape(th, td, lvl);
     QPainterPath path;
     if (s == QLatin1String("none") || s == QLatin1String("underline")) {
         // For shapeless / underline styles, hit-test the text rect (a bit
         // padded) so clicks on the text still select the node.
         path.addRect(m_rect.adjusted(-2, -2, 2, 2));
     } else {
-        const qreal r = effRadius(td, lvl);
+        const qreal r = effRadius(th, td, lvl);
         path.addRoundedRect(m_rect, r, r);
     }
     return path;
@@ -290,7 +304,7 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
                      QWidget* /*widget*/) {
     painter->setRenderHint(QPainter::Antialiasing);
 
-    // Resolve colors: template-specific if available, else global
+    // Resolve colors from the active theme (falls back to global ThemeManager).
     const ThemeColors& globalTC = ThemeManager::colors();
     QColor shadowColor = globalTC.nodeShadow;
     QColor selectionBorder = globalTC.nodeSelectionBorder;
@@ -298,9 +312,10 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
     QColor fixedBorderColor;
 
     auto* mindMapScene = m_mindMapScene;
+    const ThemeDescriptor* th = nodeTheme(mindMapScene);
     const TemplateDescriptor* td = nodeTemplate(mindMapScene);
-    if (td) {
-        const auto& tc = td->activeColors();
+    if (th) {
+        const auto& tc = th->activeColors();
         shadowColor = tc.nodeShadow;
         selectionBorder = tc.nodeSelectionBorder;
         textColor = tc.nodeText;
@@ -308,14 +323,14 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
     }
 
     const int lvl = level();
-    const TemplateNodeStyle& style = effStyle(td, lvl);
+    const ThemeNodeStyle style = effStyle(th, td, lvl);
     const QString shape = style.shape;
     const qreal radius = style.borderRadius;
     const qreal padding = style.padding;
     const QColor nodeCol = nodeColor();
 
     // ----- Drop shadow -------------------------------------------------------
-    if (effDrawShadow(td, lvl, shape)) {
+    if (effDrawShadow(th, td, lvl, shape)) {
         painter->setPen(Qt::NoPen);
         const int layers = qMax(1, style.shadowLayers);
         const qreal spread = style.shadowSpread;
@@ -348,17 +363,20 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
         }
     } else if (shape == QLatin1String("underline")) {
         // Draw a horizontal accent line under the text instead of a body fill.
-        // When the template anchors edges to the baseline, the underline must
-        // be a *seamless continuation* of the parent's bezier endpoint:
+        // When the theme anchors edges to the baseline, the underline must be
+        // a *seamless continuation* of the parent's bezier endpoint:
         //   - same stroke width as the edge (no 1.5x boost)
         //   - centered exactly on m_rect.bottom() (same Y as edge endpoint),
         //     not offset upward by half the line width
         //   - extended to the rect edges (no inset margin)
         // Otherwise (standalone accent under e.g. the root), keep the bolder,
         // slightly inset look that reads better on its own.
-        const bool baselineAnchor =
-            td && td->edgeStyle.anchor == QLatin1String("baseline");
-        const qreal edgeW = td ? td->edgeStyle.width : 2.5;
+        // Template overrides edge anchor (Lined forces baseline).
+        QString anchor = th ? th->edgeStyle.anchor : QStringLiteral("center");
+        if (td && !td->edgeAnchorOverride.isEmpty())
+            anchor = td->edgeAnchorOverride;
+        const bool baselineAnchor = (anchor == QLatin1String("baseline"));
+        const qreal edgeW = th ? th->edgeStyle.width : 2.5;
         const qreal lineW = baselineAnchor ? edgeW : edgeW * 1.5;
         QPen underline(nodeCol, lineW, Qt::SolidLine, Qt::RoundCap);
         painter->setPen(underline);
@@ -410,13 +428,15 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
 
     // ----- Text --------------------------------------------------------------
     // For outlined / tinted modes, the body isn't a colored slab so default
-    // white text wouldn't read. Use the node color for the text instead so it
-    // visually belongs to the node without being invisible on a light fill.
+    // white text wouldn't read. Use the node color for the text — darker than
+    // the fill in light themes, lighter in dark themes — so the text always
+    // sits clearly on the canvas while still belonging to its node's hue.
     QColor effTextColor = textColor;
     if (shape == QLatin1String("roundedRect") &&
         (style.fillMode == QLatin1String("outlined") ||
          style.fillMode == QLatin1String("tinted"))) {
-        effTextColor = nodeCol.darker(120);
+        effTextColor = ThemeManager::isDark() ? nodeCol.lighter(140)
+                                              : nodeCol.darker(120);
     }
     painter->setPen(effTextColor);
     painter->setFont(m_font);
@@ -474,13 +494,19 @@ int NodeItem::level() const {
 }
 
 QColor NodeItem::nodeColor() const {
+    const auto* th = nodeTheme(m_mindMapScene);
     const auto* td = nodeTemplate(m_mindMapScene);
-    if (td) {
-        const auto& palette = td->activeColors().nodePalette;
-        if (td->nodeStyle.paletteSource == QLatin1String("branch"))
-            return branchColor();
-        return palette[level() % 6];
-    }
+
+    QString paletteSource = th ? th->nodeStyle.paletteSource
+                               : QStringLiteral("level");
+    if (td && !td->paletteSourceOverride.isEmpty())
+        paletteSource = td->paletteSourceOverride;
+
+    if (paletteSource == QLatin1String("branch"))
+        return branchColor();
+
+    if (th)
+        return th->activeColors().nodePalette[level() % 6];
     return ThemeManager::colors().nodePalette[level() % 6];
 }
 
@@ -503,9 +529,9 @@ QColor NodeItem::branchColor() const {
             branchIndex = 0;
     }
 
-    const auto* td = nodeTemplate(m_mindMapScene);
-    if (td)
-        return td->activeColors().nodePalette[branchIndex % 6];
+    const auto* th = nodeTheme(m_mindMapScene);
+    if (th)
+        return th->activeColors().nodePalette[branchIndex % 6];
     return ThemeManager::colors().nodePalette[branchIndex % 6];
 }
 
@@ -633,11 +659,12 @@ void NodeItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event) {
 
 void NodeItem::updateGeometry() {
     prepareGeometryChange();
+    const auto* th = nodeTheme(m_mindMapScene);
     const auto* td = nodeTemplate(m_mindMapScene);
     const int lvl = level();
-    const qreal pad = effPadding(td, lvl);
-    const qreal minW = effMinWidth(td, lvl);
-    const qreal maxW = effMaxWidth(td, lvl);
+    const qreal pad = effPadding(th, td, lvl);
+    const qreal minW = effMinWidth(th, td, lvl);
+    const qreal maxW = effMaxWidth(th, td, lvl);
 
     QFontMetricsF fm(m_font);
     qreal textW = fm.horizontalAdvance(m_text);

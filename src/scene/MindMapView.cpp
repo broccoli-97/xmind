@@ -1,5 +1,5 @@
 #include "scene/MindMapView.h"
-#include "core/TemplateDescriptor.h"
+#include "core/ThemeDescriptor.h"
 #include "scene/MindMapScene.h"
 #include "ui/ThemeManager.h"
 
@@ -210,11 +210,11 @@ void MindMapView::drawBackground(QPainter* painter, const QRectF& rect) {
 
     auto* mindMapScene = dynamic_cast<MindMapScene*>(scene());
     if (mindMapScene) {
-        const auto* td = mindMapScene->templateDescriptor();
-        if (td) {
-            bgColor = td->activeColors().canvasBackground;
-            dotColor = td->activeColors().canvasGridDot;
-            pattern = td->backgroundPattern;
+        const auto* th = mindMapScene->themeDescriptor();
+        if (th) {
+            bgColor = th->activeColors().canvasBackground;
+            dotColor = th->activeColors().canvasGridDot;
+            pattern = th->backgroundPattern;
         }
     }
 

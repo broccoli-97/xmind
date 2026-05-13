@@ -41,6 +41,8 @@ add_library(ymind_lib OBJECT
     src/core/SettingsDialog.h     src/core/SettingsDialog.cpp
     src/core/TemplateDescriptor.h src/core/TemplateDescriptor.cpp
     src/core/TemplateRegistry.h   src/core/TemplateRegistry.cpp
+    src/core/ThemeDescriptor.h    src/core/ThemeDescriptor.cpp
+    src/core/ThemeRegistry.h      src/core/ThemeRegistry.cpp
     src/core/UpdateChecker.h      src/core/UpdateChecker.cpp
 
     # Scene – graphics-scene items

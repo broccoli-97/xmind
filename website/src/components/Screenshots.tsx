@@ -7,12 +7,12 @@ export function Screenshots() {
     const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
     return (
-        <section id="themes" className="bg-slate-900 py-24">
+        <section id="screenshots" className="bg-slate-900 py-24">
             <div className="mx-auto max-w-6xl px-4 sm:px-6">
                 <div className="mb-16 text-center">
-                    <h2 className="mb-4 text-4xl font-bold text-white">{t('themes.title')}</h2>
+                    <h2 className="mb-4 text-4xl font-bold text-white">{t('screenshots.title')}</h2>
                     <p className="mx-auto max-w-2xl text-lg text-slate-400">
-                        {t('themes.subtitle')}
+                        {t('screenshots.subtitle')}
                     </p>
                 </div>
 
@@ -27,7 +27,7 @@ export function Screenshots() {
                                     : 'text-slate-400 hover:text-slate-200'
                             }`}
                         >
-                            {t('themes.light')}
+                            {t('screenshots.light')}
                         </button>
                         <button
                             onClick={() => setTheme('dark')}
@@ -37,7 +37,7 @@ export function Screenshots() {
                                     : 'text-slate-400 hover:text-slate-200'
                             }`}
                         >
-                            {t('themes.dark')}
+                            {t('screenshots.dark')}
                         </button>
                     </div>
                 </div>

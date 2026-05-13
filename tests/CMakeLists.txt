@@ -12,10 +12,12 @@ endfunction()
 
 # Tier 1 -- pure data, no QApplication needed
 add_ymind_test(tst_TemplateDescriptor)
+add_ymind_test(tst_ThemeDescriptor)
 add_ymind_test(tst_LayoutStyle)
 
 # Tier 2 -- singleton registries
 add_ymind_test(tst_TemplateRegistry)
+add_ymind_test(tst_ThemeRegistry)
 add_ymind_test(tst_LayoutAlgorithmRegistry)
 add_ymind_test(tst_AppSettings)
 

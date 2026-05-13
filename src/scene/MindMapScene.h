@@ -11,6 +11,7 @@ class QJsonObject;
 class QJsonArray;
 class QUndoStack;
 class TemplateDescriptor;
+class ThemeDescriptor;
 class InlineEditController;
 
 class MindMapScene : public QGraphicsScene {
@@ -32,10 +33,15 @@ public:
     LayoutStyle layoutStyle() const;
     void setLayoutStyle(LayoutStyle style);
 
-    // Template system
+    // Template — layout + starter content (picked when the map was created)
     QString templateId() const;
     void setTemplateId(const QString& id);
     const TemplateDescriptor* templateDescriptor() const;
+
+    // Theme — visual style, swappable any time without affecting layout/content
+    QString themeId() const;
+    void setThemeId(const QString& id);
+    const ThemeDescriptor* themeDescriptor() const;
 
     EdgeItem* findEdge(NodeItem* parent, NodeItem* child) const;
 
@@ -96,6 +102,7 @@ private:
     bool m_batchLoading = false;
     LayoutStyle m_layoutStyle = LayoutStyle::Bilateral;
     QString m_templateId;
+    QString m_themeId;
 
     // Editing
     InlineEditController* m_editController;

@@ -1,5 +1,6 @@
 #include "scene/EdgeItem.h"
 #include "core/TemplateDescriptor.h"
+#include "core/ThemeDescriptor.h"
 #include "scene/MindMapScene.h"
 #include "scene/NodeItem.h"
 #include "ui/ThemeManager.h"
@@ -66,14 +67,19 @@ void EdgeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option
     QString lineCap = QStringLiteral("round");
 
     if (m_mindMapScene) {
-        const auto* td = m_mindMapScene->templateDescriptor();
-        if (td) {
-            lighten = td->activeColors().edgeLightenFactor;
-            edgeWidth = td->edgeStyle.width;
-            colorSource = td->edgeStyle.colorSource;
-            dashStyle = td->edgeStyle.dashStyle;
-            colorModifier = td->edgeStyle.colorModifier;
-            lineCap = td->edgeStyle.lineCap;
+        const auto* th = m_mindMapScene->themeDescriptor();
+        if (th) {
+            lighten = th->activeColors().edgeLightenFactor;
+            edgeWidth = th->edgeStyle.width;
+            colorSource = th->edgeStyle.colorSource;
+            dashStyle = th->edgeStyle.dashStyle;
+            colorModifier = th->edgeStyle.colorModifier;
+            lineCap = th->edgeStyle.lineCap;
+        }
+        // Template override (e.g. Lined forces branch-colored edges).
+        if (const auto* td = m_mindMapScene->templateDescriptor()) {
+            if (!td->edgeColorSourceOverride.isEmpty())
+                colorSource = td->edgeColorSourceOverride;
         }
     }
 
@@ -94,13 +100,18 @@ void EdgeItem::updatePath() {
     QRectF srcRect = m_source->nodeRect();
     QRectF tgtRect = m_target->nodeRect();
 
-    // Resolve anchor mode and curvature from active template.
+    // Resolve anchor and curvature: theme provides the base; template may
+    // override the anchor (Lined forces baseline).
     QString anchor = QStringLiteral("center");
     qreal curvature = 0.5;
     if (m_mindMapScene) {
+        if (const auto* th = m_mindMapScene->themeDescriptor()) {
+            anchor = th->edgeStyle.anchor;
+            curvature = qBound<qreal>(0.0, th->edgeStyle.curvature, 0.95);
+        }
         if (const auto* td = m_mindMapScene->templateDescriptor()) {
-            anchor = td->edgeStyle.anchor;
-            curvature = qBound<qreal>(0.0, td->edgeStyle.curvature, 0.95);
+            if (!td->edgeAnchorOverride.isEmpty())
+                anchor = td->edgeAnchorOverride;
         }
     }
     const bool baseline = (anchor == QLatin1String("baseline"));

@@ -2,6 +2,7 @@
 #include "core/AppSettings.h"
 #include "core/FileManager.h"
 #include "core/TemplateRegistry.h"
+#include "core/ThemeRegistry.h"
 #include "layout/LayoutAlgorithmRegistry.h"
 #include "ui/IconFactory.h"
 #include "scene/MindMapScene.h"
@@ -51,9 +52,14 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     // Initialize registries before anything else
     LayoutAlgorithmRegistry::instance().registerBuiltins();
     TemplateRegistry::instance().loadBuiltins();
-    TemplateRegistry::instance().loadFromDirectory(
-        QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)
-        + "/YMind/templates");
+    ThemeRegistry::instance().loadBuiltins();
+    const QString userData =
+        QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/YMind";
+    TemplateRegistry::instance().loadFromDirectory(userData + "/templates");
+    // User themes live in their own folder; also accept legacy themes dropped
+    // alongside templates so existing downloads keep working.
+    ThemeRegistry::instance().loadFromDirectory(userData + "/themes");
+    ThemeRegistry::instance().loadFromDirectory(userData + "/templates");
 
     m_tabManager = new TabManager(this);
     m_fileManager = new FileManager(this, m_tabManager, this);
@@ -571,14 +577,20 @@ void MainWindow::setupMenuBar() {
     });
 
     // ---- Template menu ----
-    auto* templateMenu = menuBar()->addMenu(tr("&Template"));
+    auto* templateMenu = menuBar()->addMenu(tr("Te&mplate"));
 
-    auto* switchTemplateAct = templateMenu->addAction(tr("Switch &Template..."));
-    connect(switchTemplateAct, &QAction::triggered, this, &MainWindow::switchStyle);
+    auto* switchTemplateAct = templateMenu->addAction(tr("Switch Te&mplate..."));
+    connect(switchTemplateAct, &QAction::triggered, this, &MainWindow::switchTemplate);
 
-    auto* browseTemplatesAct = templateMenu->addAction(tr("&Browse Templates Online..."));
-    connect(browseTemplatesAct, &QAction::triggered, this, []() {
-        QDesktopServices::openUrl(QUrl("https://broccoli-97.github.io/xmind/#templates"));
+    // ---- Theme menu ----
+    auto* themeMenu = menuBar()->addMenu(tr("&Theme"));
+
+    auto* switchThemeAct = themeMenu->addAction(tr("Switch &Theme..."));
+    connect(switchThemeAct, &QAction::triggered, this, &MainWindow::switchStyle);
+
+    auto* browseThemesAct = themeMenu->addAction(tr("&Browse Themes Online..."));
+    connect(browseThemesAct, &QAction::triggered, this, []() {
+        QDesktopServices::openUrl(QUrl("https://broccoli-97.github.io/xmind/#themes"));
     });
 
     // ---- Help menu ----
@@ -673,10 +685,12 @@ void MainWindow::openSettings() {
 }
 
 // ---------------------------------------------------------------------------
-// Switch the active template/style on the currently visible scene. Lets the
-// user re-skin a map without losing its content.
+// Switch the active template on the currently visible scene. Reapplies the
+// new template's layout algorithm + structural overrides; keeps the user's
+// content (every node text + any structural changes they made) intact, and
+// keeps whichever theme is currently applied.
 // ---------------------------------------------------------------------------
-void MainWindow::switchStyle() {
+void MainWindow::switchTemplate() {
     auto* scene = m_tabManager->currentScene();
     if (!scene)
         return;
@@ -696,8 +710,8 @@ void MainWindow::switchStyle() {
     }
 
     bool ok = false;
-    QString chosen = QInputDialog::getItem(this, tr("Switch Style"),
-                                           tr("Choose a style:"), names, currentIdx,
+    QString chosen = QInputDialog::getItem(this, tr("Switch Template"),
+                                           tr("Choose a template:"), names, currentIdx,
                                            /*editable=*/false, &ok);
     if (!ok)
         return;
@@ -705,8 +719,9 @@ void MainWindow::switchStyle() {
     if (idx < 0)
         return;
 
-    // Mirror ThemeManager::applyTheme: invalidate device caches so all items
-    // repaint with the new template's colors / shapes, then restore the cache.
+    // Drop device caches so every item repaints with the new template's
+    // shape/anchor overrides, then re-run autoLayout against the new
+    // algorithm + spacing.
     const auto items = scene->items();
     for (auto* item : items)
         item->setCacheMode(QGraphicsItem::NoCache);
@@ -715,6 +730,64 @@ void MainWindow::switchStyle() {
 
     scene->setTemplateId(ids[idx]);
     scene->autoLayout();
+
+    QPointer<QGraphicsScene> guard(scene);
+    QTimer::singleShot(0, this, [guard]() {
+        if (!guard)
+            return;
+        const auto its = guard->items();
+        for (auto* item : its) {
+            if (dynamic_cast<NodeItem*>(item))
+                item->setCacheMode(QGraphicsItem::DeviceCoordinateCache);
+        }
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Switch the active theme on the currently visible scene. Re-skins the map
+// (colors, fills, borders, connectors) without touching layout or content.
+// ---------------------------------------------------------------------------
+void MainWindow::switchStyle() {
+    auto* scene = m_tabManager->currentScene();
+    if (!scene)
+        return;
+
+    auto themes = ThemeRegistry::instance().allThemes();
+    if (themes.isEmpty())
+        return;
+
+    QStringList names;
+    QStringList ids;
+    int currentIdx = 0;
+    const QString activeId = scene->themeId().isEmpty()
+                                 ? ThemeRegistry::defaultThemeId()
+                                 : scene->themeId();
+    for (const auto* th : themes) {
+        names << th->name;
+        ids << th->id;
+        if (th->id == activeId)
+            currentIdx = ids.size() - 1;
+    }
+
+    bool ok = false;
+    QString chosen = QInputDialog::getItem(this, tr("Switch Theme"),
+                                           tr("Choose a theme:"), names, currentIdx,
+                                           /*editable=*/false, &ok);
+    if (!ok)
+        return;
+    int idx = names.indexOf(chosen);
+    if (idx < 0)
+        return;
+
+    // Drop device caches so every item repaints with the new theme's
+    // fill/border/edge style, then restore the cache after the repaint.
+    const auto items = scene->items();
+    for (auto* item : items)
+        item->setCacheMode(QGraphicsItem::NoCache);
+    if (auto* view = m_tabManager->currentView())
+        view->viewport()->update();
+
+    scene->setThemeId(ids[idx]);
 
     QPointer<QGraphicsScene> guard(scene);
     QTimer::singleShot(0, this, [guard]() {

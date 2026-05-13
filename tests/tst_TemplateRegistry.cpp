@@ -26,9 +26,9 @@ void tst_TemplateRegistry::builtinsAreLoaded() {
     QVERIFY(TemplateRegistry::instance().templateById("builtin.mindmap") != nullptr);
     QVERIFY(TemplateRegistry::instance().templateById("builtin.orgchart") != nullptr);
     QVERIFY(TemplateRegistry::instance().templateById("builtin.projectplan") != nullptr);
+    // Lined is a template (not a theme): its underline node shape and
+    // baseline-anchored edges are structural, applied via overrides.
     QVERIFY(TemplateRegistry::instance().templateById("builtin.lined") != nullptr);
-    QVERIFY(TemplateRegistry::instance().templateById("builtin.outlined") != nullptr);
-    QVERIFY(TemplateRegistry::instance().templateById("builtin.tinted") != nullptr);
 }
 
 void tst_TemplateRegistry::templateByIdFindsBuiltins() {
@@ -45,9 +45,8 @@ void tst_TemplateRegistry::templateByIdReturnsNullForUnknown() {
 
 void tst_TemplateRegistry::allTemplatesReturnsThreeBuiltins() {
     auto all = TemplateRegistry::instance().allTemplates();
-    // At least 6 builtins: Mind Map, Org Chart, Project Plan, Lined,
-    // Outlined, Tinted. May include custom from other tests.
-    QVERIFY(all.size() >= 6);
+    // 4 built-in templates: Mind Map, Org Chart, Project Plan, Lined.
+    QVERIFY(all.size() >= 4);
 }
 
 void tst_TemplateRegistry::registerCustomTemplate() {

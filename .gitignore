@@ -9,12 +9,15 @@ deploy/
 *.zip
 out/
 templates/
-# Built-in templates baked into the app via Qt resources (resources/templates/)
-# and the website's bundled-templates directory must both be tracked.
+# Built-in templates and themes baked into the app via Qt resources, and the
+# website's bundled themes directory, must all stay tracked even though
+# `templates/` is otherwise ignored.
 !resources/templates/
 !resources/templates/**
-!website/public/templates/
-!website/public/templates/**
+!resources/themes/
+!resources/themes/**
+!website/public/themes/
+!website/public/themes/**
 CLAUDE.md
 *.bat
 website/node_modules/

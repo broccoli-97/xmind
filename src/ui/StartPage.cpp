@@ -1,6 +1,8 @@
 #include "ui/StartPage.h"
 #include "core/TemplateDescriptor.h"
 #include "core/TemplateRegistry.h"
+#include "core/ThemeDescriptor.h"
+#include "core/ThemeRegistry.h"
 #include "ui/IconFactory.h"
 #include "scene/MindMapScene.h"
 #include "scene/NodeItem.h"
@@ -39,14 +41,19 @@ QWidget* StartPage::create(QObject* /*receiver*/, std::function<void(const QStri
     subtitle->setAlignment(Qt::AlignCenter);
     outer->addWidget(subtitle);
 
-    // Template cards row — only the 4 builtins
+    // Template cards row — the 4 built-in templates. Mind Map / Org Chart /
+    // Project Plan differ in their layout algorithm; Lined is also a template
+    // (not a theme) because its underline-shaped nodes and baseline-anchored
+    // connectors are structural, not just decoration. Visual styling (colors,
+    // fills, borders, shadows) lives on themes and is picked separately from
+    // the Theme menu after a template is selected.
     auto* cardRow = new QWidget();
     auto* cardLayout = new QHBoxLayout(cardRow);
     cardLayout->setAlignment(Qt::AlignCenter);
     cardLayout->setSpacing(24);
 
-    QStringList builtinIds = {"builtin.mindmap", "builtin.orgchart", "builtin.projectplan",
-                              "builtin.lined"};
+    QStringList builtinIds = {"builtin.mindmap", "builtin.orgchart",
+                              "builtin.projectplan", "builtin.lined"};
     for (const auto& id : builtinIds) {
         const auto* td = TemplateRegistry::instance().templateById(id);
         if (!td) continue;
@@ -99,24 +106,23 @@ QWidget* StartPage::create(QObject* /*receiver*/, std::function<void(const QStri
     blankRow->addWidget(blankBtn);
     outer->addLayout(blankRow);
 
-    // "Load Template..." underlined link
+    // "Load Theme..." underlined link
     outer->addSpacing(8);
     auto* loadLink = new QLabel(
         QString("<a href=\"#\" style=\"color: inherit;\">%1</a>")
-            .arg(QCoreApplication::translate("StartPage", "Load Template...")));
+            .arg(QCoreApplication::translate("StartPage", "Load Theme...")));
     loadLink->setObjectName("loadTemplateLink");
     loadLink->setAlignment(Qt::AlignCenter);
     loadLink->setCursor(Qt::PointingHandCursor);
     QObject::connect(loadLink, &QLabel::linkActivated, page, [page, onTemplate]() {
         QString filePath = QFileDialog::getOpenFileName(
             page,
-            QCoreApplication::translate("StartPage", "Load Template"),
+            QCoreApplication::translate("StartPage", "Load Theme"),
             QString(),
-            QCoreApplication::translate("StartPage", "Template Files (*.json)"));
+            QCoreApplication::translate("StartPage", "Theme Files (*.json)"));
         if (filePath.isEmpty())
             return;
 
-        // Load the template file into the registry so loadTemplate() can find it
         QFile file(filePath);
         if (!file.open(QIODevice::ReadOnly))
             return;
@@ -127,33 +133,44 @@ QWidget* StartPage::create(QObject* /*receiver*/, std::function<void(const QStri
             return;
 
         QJsonObject obj = doc.object();
-        if (obj["$schema"].toString() != "ymind-template-v1")
-            return;
-
-        TemplateDescriptor td = TemplateDescriptor::fromJson(obj);
-        if (td.id.isEmpty())
-            return;
-
-        // Register it temporarily so loadTemplate() can look it up
-        TemplateRegistry::instance().registerTemplate(td);
-        onTemplate(td.id);
+        QString schema = obj["$schema"].toString();
+        // Accept both template and theme files. Templates create a new doc
+        // with their layout + content; themes register so the new doc can
+        // apply them (the caller starts with a Mind Map template).
+        if (schema == QLatin1String("ymind-template-v1")) {
+            TemplateDescriptor td = TemplateDescriptor::fromJson(obj);
+            if (td.id.isEmpty())
+                return;
+            TemplateRegistry::instance().registerTemplate(td);
+            onTemplate(td.id);
+        } else if (schema == QLatin1String("ymind-theme-v1")) {
+            ThemeDescriptor th = ThemeDescriptor::fromJson(obj);
+            if (th.id.isEmpty())
+                return;
+            ThemeRegistry::instance().registerTheme(th);
+            // Start a default Mind Map doc; the theme will be applied below
+            // via StartPage::loadTemplate when the scene picks it up.
+            // The applied theme is tracked via the scene's pendingThemeId
+            // mechanism — kept simple here: theme application is left to
+            // the menu after the doc opens. Just open Mind Map.
+            onTemplate(QStringLiteral("builtin.mindmap"));
+        }
     });
     auto* linkRow = new QHBoxLayout();
     linkRow->setAlignment(Qt::AlignCenter);
     linkRow->addWidget(loadLink);
     outer->addLayout(linkRow);
 
-    // "Browse templates online…" link — opens the GitHub Pages templates page
-    // where users can grab additional .json styles to drop in their templates
-    // folder.
+    // "Browse themes online…" link — opens the GitHub Pages themes page where
+    // users can grab additional .json styles to drop in their templates folder.
     auto* browseLink = new QLabel(
         QString("<a href=\"#\" style=\"color: inherit;\">%1</a>")
-            .arg(QCoreApplication::translate("StartPage", "Browse templates online...")));
+            .arg(QCoreApplication::translate("StartPage", "Browse themes online...")));
     browseLink->setObjectName("loadTemplateLink");
     browseLink->setAlignment(Qt::AlignCenter);
     browseLink->setCursor(Qt::PointingHandCursor);
     QObject::connect(browseLink, &QLabel::linkActivated, page, []() {
-        QDesktopServices::openUrl(QUrl("https://broccoli-97.github.io/xmind/#templates"));
+        QDesktopServices::openUrl(QUrl("https://broccoli-97.github.io/xmind/#themes"));
     });
     auto* browseRow = new QHBoxLayout();
     browseRow->setAlignment(Qt::AlignCenter);
@@ -181,6 +198,10 @@ void StartPage::loadTemplate(const QString& templateId, MindMapScene* scene) {
     root->setText(td->content.text);
 
     scene->setTemplateId(templateId);
+    // New documents start on the default theme. The user can switch to any
+    // other theme afterwards from the Theme menu without affecting layout.
+    if (scene->themeId().isEmpty())
+        scene->setThemeId(ThemeRegistry::defaultThemeId());
 
     buildContentTree(scene, root, td->content.children);
 

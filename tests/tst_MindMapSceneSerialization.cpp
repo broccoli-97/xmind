@@ -38,7 +38,7 @@ void tst_MindMapSceneSerialization::toJsonBasicStructure() {
     QJsonObject json = scene.toJson();
 
     QCOMPARE(json["format"].toString(), QString("ymind"));
-    QCOMPARE(json["version"].toInt(), 2);
+    QCOMPARE(json["version"].toInt(), 3);
     QVERIFY(json.contains("root"));
     QCOMPARE(json["root"].toObject()["text"].toString(), QString("Root"));
 

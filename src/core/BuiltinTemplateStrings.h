@@ -1,20 +1,23 @@
 #pragma once
 
-// Translation hints for built-in template strings.
+// Translation hints for built-in template and theme strings.
 //
-// Built-in template definitions live as JSON files under resources/templates/,
-// so the strings inside them are no longer scanned by Qt's lupdate from C++
-// source. This header re-declares every translatable built-in string via
-// QT_TRANSLATE_NOOP("TemplateRegistry", ...) so lupdate keeps emitting them
-// into the .ts catalog under the same context name as before.
-//
-// At runtime, the loader translates each parsed string via
-// QCoreApplication::translate("TemplateRegistry", <utf8>). Keep this file in
-// sync when you add/rename/remove strings in resources/templates/*.json.
+// Built-in template + theme definitions live as JSON files under
+// resources/templates/ and resources/themes/, so the strings inside them are
+// no longer scanned by Qt's lupdate from C++ source. This header re-declares
+// every translatable built-in string via QT_TRANSLATE_NOOP so lupdate keeps
+// emitting them into the .ts catalog. Templates use the "TemplateRegistry"
+// context; themes use "ThemeRegistry". At runtime each loader translates
+// parsed strings via QCoreApplication::translate with its own context.
+// Keep this file in sync with the JSON files.
 
 #include <QtGlobal>
 
 namespace BuiltinTemplateStrings {
+
+// ---------------------------------------------------------------------------
+// Templates (layout + starter content)
+// ---------------------------------------------------------------------------
 
 // Mind Map
 [[maybe_unused]] static const char* const kMindMapName = QT_TRANSLATE_NOOP("TemplateRegistry", "Mind Map");
@@ -46,7 +49,7 @@ namespace BuiltinTemplateStrings {
 
 // Lined
 [[maybe_unused]] static const char* const kLinedName = QT_TRANSLATE_NOOP("TemplateRegistry", "Lined");
-[[maybe_unused]] static const char* const kLinedDesc = QT_TRANSLATE_NOOP("TemplateRegistry", "Curved colored lines, text floats above the line");
+[[maybe_unused]] static const char* const kLinedDesc = QT_TRANSLATE_NOOP("TemplateRegistry", "Text floats on continuous baseline-anchored colored lines");
 [[maybe_unused]] static const char* const kLinedRoot = QT_TRANSLATE_NOOP("TemplateRegistry", "Mind Mapping");
 [[maybe_unused]] static const char* const kLinedC1 = QT_TRANSLATE_NOOP("TemplateRegistry", "Why Mind Mapping?");
 [[maybe_unused]] static const char* const kLinedC1a = QT_TRANSLATE_NOOP("TemplateRegistry", "Disrupting linear thinking");
@@ -65,12 +68,24 @@ namespace BuiltinTemplateStrings {
 [[maybe_unused]] static const char* const kLinedC5b = QT_TRANSLATE_NOOP("TemplateRegistry", "Build connections outward");
 [[maybe_unused]] static const char* const kLinedC5c = QT_TRANSLATE_NOOP("TemplateRegistry", "Reorganize as needed");
 
+// ---------------------------------------------------------------------------
+// Themes (visual styling — no layout or content)
+// ---------------------------------------------------------------------------
+
+// Default
+[[maybe_unused]] static const char* const kThemeDefaultName = QT_TRANSLATE_NOOP("ThemeRegistry", "Default");
+[[maybe_unused]] static const char* const kThemeDefaultDesc = QT_TRANSLATE_NOOP("ThemeRegistry", "Classic look: solid colored fills with a soft drop shadow");
+
 // Outlined
-[[maybe_unused]] static const char* const kOutlinedName = QT_TRANSLATE_NOOP("TemplateRegistry", "Outlined");
-[[maybe_unused]] static const char* const kOutlinedDesc = QT_TRANSLATE_NOOP("TemplateRegistry", "Minimalist style — colored borders, no fills, no shadow");
+[[maybe_unused]] static const char* const kThemeOutlinedName = QT_TRANSLATE_NOOP("ThemeRegistry", "Outlined");
+[[maybe_unused]] static const char* const kThemeOutlinedDesc = QT_TRANSLATE_NOOP("ThemeRegistry", "Minimalist style — colored borders, no fills, no shadow");
 
 // Tinted
-[[maybe_unused]] static const char* const kTintedName = QT_TRANSLATE_NOOP("TemplateRegistry", "Tinted");
-[[maybe_unused]] static const char* const kTintedDesc = QT_TRANSLATE_NOOP("TemplateRegistry", "Soft tinted fills with colored borders — Excalidraw-style");
+[[maybe_unused]] static const char* const kThemeTintedName = QT_TRANSLATE_NOOP("ThemeRegistry", "Tinted");
+[[maybe_unused]] static const char* const kThemeTintedDesc = QT_TRANSLATE_NOOP("ThemeRegistry", "Soft tinted fills with colored borders — Excalidraw-style");
+
+// Morandi
+[[maybe_unused]] static const char* const kThemeMorandiName = QT_TRANSLATE_NOOP("ThemeRegistry", "Morandi");
+[[maybe_unused]] static const char* const kThemeMorandiDesc = QT_TRANSLATE_NOOP("ThemeRegistry", "Low-saturation Morandi palette with soft 60% tinted fills");
 
 } // namespace BuiltinTemplateStrings

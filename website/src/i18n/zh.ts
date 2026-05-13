@@ -4,7 +4,6 @@ export const zh: Record<string, string> = {
     'nav.layouts': '布局',
     'nav.animation': '动画',
     'nav.themes': '主题',
-    'nav.templates': '模板',
     'nav.download': '下载',
 
     // Hero
@@ -69,11 +68,11 @@ export const zh: Record<string, string> = {
     'animation.realtime': '实时计算',
     'animation.realtime.desc': '添加、移动或删除节点时布局即时重新计算——无需手动排列。',
 
-    // Screenshots / Themes
-    'themes.title': '精美主题',
-    'themes.subtitle': '在为长时间编辑会话设计的亮色和暗色主题之间切换。',
-    'themes.light': '亮色',
-    'themes.dark': '暗色',
+    // Screenshots (light/dark showcase strip)
+    'screenshots.title': '精美主题',
+    'screenshots.subtitle': '在为长时间编辑会话设计的亮色和暗色主题之间切换。',
+    'screenshots.light': '亮色',
+    'screenshots.dark': '暗色',
 
     // Download
     'download.title': '下载 YMind',
@@ -87,19 +86,19 @@ export const zh: Record<string, string> = {
     'download.button': '下载最新版',
     'download.releases': '所有版本',
 
-    // Templates Library
-    'templates.title': '模板库',
-    'templates.subtitle':
-        '即用型样式文件，可改变思维导图的外观。应用启动时会扫描模板文件夹自动加载，您也可以在这里下载更多样式。',
-    'templates.howto.title': '安装方式',
-    'templates.howto.body':
-        '模板就是普通的 .json 文件。应用启动时会扫描模板文件夹，并把找到的所有模板列在「样式 → 切换样式」中。',
-    'templates.howto.step1': '从下面的卡片下载 .json 文件。',
-    'templates.howto.step2':
-        '将文件放入 YMind 模板文件夹（Linux/macOS：~/.local/share/YMind/templates/；Windows：%APPDATA%/YMind/templates/），或使用「文件 → 加载模板…」。',
-    'templates.howto.step3': '重启 YMind，然后在「样式 → 切换样式」中选择新模板。',
-    'templates.download': '下载',
-    'templates.loaderror': '无法加载模板清单',
+    // Themes
+    'themes.title': '主题',
+    'themes.subtitle':
+        '可直接套用的视觉风格，改变思维导图的颜色、填充、边框与连接线。应用已内置多种主题，您也可以在此下载更多。',
+    'themes.howto.title': '安装方式',
+    'themes.howto.body':
+        '每个主题都是一个小文件夹，包含 theme.json 与可选预览图。把整个文件夹放进 YMind 的模板目录，下次启动即可使用。',
+    'themes.howto.step1': '从下方任意卡片下载 theme.json（或整个主题文件夹）。',
+    'themes.howto.step2':
+        '把文件放入 YMind 模板目录，可作为 <id>/theme.json 子文件夹，或直接作为 <id>.json 平铺。Linux/macOS：~/.local/share/YMind/templates/，Windows：%APPDATA%/YMind/templates/。',
+    'themes.howto.step3': '重启 YMind，然后在「主题 → 切换主题」中选择新主题。',
+    'themes.download': '下载',
+    'themes.loaderror': '无法加载主题清单',
 
     // Footer
     'footer.license': '基于 Apache 2.0 许可证发布。',

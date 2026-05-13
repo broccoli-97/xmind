@@ -1,5 +1,6 @@
 #include "ui/IconFactory.h"
-#include "core/TemplateRegistry.h"
+#include "core/ThemeDescriptor.h"
+#include "core/ThemeRegistry.h"
 #include "ui/ThemeManager.h"
 
 #include <QGuiApplication>
@@ -314,17 +315,19 @@ struct PreviewPalette {
     bool dark;
 };
 
-PreviewPalette resolvePalette(const QString& templateId) {
+PreviewPalette resolvePalette(const QString& /*templateId*/) {
+    // Template previews show the *default* theme's palette — every built-in
+    // template card on the Start Page renders in the same neutral palette so
+    // the cards differ by layout shape, not color. Themes are picked
+    // separately from the menu and don't affect these card previews.
     PreviewPalette pal{};
     pal.dark = ThemeManager::isDark();
-    const auto* td = TemplateRegistry::instance().templateById(templateId);
-    if (td) {
-        const auto& cs = td->activeColors();
+    const auto* th = ThemeRegistry::instance().themeById(ThemeRegistry::defaultThemeId());
+    if (th) {
+        const auto& cs = th->activeColors();
         for (int i = 0; i < 6; ++i)
             pal.accent[i] = cs.nodePalette[i];
     } else {
-        // Fall back to the global theme palette so user templates without a
-        // descriptor still get a coherent multi-color preview.
         const auto& tc = ThemeManager::colors();
         for (int i = 0; i < 6; ++i)
             pal.accent[i] = tc.nodePalette[i];

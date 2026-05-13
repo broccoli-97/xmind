@@ -4,7 +4,6 @@ export const en: Record<string, string> = {
     'nav.layouts': 'Layouts',
     'nav.animation': 'Animation',
     'nav.themes': 'Themes',
-    'nav.templates': 'Templates',
     'nav.download': 'Download',
 
     // Hero
@@ -77,12 +76,12 @@ export const en: Record<string, string> = {
     'animation.realtime.desc':
         'Layout recalculates instantly as you add, move, or delete nodes — no manual arrangement needed.',
 
-    // Screenshots / Themes
-    'themes.title': 'Beautiful Themes',
-    'themes.subtitle':
+    // Screenshots (light/dark showcase strip)
+    'screenshots.title': 'Beautiful Themes',
+    'screenshots.subtitle':
         'Switch between light and dark themes designed for extended editing sessions.',
-    'themes.light': 'Light',
-    'themes.dark': 'Dark',
+    'screenshots.light': 'Light',
+    'screenshots.dark': 'Dark',
 
     // Download
     'download.title': 'Download YMind',
@@ -96,21 +95,21 @@ export const en: Record<string, string> = {
     'download.button': 'Download Latest',
     'download.releases': 'All Releases',
 
-    // Templates Library
-    'templates.title': 'Templates Library',
-    'templates.subtitle':
-        'Drop-in style files that change the look of your mind maps. The app already loads any .json from your templates folder; download more here.',
-    'templates.howto.title': 'How to install',
-    'templates.howto.body':
-        'Templates are plain .json files. The app scans a templates folder on startup and exposes everything it finds in Style → Switch Style.',
-    'templates.howto.step1':
-        'Download a .json file from a card below.',
-    'templates.howto.step2':
-        'Place it in your YMind templates folder (Linux/macOS: ~/.local/share/YMind/templates/, Windows: %APPDATA%/YMind/templates/), or use File → Load Template…',
-    'templates.howto.step3':
-        'Restart YMind, then pick the new style under Style → Switch Style.',
-    'templates.download': 'Download',
-    'templates.loaderror': 'Could not load templates manifest',
+    // Themes
+    'themes.title': 'Themes',
+    'themes.subtitle':
+        'Drop-in visual styles that change the look of your mind maps — colors, fills, borders, edges. The app already ships a curated set; download more here.',
+    'themes.howto.title': 'How to install',
+    'themes.howto.body':
+        'Each theme is a small folder containing theme.json (and optional preview). Drop the whole folder into your YMind templates directory; the app picks it up on next launch.',
+    'themes.howto.step1':
+        'Download a theme.json from a card below (or grab the whole folder).',
+    'themes.howto.step2':
+        'Place it into your YMind templates folder, either as <id>/theme.json or as a flat <id>.json. Linux/macOS: ~/.local/share/YMind/templates/. Windows: %APPDATA%/YMind/templates/.',
+    'themes.howto.step3':
+        'Restart YMind, then pick the new theme under Theme → Switch Theme.',
+    'themes.download': 'Download',
+    'themes.loaderror': 'Could not load themes manifest',
 
     // Footer
     'footer.license': 'Released under the Apache 2.0 License.',

@@ -1,5 +1,5 @@
 #include "scene/MindMapExporter.h"
-#include "core/TemplateDescriptor.h"
+#include "core/ThemeDescriptor.h"
 #include "scene/MindMapScene.h"
 #include "scene/NodeItem.h"
 #include "ui/ThemeManager.h"
@@ -54,9 +54,9 @@ bool MindMapExporter::exportToPng(const QString& filePath, int scaleFactor) {
                     static_cast<int>(contentRect.height() * scaleFactor));
 
     QImage image(imageSize, QImage::Format_ARGB32_Premultiplied);
-    const auto* td = m_scene->templateDescriptor();
+    const auto* th = m_scene->themeDescriptor();
     QColor bgColor =
-        td ? td->activeColors().exportBackground : ThemeManager::colors().exportBackground;
+        th ? th->activeColors().exportBackground : ThemeManager::colors().exportBackground;
     image.fill(bgColor);
 
     QPainter painter(&image);
