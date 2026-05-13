@@ -116,6 +116,28 @@ QIcon IconFactory::makeToolIcon(const QString& name) {
     } else if (name == "close-panel") {
         p.drawLine(10, 10, 22, 22);
         p.drawLine(22, 10, 10, 22);
+    } else if (name == "update" || name == "update-available") {
+        // Cloud-style download arrow: tray at bottom with arrow descending into it.
+        bool available = (name == "update-available");
+        QColor strokeColor = available ? QColor("#2E9E5B") : baseColor;
+        QPen strokePen(strokeColor, 2.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+        p.setPen(strokePen);
+        // Arrow shaft
+        p.drawLine(16, 6, 16, 20);
+        // Arrowhead
+        p.drawLine(16, 20, 10, 14);
+        p.drawLine(16, 20, 22, 14);
+        // Tray
+        p.drawLine(6, 26, 26, 26);
+        p.drawLine(6, 23, 6, 26);
+        p.drawLine(26, 23, 26, 26);
+
+        // For the available state, add a small filled accent dot to draw the eye.
+        if (available) {
+            p.setPen(Qt::NoPen);
+            p.setBrush(QColor("#E53935"));
+            p.drawEllipse(QPointF(24, 7), 4.0, 4.0);
+        }
     }
 
     p.end();

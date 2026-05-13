@@ -596,3 +596,48 @@ QLabel#settingsHint {
     color: {{settingsHintFg}};
     font-size: 9pt;
 }
+
+/* ---------------------------------------------------------------------------
+   Update notification banner
+   --------------------------------------------------------------------------- */
+QFrame#updateBanner {
+    background-color: {{updateBannerBg}};
+    border-bottom: 1px solid {{updateBannerBorder}};
+}
+
+QLabel#updateBannerLabel {
+    color: {{updateBannerFg}};
+    background: transparent;
+    border: none;
+    font-size: 12px;
+}
+
+QLabel#updateBannerLabel a {
+    color: {{updateBannerLinkFg}};
+}
+
+QToolButton#updateBannerClose {
+    border: none;
+    background: transparent;
+    border-radius: 3px;
+}
+
+QToolButton#updateBannerClose:hover {
+    background-color: {{updateBannerCloseHoverBg}};
+}
+
+QToolButton#statusBarUpdateBtn {
+    border: none;
+    background: transparent;
+    border-radius: 3px;
+}
+
+QToolButton#statusBarUpdateBtn:hover {
+    background-color: {{statusBarBtnHoverBg}};
+}
+
+QLabel#statusBarVersionLabel {
+    color: {{statusBarFg}};
+    padding: 0 6px;
+    font-size: 11px;
+}

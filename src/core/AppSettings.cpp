@@ -98,7 +98,7 @@ void AppSettings::setWindowState(const QByteArray& state) {
 }
 
 bool AppSettings::checkForUpdatesEnabled() const {
-    return m_settings->value("updates/checkOnStartup", false).toBool();
+    return m_settings->value("updates/checkOnStartup", true).toBool();
 }
 
 void AppSettings::setCheckForUpdatesEnabled(bool enabled) {

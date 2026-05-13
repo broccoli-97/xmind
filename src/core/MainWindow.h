@@ -6,6 +6,7 @@ class TabManager;
 class FileManager;
 class OutlineWidget;
 class UpdateChecker;
+class QFrame;
 class QLabel;
 class QTimer;
 class QSplitter;
@@ -40,7 +41,10 @@ private:
     void onAutoSaveSettingsChanged();
     void applyTheme();
     void refreshOutline();
-    void showUpdateDialog(const QString& latestVersion, const QString& releaseUrl);
+    void setupStatusBar();
+    void onUpdateAvailable(const QString& latestVersion, const QString& releaseUrl);
+    void onUpdateIconClicked();
+    void refreshUpdateIcon();
 
     // Managers
     TabManager* m_tabManager = nullptr;
@@ -58,6 +62,12 @@ private:
     QToolButton* m_undoBtn = nullptr;
     QToolButton* m_redoBtn = nullptr;
     QLabel* m_statusHelpLabel = nullptr;
+    QToolButton* m_updateStatusBtn = nullptr;
+    QLabel* m_versionLabel = nullptr;
+    QFrame* m_updateBanner = nullptr;
+    QLabel* m_updateBannerLabel = nullptr;
+    QString m_pendingUpdateVersion;
+    QString m_pendingUpdateUrl;
 
     QAction* m_toggleToolbarAct = nullptr;
     QAction* m_toggleOutlineAct = nullptr;

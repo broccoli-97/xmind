@@ -106,7 +106,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     // Update checker
     m_updateChecker = new UpdateChecker(this);
     connect(m_updateChecker, &UpdateChecker::updateAvailable, this,
-            &MainWindow::showUpdateDialog);
+            &MainWindow::onUpdateAvailable);
     connect(m_updateChecker, &UpdateChecker::upToDate, this, [this]() {
         QMessageBox::information(this, tr("Check for Updates"),
                                  tr("You are running the latest version of YMind."));
@@ -115,16 +115,11 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
         QMessageBox::warning(this, tr("Check for Updates"),
                              tr("Could not check for updates:\n%1").arg(msg));
     });
+
+    setupStatusBar();
+
     if (AppSettings::instance().checkForUpdatesEnabled())
         QTimer::singleShot(3000, m_updateChecker, [this]() { m_updateChecker->checkForUpdates(false); });
-
-    m_statusHelpLabel = new QLabel(
-        tr("Enter: Add Child  |  Ctrl+Enter: Add Sibling  |  Del: Delete  |  "
-           "F2/Double-click: Edit  |  Ctrl+L: Auto Layout  |  Scroll: Zoom  |  "
-           "Middle/Right-drag: Pan"),
-        this);
-    m_statusHelpLabel->setAlignment(Qt::AlignCenter);
-    statusBar()->addWidget(m_statusHelpLabel, 1);
 }
 
 // ---------------------------------------------------------------------------
@@ -154,6 +149,39 @@ void MainWindow::setupCentralLayout() {
     auto* mainLayout = new QVBoxLayout(centralW);
     mainLayout->setContentsMargins(0, 0, 0, 0);
     mainLayout->setSpacing(0);
+
+    // ---- Update notification banner (hidden until an update is found) ----
+    m_updateBanner = new QFrame(this);
+    m_updateBanner->setObjectName("updateBanner");
+    m_updateBanner->setVisible(false);
+    auto* bannerLayout = new QHBoxLayout(m_updateBanner);
+    bannerLayout->setContentsMargins(12, 6, 6, 6);
+    bannerLayout->setSpacing(8);
+
+    auto* bannerIcon = new QLabel(m_updateBanner);
+    bannerIcon->setPixmap(IconFactory::makeToolIcon("update-available").pixmap(18, 18));
+    bannerLayout->addWidget(bannerIcon);
+
+    m_updateBannerLabel = new QLabel(m_updateBanner);
+    m_updateBannerLabel->setObjectName("updateBannerLabel");
+    m_updateBannerLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
+    m_updateBannerLabel->setOpenExternalLinks(false);
+    connect(m_updateBannerLabel, &QLabel::linkActivated, this, [this](const QString& link) {
+        QDesktopServices::openUrl(QUrl(link));
+    });
+    bannerLayout->addWidget(m_updateBannerLabel, 1);
+
+    auto* bannerClose = new QToolButton(m_updateBanner);
+    bannerClose->setObjectName("updateBannerClose");
+    bannerClose->setIcon(IconFactory::makeToolIcon("close-panel"));
+    bannerClose->setIconSize(QSize(14, 14));
+    bannerClose->setAutoRaise(true);
+    bannerClose->setFixedSize(22, 22);
+    bannerClose->setToolTip(tr("Dismiss"));
+    connect(bannerClose, &QToolButton::clicked, m_updateBanner, &QFrame::hide);
+    bannerLayout->addWidget(bannerClose);
+
+    mainLayout->addWidget(m_updateBanner);
 
     // ---- Tab bar row ----
     auto* tabBarRowWidget = new QWidget(this);
@@ -424,6 +452,9 @@ void MainWindow::setupMenuBar() {
 
     fileMenu->addSeparator();
 
+    auto* importAct = fileMenu->addAction(tr("&Import from Text..."));
+    connect(importAct, &QAction::triggered, m_fileManager, &FileManager::importFromText);
+
     auto* exportMenu = fileMenu->addMenu(tr("&Export"));
 
     auto* exportTextAct = exportMenu->addAction(tr("As &Text..."));
@@ -443,9 +474,6 @@ void MainWindow::setupMenuBar() {
     auto* exportPdfAct = exportMenu->addAction(tr("As P&DF..."));
     connect(exportPdfAct, &QAction::triggered, m_fileManager, &FileManager::exportAsPdf);
 
-    auto* importAct = fileMenu->addAction(tr("&Import from Text..."));
-    connect(importAct, &QAction::triggered, m_fileManager, &FileManager::importFromText);
-
     fileMenu->addSeparator();
 
     auto* exitAct = fileMenu->addAction(tr("E&xit"));
@@ -459,10 +487,34 @@ void MainWindow::setupMenuBar() {
     editMenu->addAction(m_redoAct);
     editMenu->addSeparator();
 
+    m_addChildAct = editMenu->addAction(tr("Add &Child"));
+    m_addChildAct->setToolTip(tr("Add a child node (Enter)"));
+    connect(m_addChildAct, &QAction::triggered, this,
+            [this]() { if (auto* s = m_tabManager->currentScene()) s->addChildToSelected(); });
+
+    m_addSiblingAct = editMenu->addAction(tr("Add &Sibling"));
+    m_addSiblingAct->setToolTip(tr("Add a sibling node (Ctrl+Enter)"));
+    connect(m_addSiblingAct, &QAction::triggered, this,
+            [this]() { if (auto* s = m_tabManager->currentScene()) s->addSiblingToSelected(); });
+
     auto* deleteAct = editMenu->addAction(tr("&Delete"));
     deleteAct->setToolTip(tr("Delete selected node (Del)"));
     connect(deleteAct, &QAction::triggered, this,
             [this]() { if (auto* s = m_tabManager->currentScene()) s->deleteSelected(); });
+
+    editMenu->addSeparator();
+
+    auto* autoLayoutAct = editMenu->addAction(tr("&Auto Layout"));
+    autoLayoutAct->setShortcut(QKeySequence("Ctrl+L"));
+    connect(autoLayoutAct, &QAction::triggered, this,
+            [this]() { if (auto* s = m_tabManager->currentScene()) s->autoLayout(); });
+
+    editMenu->addSeparator();
+
+    auto* settingsAct = editMenu->addAction(tr("&Preferences..."));
+    settingsAct->setShortcut(QKeySequence("Ctrl+,"));
+    settingsAct->setMenuRole(QAction::PreferencesRole);
+    connect(settingsAct, &QAction::triggered, this, &MainWindow::openSettings);
 
     // ---- View menu ----
     auto* viewMenu = menuBar()->addMenu(tr("&View"));
@@ -518,43 +570,16 @@ void MainWindow::setupMenuBar() {
         updateContentVisibility();
     });
 
-    // ---- Layout menu ----
-    auto* layoutMenu = menuBar()->addMenu(tr("&Layout"));
+    // ---- Template menu ----
+    auto* templateMenu = menuBar()->addMenu(tr("&Template"));
 
-    auto* autoLayoutAct = layoutMenu->addAction(tr("&Auto Layout"));
-    autoLayoutAct->setShortcut(QKeySequence("Ctrl+L"));
-    connect(autoLayoutAct, &QAction::triggered, this,
-            [this]() { if (auto* s = m_tabManager->currentScene()) s->autoLayout(); });
+    auto* switchTemplateAct = templateMenu->addAction(tr("Switch &Template..."));
+    connect(switchTemplateAct, &QAction::triggered, this, &MainWindow::switchStyle);
 
-    // ---- Insert menu ----
-    auto* insertMenu = menuBar()->addMenu(tr("&Insert"));
-
-    m_addChildAct = insertMenu->addAction(tr("Add &Child"));
-    m_addChildAct->setToolTip(tr("Add a child node (Enter)"));
-    connect(m_addChildAct, &QAction::triggered, this,
-            [this]() { if (auto* s = m_tabManager->currentScene()) s->addChildToSelected(); });
-
-    m_addSiblingAct = insertMenu->addAction(tr("Add &Sibling"));
-    m_addSiblingAct->setToolTip(tr("Add a sibling node (Ctrl+Enter)"));
-    connect(m_addSiblingAct, &QAction::triggered, this,
-            [this]() { if (auto* s = m_tabManager->currentScene()) s->addSiblingToSelected(); });
-
-    // ---- Style menu ----
-    auto* styleMenu = menuBar()->addMenu(tr("&Style"));
-
-    auto* switchStyleAct = styleMenu->addAction(tr("Switch &Style..."));
-    connect(switchStyleAct, &QAction::triggered, this, &MainWindow::switchStyle);
-
-    auto* browseStylesAct = styleMenu->addAction(tr("&Browse Templates Online..."));
-    connect(browseStylesAct, &QAction::triggered, this, []() {
+    auto* browseTemplatesAct = templateMenu->addAction(tr("&Browse Templates Online..."));
+    connect(browseTemplatesAct, &QAction::triggered, this, []() {
         QDesktopServices::openUrl(QUrl("https://broccoli-97.github.io/xmind/#templates"));
     });
-
-    styleMenu->addSeparator();
-
-    auto* settingsAct = styleMenu->addAction(tr("&Settings..."));
-    settingsAct->setShortcut(QKeySequence("Ctrl+,"));
-    connect(settingsAct, &QAction::triggered, this, &MainWindow::openSettings);
 
     // ---- Help menu ----
     auto* helpMenu = menuBar()->addMenu(tr("&Help"));
@@ -789,20 +814,68 @@ void MainWindow::applyTheme() {
 }
 
 // ---------------------------------------------------------------------------
-// Update dialog
+// Status bar: help text on the left, update icon + version on the right
 // ---------------------------------------------------------------------------
-void MainWindow::showUpdateDialog(const QString& latestVersion, const QString& releaseUrl) {
-    QMessageBox box(this);
-    box.setWindowTitle(tr("Update Available"));
-    box.setIcon(QMessageBox::Information);
-    box.setText(tr("A new version of YMind is available.\n\n"
-                   "Current version: %1\n"
-                   "Latest version: %2")
-                    .arg(QCoreApplication::applicationVersion(), latestVersion));
-    box.setInformativeText(tr("Would you like to open the download page?"));
-    box.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
-    box.setDefaultButton(QMessageBox::Yes);
+void MainWindow::setupStatusBar() {
+    m_statusHelpLabel = new QLabel(
+        tr("Enter: Add Child  |  Ctrl+Enter: Add Sibling  |  Del: Delete  |  "
+           "F2/Double-click: Edit  |  Ctrl+L: Auto Layout  |  Scroll: Zoom  |  "
+           "Middle/Right-drag: Pan"),
+        this);
+    m_statusHelpLabel->setAlignment(Qt::AlignCenter);
+    statusBar()->addWidget(m_statusHelpLabel, 1);
 
-    if (box.exec() == QMessageBox::Yes)
-        QDesktopServices::openUrl(QUrl(releaseUrl));
+    m_updateStatusBtn = new QToolButton(this);
+    m_updateStatusBtn->setObjectName("statusBarUpdateBtn");
+    m_updateStatusBtn->setAutoRaise(true);
+    m_updateStatusBtn->setFixedSize(22, 22);
+    m_updateStatusBtn->setIconSize(QSize(16, 16));
+    connect(m_updateStatusBtn, &QToolButton::clicked, this, &MainWindow::onUpdateIconClicked);
+    statusBar()->addPermanentWidget(m_updateStatusBtn);
+
+    m_versionLabel = new QLabel(QString("v%1").arg(QCoreApplication::applicationVersion()), this);
+    m_versionLabel->setObjectName("statusBarVersionLabel");
+    statusBar()->addPermanentWidget(m_versionLabel);
+
+    refreshUpdateIcon();
+}
+
+// ---------------------------------------------------------------------------
+// Update notifications
+// ---------------------------------------------------------------------------
+void MainWindow::onUpdateAvailable(const QString& latestVersion, const QString& releaseUrl) {
+    m_pendingUpdateVersion = latestVersion;
+    m_pendingUpdateUrl = releaseUrl;
+
+    if (m_updateBannerLabel && m_updateBanner) {
+        m_updateBannerLabel->setText(
+            tr("A new version <b>v%1</b> of YMind is available. "
+               "<a href=\"%2\" style=\"color: inherit; text-decoration: underline;\">Download</a>")
+                .arg(latestVersion, releaseUrl));
+        m_updateBanner->setVisible(true);
+    }
+
+    refreshUpdateIcon();
+}
+
+void MainWindow::onUpdateIconClicked() {
+    if (!m_pendingUpdateUrl.isEmpty()) {
+        QDesktopServices::openUrl(QUrl(m_pendingUpdateUrl));
+        return;
+    }
+    if (m_updateChecker)
+        m_updateChecker->checkForUpdates(true);
+}
+
+void MainWindow::refreshUpdateIcon() {
+    if (!m_updateStatusBtn)
+        return;
+
+    bool available = !m_pendingUpdateVersion.isEmpty();
+    m_updateStatusBtn->setIcon(
+        IconFactory::makeToolIcon(available ? "update-available" : "update"));
+    m_updateStatusBtn->setToolTip(
+        available
+            ? tr("Update available: v%1 — click to open download page").arg(m_pendingUpdateVersion)
+            : tr("Check for updates"));
 }

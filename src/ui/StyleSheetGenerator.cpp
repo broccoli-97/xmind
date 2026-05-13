@@ -142,6 +142,13 @@ static ColorMap darkColors() {
         {"subtitleFg",           "#999999"},
         // Settings hint
         {"settingsHintFg",       "#888888"},
+        // Update banner
+        {"updateBannerBg",         "#264F3A"},
+        {"updateBannerBorder",     "#2E9E5B"},
+        {"updateBannerFg",         "#D4E8DA"},
+        {"updateBannerLinkFg",     "#7DD49E"},
+        {"updateBannerCloseHoverBg","#33614A"},
+        {"statusBarBtnHoverBg",    "#3F3F46"},
     };
 }
 
@@ -271,6 +278,13 @@ static ColorMap lightColors() {
         {"subtitleFg",           "#888888"},
         // Settings hint
         {"settingsHintFg",       "gray"},
+        // Update banner
+        {"updateBannerBg",         "#E7F5EC"},
+        {"updateBannerBorder",     "#2E9E5B"},
+        {"updateBannerFg",         "#1F4D33"},
+        {"updateBannerLinkFg",     "#2E7D44"},
+        {"updateBannerCloseHoverBg","#CFE9D7"},
+        {"statusBarBtnHoverBg",    "#D0D0D0"},
     };
 }
 // clang-format on
