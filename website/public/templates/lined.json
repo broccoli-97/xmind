@@ -27,8 +27,8 @@
             "exportBackground": "#FFFFFF"
         },
         "dark": {
-            "canvasBackground": "#1A1A2E",
-            "canvasGridDot": "#2A2A4A",
+            "canvasBackground": "#1E1E1E",
+            "canvasGridDot": "#3F3F46",
             "nodePalette": [
                 "#EF5350",
                 "#FFA726",
@@ -41,7 +41,7 @@
             "nodeSelectionBorder": "#FFB300",
             "nodeText": "#E8E8E8",
             "edgeLightenFactor": 100,
-            "exportBackground": "#1A1A2E"
+            "exportBackground": "#1E1E1E"
         }
     },
     "nodeStyle": {

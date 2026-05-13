@@ -129,8 +129,8 @@ void TemplateRegistry::loadBuiltins() {
 
         // Dark palette — same hues at ~88% lightness, light text.
         TemplateColorScheme linedDark;
-        linedDark.canvasBackground = QColor("#1A1A2E");
-        linedDark.canvasGridDot = QColor("#2A2A4A");
+        linedDark.canvasBackground = QColor("#1E1E1E");
+        linedDark.canvasGridDot = QColor("#3F3F46");
         linedDark.nodePalette[0] = QColor("#EF5350");
         linedDark.nodePalette[1] = QColor("#FFA726");
         linedDark.nodePalette[2] = QColor("#42A5F5");
@@ -141,7 +141,7 @@ void TemplateRegistry::loadBuiltins() {
         linedDark.nodeSelectionBorder = QColor("#FFB300");
         linedDark.nodeText = QColor("#E8E8E8");
         linedDark.edgeLightenFactor = 100;
-        linedDark.exportBackground = QColor("#1A1A2E");
+        linedDark.exportBackground = QColor("#1E1E1E");
         td.darkColors = linedDark;
 
         td.content.text = tr("Mind Mapping");
