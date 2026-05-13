@@ -1,0 +1,35 @@
+{
+    "$schema": "ymind-template-v1",
+    "id": "builtin.tinted",
+    "name": "Tinted",
+    "description": "Soft tinted fills with colored borders — Excalidraw-style",
+    "layout": {
+        "algorithm": "bilateral",
+        "depthSpacing": 100.0,
+        "spreadSpacing": 16.0
+    },
+    "nodeStyle": {
+        "shape": "roundedRect",
+        "borderRadius": 10.0,
+        "padding": 14.0,
+        "fillMode": "tinted",
+        "fillAlpha": 0.18,
+        "borderWidth": 1.8,
+        "borderColorSource": "node",
+        "drawShadow": false
+    },
+    "rootStyle": {
+        "fillAlpha": 0.28,
+        "borderWidth": 2.4
+    },
+    "edgeStyle": {
+        "width": 2.0,
+        "colorSource": "target",
+        "anchor": "center",
+        "curvature": 0.6,
+        "colorModifier": "same",
+        "dashStyle": "solid",
+        "lineCap": "round"
+    },
+    "backgroundPattern": "none"
+}

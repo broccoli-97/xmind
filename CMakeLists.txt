@@ -34,6 +34,7 @@ add_library(ymind_lib OBJECT
     # Core – application infrastructure
     src/core/AboutDialog.h        src/core/AboutDialog.cpp
     src/core/AppSettings.h        src/core/AppSettings.cpp
+    src/core/BuiltinTemplateStrings.h
     src/core/Commands.h           src/core/Commands.cpp
     src/core/FileManager.h        src/core/FileManager.cpp
     src/core/MainWindow.h         src/core/MainWindow.cpp
@@ -73,6 +74,10 @@ add_library(ymind_lib OBJECT
 
 target_include_directories(ymind_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
+# Bake Qt resources (theme.qss + built-in templates) into the library so that
+# both the executable and the test binaries can load them via the ":/..." path.
+target_sources(ymind_lib PRIVATE resources/resources.qrc)
+
 set(APP_VERSION "${PROJECT_VERSION}" CACHE STRING "Application version string")
 target_compile_definitions(ymind_lib PUBLIC YMIND_VERSION="${APP_VERSION}")
 
@@ -102,7 +107,7 @@ else()
     add_executable(ymind)
 endif()
 
-target_sources(ymind PRIVATE src/main.cpp resources/resources.qrc)
+target_sources(ymind PRIVATE src/main.cpp)
 target_link_libraries(ymind PRIVATE ymind_lib)
 
 # ---- Install -----------------------------------------------------------------

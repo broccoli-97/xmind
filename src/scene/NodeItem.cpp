@@ -205,61 +205,83 @@ const TemplateDescriptor* nodeTemplate(const MindMapScene* scene) {
     return scene ? scene->templateDescriptor() : nullptr;
 }
 
-qreal effPadding(const TemplateDescriptor* td) {
-    return td ? td->nodeStyle.padding : NodeItem::kPadding;
-}
-qreal effRadius(const TemplateDescriptor* td) {
-    return td ? td->nodeStyle.borderRadius : NodeItem::kRadius;
-}
-qreal effMinWidth(const TemplateDescriptor* td) {
-    return td ? td->nodeStyle.minWidth : NodeItem::kMinWidth;
-}
-qreal effMaxWidth(const TemplateDescriptor* td) {
-    return td ? td->nodeStyle.maxWidth : NodeItem::kMaxWidth;
-}
-
-// Resolve which shape to draw for a given node level.
-QString effShape(const TemplateDescriptor* td, int level) {
+// Effective node style for a given (template, level) — accounts for rootStyle override.
+const TemplateNodeStyle& effStyle(const TemplateDescriptor* td, int level) {
+    static const TemplateNodeStyle kDefault{};
     if (!td)
-        return QStringLiteral("roundedRect");
-    if (level == 0 && !td->nodeStyle.rootShape.isEmpty())
-        return td->nodeStyle.rootShape;
-    return td->nodeStyle.shape;
+        return kDefault;
+    return td->nodeStyleForLevel(level);
 }
 
-bool effDrawShadow(const TemplateDescriptor* td, const QString& shape) {
+qreal effPadding(const TemplateDescriptor* td, int level) {
+    return effStyle(td, level).padding;
+}
+qreal effRadius(const TemplateDescriptor* td, int level) {
+    return effStyle(td, level).borderRadius;
+}
+qreal effMinWidth(const TemplateDescriptor* td, int level) {
+    return effStyle(td, level).minWidth;
+}
+qreal effMaxWidth(const TemplateDescriptor* td, int level) {
+    return effStyle(td, level).maxWidth;
+}
+
+// Resolve which shape to draw — the effective style already encodes rootShape
+// (via the rootStyle override synthesized in fromJson).
+QString effShape(const TemplateDescriptor* td, int level) {
+    return effStyle(td, level).shape;
+}
+
+bool effDrawShadow(const TemplateDescriptor* td, int level, const QString& shape) {
+    // Shadow only makes sense behind a filled body. Outlined/tinted/non-rounded
+    // shapes paint without one.
     if (shape != QLatin1String("roundedRect"))
-        return false; // shadow only makes sense behind a filled body
-    return td ? td->nodeStyle.drawShadow : true;
+        return false;
+    const auto& s = effStyle(td, level);
+    if (s.fillMode != QLatin1String("solid"))
+        return false;
+    return s.drawShadow;
+}
+
+QColor borderColorFor(const TemplateNodeStyle& s, const QColor& nodeColor,
+                      const QColor& fixedColor) {
+    if (s.borderColorSource == QLatin1String("darker"))
+        return nodeColor.darker(125);
+    if (s.borderColorSource == QLatin1String("fixed") && fixedColor.isValid())
+        return fixedColor;
+    return nodeColor;
 }
 
 } // namespace
 
 QRectF NodeItem::boundingRect() const {
     const auto* td = nodeTemplate(m_mindMapScene);
-    QString shape = effShape(td, level());
-    bool withShadow = effDrawShadow(td, shape);
+    const int lvl = level();
+    QString shape = effShape(td, lvl);
+    bool withShadow = effDrawShadow(td, lvl, shape);
     if (!withShadow) {
         // No shadow → the rect itself plus a tiny anti-alias margin is enough.
         return m_rect.adjusted(-2, -2, 2, 2);
     }
-    constexpr qreal kShadowSpread = 10.0;
-    constexpr qreal kShadowOffsetY = 4.0;
+    const auto& s = effStyle(td, lvl);
     constexpr qreal kMargin = 2.0;
-    return m_rect.adjusted(-kShadowSpread - kMargin, -kShadowSpread - kMargin,
-                           kShadowSpread + kMargin, kShadowSpread + kShadowOffsetY + kMargin);
+    return m_rect.adjusted(-s.shadowSpread - kMargin, -s.shadowSpread - kMargin,
+                           s.shadowSpread + kMargin,
+                           s.shadowSpread + s.shadowOffsetY + kMargin);
 }
 
 QPainterPath NodeItem::shape() const {
     const auto* td = nodeTemplate(m_mindMapScene);
-    QString s = effShape(td, level());
+    const int lvl = level();
+    QString s = effShape(td, lvl);
     QPainterPath path;
     if (s == QLatin1String("none") || s == QLatin1String("underline")) {
         // For shapeless / underline styles, hit-test the text rect (a bit
         // padded) so clicks on the text still select the node.
         path.addRect(m_rect.adjusted(-2, -2, 2, 2));
     } else {
-        path.addRoundedRect(m_rect, effRadius(td), effRadius(td));
+        const qreal r = effRadius(td, lvl);
+        path.addRoundedRect(m_rect, r, r);
     }
     return path;
 }
@@ -273,6 +295,7 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
     QColor shadowColor = globalTC.nodeShadow;
     QColor selectionBorder = globalTC.nodeSelectionBorder;
     QColor textColor = globalTC.nodeText;
+    QColor fixedBorderColor;
 
     auto* mindMapScene = m_mindMapScene;
     const TemplateDescriptor* td = nodeTemplate(mindMapScene);
@@ -281,27 +304,31 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
         shadowColor = tc.nodeShadow;
         selectionBorder = tc.nodeSelectionBorder;
         textColor = tc.nodeText;
+        fixedBorderColor = tc.nodeBorderColor;
     }
 
-    const QString shape = effShape(td, level());
-    const qreal radius = effRadius(td);
-    const qreal padding = effPadding(td);
-    const QColor bg = nodeColor();
+    const int lvl = level();
+    const TemplateNodeStyle& style = effStyle(td, lvl);
+    const QString shape = style.shape;
+    const qreal radius = style.borderRadius;
+    const qreal padding = style.padding;
+    const QColor nodeCol = nodeColor();
 
     // ----- Drop shadow -------------------------------------------------------
-    if (effDrawShadow(td, shape)) {
+    if (effDrawShadow(td, lvl, shape)) {
         painter->setPen(Qt::NoPen);
-        constexpr int kShadowLayers = 5;
-        constexpr qreal kShadowSpread = 10.0;
-        constexpr qreal kShadowOffsetY = 4.0;
-        int layerAlpha = qBound(6, shadowColor.alpha() / 3, 20);
-        for (int i = kShadowLayers; i >= 1; --i) {
-            qreal expand = kShadowSpread * i / kShadowLayers;
+        const int layers = qMax(1, style.shadowLayers);
+        const qreal spread = style.shadowSpread;
+        const qreal offsetY = style.shadowOffsetY;
+        int baseAlpha = qBound(6, shadowColor.alpha() / 3, 20);
+        int layerAlpha = qBound(0, int(baseAlpha * style.shadowOpacity), 255);
+        for (int i = layers; i >= 1; --i) {
+            qreal expand = spread * i / layers;
             QColor sc = shadowColor;
             sc.setAlpha(layerAlpha);
             painter->setBrush(sc);
             QRectF sr = m_rect.adjusted(-expand, -expand, expand, expand)
-                            .translated(0, kShadowOffsetY);
+                            .translated(0, offsetY);
             painter->drawRoundedRect(sr, radius + expand, radius + expand);
         }
     }
@@ -333,7 +360,7 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
             td && td->edgeStyle.anchor == QLatin1String("baseline");
         const qreal edgeW = td ? td->edgeStyle.width : 2.5;
         const qreal lineW = baselineAnchor ? edgeW : edgeW * 1.5;
-        QPen underline(bg, lineW, Qt::SolidLine, Qt::RoundCap);
+        QPen underline(nodeCol, lineW, Qt::SolidLine, Qt::RoundCap);
         painter->setPen(underline);
         painter->setBrush(Qt::NoBrush);
         const qreal y = baselineAnchor ? m_rect.bottom()
@@ -350,17 +377,48 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
             painter->drawRoundedRect(m_rect, 4, 4);
         }
     } else {
+        // roundedRect (or unknown shape — falls back to rounded rect).
+        //
+        // Pen logic: selection always wins (override with selection ring).
+        // Otherwise, if borderWidth > 0, draw the configured border.
+        // Otherwise, no pen.
+        QPen pen = Qt::NoPen;
         if (selected) {
-            painter->setPen(QPen(selectionBorder, 3));
-        } else {
-            painter->setPen(Qt::NoPen);
+            pen = QPen(selectionBorder, style.selectionWidth);
+        } else if (style.borderWidth > 0.0) {
+            QColor borderC = borderColorFor(style, nodeCol, fixedBorderColor);
+            pen = QPen(borderC, style.borderWidth);
         }
-        painter->setBrush(bg);
+        painter->setPen(pen);
+
+        // Brush logic by fillMode.
+        QBrush brush(Qt::NoBrush);
+        if (style.fillMode == QLatin1String("outlined")) {
+            brush = Qt::NoBrush;
+        } else if (style.fillMode == QLatin1String("tinted")) {
+            QColor tint = nodeCol;
+            tint.setAlphaF(qBound(0.0, style.fillAlpha, 1.0));
+            brush = QBrush(tint);
+        } else {
+            // "solid" (default) — 100% colored fill, matching pre-refactor behavior.
+            brush = QBrush(nodeCol);
+        }
+        painter->setBrush(brush);
+
         painter->drawRoundedRect(m_rect, radius, radius);
     }
 
     // ----- Text --------------------------------------------------------------
-    painter->setPen(textColor);
+    // For outlined / tinted modes, the body isn't a colored slab so default
+    // white text wouldn't read. Use the node color for the text instead so it
+    // visually belongs to the node without being invisible on a light fill.
+    QColor effTextColor = textColor;
+    if (shape == QLatin1String("roundedRect") &&
+        (style.fillMode == QLatin1String("outlined") ||
+         style.fillMode == QLatin1String("tinted"))) {
+        effTextColor = nodeCol.darker(120);
+    }
+    painter->setPen(effTextColor);
     painter->setFont(m_font);
     QRectF textArea = m_rect.adjusted(padding, padding, -padding, -padding);
     painter->drawText(textArea, Qt::AlignCenter | Qt::TextWrapAnywhere, m_text);
@@ -576,9 +634,10 @@ void NodeItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event) {
 void NodeItem::updateGeometry() {
     prepareGeometryChange();
     const auto* td = nodeTemplate(m_mindMapScene);
-    const qreal pad = effPadding(td);
-    const qreal minW = effMinWidth(td);
-    const qreal maxW = effMaxWidth(td);
+    const int lvl = level();
+    const qreal pad = effPadding(td, lvl);
+    const qreal minW = effMinWidth(td, lvl);
+    const qreal maxW = effMaxWidth(td, lvl);
 
     QFontMetricsF fm(m_font);
     qreal textW = fm.horizontalAdvance(m_text);

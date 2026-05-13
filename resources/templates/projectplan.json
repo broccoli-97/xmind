@@ -1,0 +1,30 @@
+{
+    "$schema": "ymind-template-v1",
+    "id": "builtin.projectplan",
+    "name": "Project Plan",
+    "description": "Right-tree project plan with phases and tasks",
+    "layout": {
+        "algorithm": "righttree",
+        "depthSpacing": 100.0,
+        "spreadSpacing": 16.0
+    },
+    "content": {
+        "text": "Project",
+        "children": [
+            {
+                "text": "Phase 1",
+                "children": [
+                    {"text": "Task 1.1"},
+                    {"text": "Task 1.2"}
+                ]
+            },
+            {
+                "text": "Phase 2",
+                "children": [
+                    {"text": "Task 2.1"},
+                    {"text": "Task 2.2"}
+                ]
+            }
+        ]
+    }
+}

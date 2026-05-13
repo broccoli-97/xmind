@@ -1,0 +1,20 @@
+{
+    "$schema": "ymind-template-v1",
+    "id": "builtin.mindmap",
+    "name": "Mind Map",
+    "description": "Central topic with bilateral branches",
+    "layout": {
+        "algorithm": "bilateral",
+        "depthSpacing": 100.0,
+        "spreadSpacing": 16.0
+    },
+    "content": {
+        "text": "Central Topic",
+        "children": [
+            {"text": "Branch 1"},
+            {"text": "Branch 2"},
+            {"text": "Branch 3"},
+            {"text": "Branch 4"}
+        ]
+    }
+}

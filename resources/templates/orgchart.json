@@ -1,0 +1,19 @@
+{
+    "$schema": "ymind-template-v1",
+    "id": "builtin.orgchart",
+    "name": "Org Chart",
+    "description": "Top-down organizational chart",
+    "layout": {
+        "algorithm": "topdown",
+        "depthSpacing": 100.0,
+        "spreadSpacing": 16.0
+    },
+    "content": {
+        "text": "CEO",
+        "children": [
+            {"text": "Engineering"},
+            {"text": "Marketing"},
+            {"text": "Sales"}
+        ]
+    }
+}

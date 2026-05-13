@@ -31,6 +31,13 @@ private slots:
 
     // ---- TemplateDescriptor (full) ----
     void descriptorRoundTrip();
+    void descriptorRootStyleSynthesizedFromRootShape();
+    void descriptorRootStyleExplicitOverlay();
+
+    // ---- New style knobs ----
+    void nodeStyleFillModeRoundTrip();
+    void nodeStyleInheritsFromBase();
+    void edgeStyleNewFieldsRoundTrip();
 };
 
 // ---------------------------------------------------------------------------
@@ -68,13 +75,22 @@ void tst_TemplateDescriptor::colorSchemeRoundTrip() {
 }
 
 void tst_TemplateDescriptor::colorSchemeDefaults() {
+    // No base: missing keys leave the struct's natural defaults
+    // (uninitialized QColors and the edgeLightenFactor=140 from the header).
     QJsonObject empty;
     TemplateColorScheme cs = TemplateColorScheme::fromJson(empty);
-
-    // Should get the hardcoded defaults
-    QCOMPARE(cs.canvasBackground, QColor("#F8F9FA"));
     QCOMPARE(cs.edgeLightenFactor, 140);
-    QCOMPARE(cs.nodeText, QColor("#FFFFFF"));
+    QVERIFY(!cs.canvasBackground.isValid());
+
+    // With a base, missing keys fall back to the base's values.
+    TemplateColorScheme base;
+    base.canvasBackground = QColor("#F8F9FA");
+    base.nodeText = QColor("#FFFFFF");
+    base.edgeLightenFactor = 120;
+    TemplateColorScheme inherited = TemplateColorScheme::fromJson(empty, base);
+    QCOMPARE(inherited.canvasBackground, QColor("#F8F9FA"));
+    QCOMPARE(inherited.nodeText, QColor("#FFFFFF"));
+    QCOMPARE(inherited.edgeLightenFactor, 120);
 }
 
 // ---------------------------------------------------------------------------
@@ -241,6 +257,112 @@ void tst_TemplateDescriptor::descriptorRoundTrip() {
     QCOMPARE(td2.content.children.size(), 2);
     QCOMPARE(td2.lightColors.canvasBackground, QColor("#AABBCC"));
     QCOMPARE(td2.darkColors.canvasBackground, QColor("#112233"));
+}
+
+void tst_TemplateDescriptor::descriptorRootStyleSynthesizedFromRootShape() {
+    // Legacy templates declare `rootShape` directly on nodeStyle; the loader
+    // must synthesize a hasRootStyle override with only the shape changed.
+    QJsonObject json;
+    json["id"] = "test.legacy";
+    QJsonObject ns;
+    ns["shape"] = "roundedRect";
+    ns["rootShape"] = "underline";
+    json["nodeStyle"] = ns;
+
+    TemplateDescriptor td = TemplateDescriptor::fromJson(json);
+    QVERIFY(td.hasRootStyle);
+    QCOMPARE(td.nodeStyle.shape, QString("roundedRect"));
+    QCOMPARE(td.rootStyle.shape, QString("underline"));
+    // Sibling fields inherit from the base nodeStyle.
+    QCOMPARE(td.rootStyle.padding, td.nodeStyle.padding);
+}
+
+void tst_TemplateDescriptor::descriptorRootStyleExplicitOverlay() {
+    // Explicit rootStyle block overlays only the keys it sets.
+    QJsonObject json;
+    json["id"] = "test.root";
+    QJsonObject ns;
+    ns["padding"] = 10.0;
+    ns["borderWidth"] = 1.5;
+    ns["fillMode"] = "tinted";
+    json["nodeStyle"] = ns;
+
+    QJsonObject root;
+    root["padding"] = 20.0;          // override
+    root["borderWidth"] = 3.0;       // override
+    // fillMode omitted → should inherit from base nodeStyle ("tinted")
+    json["rootStyle"] = root;
+
+    TemplateDescriptor td = TemplateDescriptor::fromJson(json);
+    QVERIFY(td.hasRootStyle);
+    QCOMPARE(td.rootStyle.padding, 20.0);
+    QCOMPARE(td.rootStyle.borderWidth, 3.0);
+    QCOMPARE(td.rootStyle.fillMode, QString("tinted"));
+}
+
+void tst_TemplateDescriptor::nodeStyleFillModeRoundTrip() {
+    TemplateNodeStyle s;
+    s.fillMode = "outlined";
+    s.fillAlpha = 0.22;
+    s.borderWidth = 2.0;
+    s.borderColorSource = "fixed";
+    s.shadowLayers = 3;
+    s.shadowSpread = 6.0;
+    s.shadowOffsetY = 2.0;
+    s.shadowOpacity = 0.5;
+    s.selectionWidth = 4.0;
+
+    QJsonObject json = s.toJson();
+    TemplateNodeStyle s2 = TemplateNodeStyle::fromJson(json);
+
+    QCOMPARE(s2.fillMode, QString("outlined"));
+    QCOMPARE(s2.fillAlpha, 0.22);
+    QCOMPARE(s2.borderWidth, 2.0);
+    QCOMPARE(s2.borderColorSource, QString("fixed"));
+    QCOMPARE(s2.shadowLayers, 3);
+    QCOMPARE(s2.shadowSpread, 6.0);
+    QCOMPARE(s2.shadowOffsetY, 2.0);
+    QCOMPARE(s2.shadowOpacity, 0.5);
+    QCOMPARE(s2.selectionWidth, 4.0);
+}
+
+void tst_TemplateDescriptor::nodeStyleInheritsFromBase() {
+    // Empty JSON with a populated base → every field comes from base.
+    TemplateNodeStyle base;
+    base.borderWidth = 1.7;
+    base.fillMode = "tinted";
+    base.fillAlpha = 0.3;
+    base.padding = 14.0;
+
+    TemplateNodeStyle s = TemplateNodeStyle::fromJson(QJsonObject(), base);
+    QCOMPARE(s.borderWidth, 1.7);
+    QCOMPARE(s.fillMode, QString("tinted"));
+    QCOMPARE(s.fillAlpha, 0.3);
+    QCOMPARE(s.padding, 14.0);
+
+    // Partial JSON → only specified keys overlay; rest inherits.
+    QJsonObject partial;
+    partial["padding"] = 22.0;
+    TemplateNodeStyle s2 = TemplateNodeStyle::fromJson(partial, base);
+    QCOMPARE(s2.padding, 22.0);             // overridden
+    QCOMPARE(s2.fillMode, QString("tinted")); // inherited
+    QCOMPARE(s2.fillAlpha, 0.3);             // inherited
+}
+
+void tst_TemplateDescriptor::edgeStyleNewFieldsRoundTrip() {
+    TemplateEdgeStyle e;
+    e.curvature = 0.3;
+    e.dashStyle = "dashed";
+    e.colorModifier = "same";
+    e.lineCap = "flat";
+
+    QJsonObject json = e.toJson();
+    TemplateEdgeStyle e2 = TemplateEdgeStyle::fromJson(json);
+
+    QCOMPARE(e2.curvature, 0.3);
+    QCOMPARE(e2.dashStyle, QString("dashed"));
+    QCOMPARE(e2.colorModifier, QString("same"));
+    QCOMPARE(e2.lineCap, QString("flat"));
 }
 
 QTEST_APPLESS_MAIN(tst_TemplateDescriptor)

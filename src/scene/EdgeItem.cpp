@@ -22,6 +22,38 @@ QRectF EdgeItem::boundingRect() const {
     return m_boundingRect;
 }
 
+namespace {
+
+Qt::PenStyle penStyleFor(const QString& dash) {
+    if (dash == QLatin1String("dashed"))
+        return Qt::DashLine;
+    if (dash == QLatin1String("dotted"))
+        return Qt::DotLine;
+    return Qt::SolidLine;
+}
+
+Qt::PenCapStyle capStyleFor(const QString& cap) {
+    if (cap == QLatin1String("flat"))
+        return Qt::FlatCap;
+    if (cap == QLatin1String("square"))
+        return Qt::SquareCap;
+    return Qt::RoundCap;
+}
+
+QColor modifiedEdgeColor(const QColor& base, int lighten, const QString& modifier) {
+    if (modifier == QLatin1String("same"))
+        return base;
+    if (modifier == QLatin1String("darken")) {
+        // Inverse of "lighten": if lighten is 140 (40% brighter), darken by ~40%.
+        int factor = qMax(101, lighten);  // factor=140 means 1.4× brightness
+        return base.darker(factor);
+    }
+    // "lighten" (default)
+    return base.lighter(lighten);
+}
+
+} // namespace
+
 void EdgeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option*/,
                      QWidget* /*widget*/) {
     painter->setRenderHint(QPainter::Antialiasing);
@@ -29,6 +61,9 @@ void EdgeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option
     int lighten = ThemeManager::colors().edgeLightenFactor;
     qreal edgeWidth = 2.5;
     QString colorSource = QStringLiteral("target");
+    QString dashStyle = QStringLiteral("solid");
+    QString colorModifier = QStringLiteral("lighten");
+    QString lineCap = QStringLiteral("round");
 
     if (m_mindMapScene) {
         const auto* td = m_mindMapScene->templateDescriptor();
@@ -36,13 +71,17 @@ void EdgeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option
             lighten = td->activeColors().edgeLightenFactor;
             edgeWidth = td->edgeStyle.width;
             colorSource = td->edgeStyle.colorSource;
+            dashStyle = td->edgeStyle.dashStyle;
+            colorModifier = td->edgeStyle.colorModifier;
+            lineCap = td->edgeStyle.lineCap;
         }
     }
 
     QColor base = (colorSource == QLatin1String("branch")) ? m_target->branchColor()
                                                            : m_target->nodeColor();
-    QColor color = base.lighter(lighten);
-    painter->setPen(QPen(color, edgeWidth, Qt::SolidLine, Qt::RoundCap));
+    QColor color = modifiedEdgeColor(base, lighten, colorModifier);
+    QPen pen(color, edgeWidth, penStyleFor(dashStyle), capStyleFor(lineCap));
+    painter->setPen(pen);
     painter->setBrush(Qt::NoBrush);
     painter->drawPath(m_path);
 }
@@ -55,11 +94,14 @@ void EdgeItem::updatePath() {
     QRectF srcRect = m_source->nodeRect();
     QRectF tgtRect = m_target->nodeRect();
 
-    // Resolve anchor mode from active template ("center" | "baseline").
+    // Resolve anchor mode and curvature from active template.
     QString anchor = QStringLiteral("center");
+    qreal curvature = 0.5;
     if (m_mindMapScene) {
-        if (const auto* td = m_mindMapScene->templateDescriptor())
+        if (const auto* td = m_mindMapScene->templateDescriptor()) {
             anchor = td->edgeStyle.anchor;
+            curvature = qBound<qreal>(0.0, td->edgeStyle.curvature, 0.95);
+        }
     }
     const bool baseline = (anchor == QLatin1String("baseline"));
 
@@ -92,8 +134,8 @@ void EdgeItem::updatePath() {
         }
     }
 
-    qreal cdx = (end.x() - start.x()) * 0.5;
-    qreal cdy = (end.y() - start.y()) * 0.5;
+    qreal cdx = (end.x() - start.x()) * curvature;
+    qreal cdy = (end.y() - start.y()) * curvature;
 
     QPointF cp1, cp2;
     if (qAbs(dx) > 10) {

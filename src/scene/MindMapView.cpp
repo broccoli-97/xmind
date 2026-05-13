@@ -206,6 +206,7 @@ void MindMapView::stopAnimations() {
 void MindMapView::drawBackground(QPainter* painter, const QRectF& rect) {
     QColor bgColor = ThemeManager::colors().canvasBackground;
     QColor dotColor = ThemeManager::colors().canvasGridDot;
+    QString pattern = QStringLiteral("dots");
 
     auto* mindMapScene = dynamic_cast<MindMapScene*>(scene());
     if (mindMapScene) {
@@ -213,19 +214,33 @@ void MindMapView::drawBackground(QPainter* painter, const QRectF& rect) {
         if (td) {
             bgColor = td->activeColors().canvasBackground;
             dotColor = td->activeColors().canvasGridDot;
+            pattern = td->backgroundPattern;
         }
     }
 
     painter->fillRect(rect, bgColor);
 
-    QPen dotPen(dotColor, 2);
-    dotPen.setCapStyle(Qt::RoundCap);
-    painter->setPen(dotPen);
+    if (pattern == QLatin1String("none"))
+        return;
 
     const qreal gridSize = 40.0;
     qreal left = qFloor(rect.left() / gridSize) * gridSize;
     qreal top = qFloor(rect.top() / gridSize) * gridSize;
 
+    if (pattern == QLatin1String("lines")) {
+        QPen linePen(dotColor, 1);
+        painter->setPen(linePen);
+        for (qreal x = left; x <= rect.right(); x += gridSize)
+            painter->drawLine(QPointF(x, rect.top()), QPointF(x, rect.bottom()));
+        for (qreal y = top; y <= rect.bottom(); y += gridSize)
+            painter->drawLine(QPointF(rect.left(), y), QPointF(rect.right(), y));
+        return;
+    }
+
+    // "dots" (default)
+    QPen dotPen(dotColor, 2);
+    dotPen.setCapStyle(Qt::RoundCap);
+    painter->setPen(dotPen);
     for (qreal x = left; x <= rect.right(); x += gridSize) {
         for (qreal y = top; y <= rect.bottom(); y += gridSize) {
             painter->drawPoint(QPointF(x, y));

@@ -1,6 +1,9 @@
 #include "core/TemplateRegistry.h"
+#include "core/BuiltinTemplateStrings.h" // keeps lupdate picking up built-in strings
 #include "ui/ThemeManager.h"
 
+#include <QCoreApplication>
+#include <QDebug>
 #include <QDir>
 #include <QFile>
 #include <QJsonDocument>
@@ -11,10 +14,11 @@ TemplateRegistry& TemplateRegistry::instance() {
     return s_instance;
 }
 
-// ---------------------------------------------------------------------------
-// Helper: convert ThemeColors to TemplateColorScheme (shared fields only)
-// ---------------------------------------------------------------------------
-static TemplateColorScheme colorSchemeFromTheme(const ThemeColors& tc) {
+namespace {
+
+// Convert ThemeColors → TemplateColorScheme for the inheritance fallback used
+// when a built-in JSON omits the "colors" block.
+TemplateColorScheme colorSchemeFromTheme(const ThemeColors& tc) {
     TemplateColorScheme cs;
     cs.canvasBackground = tc.canvasBackground;
     cs.canvasGridDot = tc.canvasGridDot;
@@ -28,141 +32,63 @@ static TemplateColorScheme colorSchemeFromTheme(const ThemeColors& tc) {
     return cs;
 }
 
+// Translate built-in template strings under the "TemplateRegistry" context.
+// Source strings are listed in BuiltinTemplateStrings.h so lupdate finds them.
+QString translateBuiltin(const QString& s) {
+    if (s.isEmpty())
+        return s;
+    return QCoreApplication::translate("TemplateRegistry", s.toUtf8().constData());
+}
+
+void translateContent(TemplateContentNode& n) {
+    n.text = translateBuiltin(n.text);
+    for (auto& child : n.children)
+        translateContent(child);
+}
+
+} // namespace
+
 void TemplateRegistry::loadBuiltins() {
-    // Derive color schemes from the centralized ThemeManager definitions
-    // instead of duplicating color values here.
-    auto lightCS = colorSchemeFromTheme(ThemeManager::lightColors());
-    auto darkCS = colorSchemeFromTheme(ThemeManager::darkColors());
+    // Built-ins live as JSON files baked into the binary via Qt resources.
+    // Missing colors inherit from ThemeManager so a global palette change
+    // (canvas, palette, etc.) reaches every built-in automatically.
+    const TemplateColorScheme lightDefaults = colorSchemeFromTheme(ThemeManager::lightColors());
+    const TemplateColorScheme darkDefaults = colorSchemeFromTheme(ThemeManager::darkColors());
 
-    // ---- Template 0: Mind Map (Bilateral) ----
-    {
-        TemplateDescriptor td;
-        td.id = "builtin.mindmap";
-        td.name = tr("Mind Map");
-        td.description = tr("Central topic with bilateral branches");
-        td.layout = {"bilateral", 100.0, 16.0};
-        td.lightColors = lightCS;
-        td.darkColors = darkCS;
-        td.content.text = tr("Central Topic");
-        td.content.children = {{tr("Branch 1"), {}}, {tr("Branch 2"), {}},
-                                {tr("Branch 3"), {}}, {tr("Branch 4"), {}}};
-        m_templates[td.id] = td;
-        m_orderedIds.append(td.id);
-    }
+    // Order here drives the order shown on the Start Page.
+    const QStringList kBuiltinPaths = {
+        ":/templates/mindmap.json",
+        ":/templates/orgchart.json",
+        ":/templates/projectplan.json",
+        ":/templates/lined.json",
+        ":/templates/outlined.json",
+        ":/templates/tinted.json",
+    };
 
-    // ---- Template 1: Org Chart (TopDown) ----
-    {
-        TemplateDescriptor td;
-        td.id = "builtin.orgchart";
-        td.name = tr("Org Chart");
-        td.description = tr("Top-down organizational chart");
-        td.layout = {"topdown", 100.0, 16.0};
-        td.lightColors = lightCS;
-        td.darkColors = darkCS;
-        td.content.text = tr("CEO");
-        td.content.children = {{tr("Engineering"), {}}, {tr("Marketing"), {}}, {tr("Sales"), {}}};
-        m_templates[td.id] = td;
-        m_orderedIds.append(td.id);
-    }
+    for (const QString& path : kBuiltinPaths) {
+        QFile file(path);
+        if (!file.open(QIODevice::ReadOnly)) {
+            qWarning() << "TemplateRegistry: failed to open built-in" << path;
+            continue;
+        }
 
-    // ---- Template 2: Project Plan (RightTree) ----
-    {
-        TemplateDescriptor td;
-        td.id = "builtin.projectplan";
-        td.name = tr("Project Plan");
-        td.description = tr("Right-tree project plan with phases and tasks");
-        td.layout = {"righttree", 100.0, 16.0};
-        td.lightColors = lightCS;
-        td.darkColors = darkCS;
-        td.content.text = tr("Project");
-        td.content.children = {
-            {tr("Phase 1"), {{tr("Task 1.1"), {}}, {tr("Task 1.2"), {}}}},
-            {tr("Phase 2"), {{tr("Task 2.1"), {}}, {tr("Task 2.2"), {}}}}
-        };
-        m_templates[td.id] = td;
-        m_orderedIds.append(td.id);
-    }
+        QJsonParseError err;
+        QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &err);
+        if (err.error != QJsonParseError::NoError) {
+            qWarning() << "TemplateRegistry: invalid JSON in" << path << err.errorString();
+            continue;
+        }
 
-    // ---- Template 3: Lined (text floats above curved colored lines) ----
-    // Demonstrates the data-driven shape + per-branch coloring + baseline edge
-    // anchor. Each top-level branch gets its own color; descendants inherit.
-    {
-        TemplateDescriptor td;
-        td.id = "builtin.lined";
-        td.name = tr("Lined");
-        td.description = tr("Curved colored lines, text floats above the line");
-        td.layout = {"bilateral", 120.0, 22.0};
+        TemplateDescriptor td =
+            TemplateDescriptor::fromJson(doc.object(), lightDefaults, darkDefaults);
+        if (td.id.isEmpty()) {
+            qWarning() << "TemplateRegistry: built-in" << path << "missing id";
+            continue;
+        }
 
-        // Node style: every node carries an underline so text appears to float
-        // on a continuous line that flows from the parent's baseline-anchored edge.
-        td.nodeStyle.shape = "underline";
-        td.nodeStyle.rootShape = "underline";
-        td.nodeStyle.drawShadow = false;
-        td.nodeStyle.padding = 6.0;
-        td.nodeStyle.minWidth = 60.0;
-        td.nodeStyle.maxWidth = 240.0;
-        td.nodeStyle.paletteSource = "branch";
-
-        // Edge style: branch colors, line meets node baseline.
-        td.edgeStyle.width = 2.5;
-        td.edgeStyle.colorSource = "branch";
-        td.edgeStyle.anchor = "baseline";
-
-        // Light palette — the figure's saturated branch hues; dark text on
-        // a near-white canvas (no fill behind text means nodeText must be
-        // legible on the canvas itself).
-        TemplateColorScheme lined;
-        lined.canvasBackground = QColor("#FAFAFA");
-        lined.canvasGridDot = QColor("#E0E0E0");
-        lined.nodePalette[0] = QColor("#E53935"); // red
-        lined.nodePalette[1] = QColor("#FB8C00"); // orange
-        lined.nodePalette[2] = QColor("#1E88E5"); // blue
-        lined.nodePalette[3] = QColor("#FDD835"); // yellow
-        lined.nodePalette[4] = QColor("#8E24AA"); // purple
-        lined.nodePalette[5] = QColor("#43A047"); // green
-        lined.nodeShadow = QColor(0, 0, 0, 0); // unused (drawShadow=false)
-        lined.nodeSelectionBorder = QColor("#FF6F00");
-        lined.nodeText = QColor("#2C2C2C");
-        lined.edgeLightenFactor = 100; // keep edge as-saturated as the branch
-        lined.exportBackground = QColor("#FFFFFF");
-        td.lightColors = lined;
-
-        // Dark palette — same hues at ~88% lightness, light text.
-        TemplateColorScheme linedDark;
-        linedDark.canvasBackground = QColor("#1E1E1E");
-        linedDark.canvasGridDot = QColor("#3F3F46");
-        linedDark.nodePalette[0] = QColor("#EF5350");
-        linedDark.nodePalette[1] = QColor("#FFA726");
-        linedDark.nodePalette[2] = QColor("#42A5F5");
-        linedDark.nodePalette[3] = QColor("#FFEE58");
-        linedDark.nodePalette[4] = QColor("#AB47BC");
-        linedDark.nodePalette[5] = QColor("#66BB6A");
-        linedDark.nodeShadow = QColor(0, 0, 0, 0);
-        linedDark.nodeSelectionBorder = QColor("#FFB300");
-        linedDark.nodeText = QColor("#E8E8E8");
-        linedDark.edgeLightenFactor = 100;
-        linedDark.exportBackground = QColor("#1E1E1E");
-        td.darkColors = linedDark;
-
-        td.content.text = tr("Mind Mapping");
-        td.content.children = {
-            {tr("Why Mind Mapping?"), {
-                {tr("Disrupting linear thinking"), {}},
-                {tr("Allows easy reorganization"), {}},
-                {tr("Helps us think \"radiantly\""), {}}}},
-            {tr("Main benefits"), {
-                {tr("Enables creative thinking"), {}},
-                {tr("Combats perfectionism"), {}},
-                {tr("Iterative thinking"), {}}}},
-            {tr("Visual thinking"), {}},
-            {tr("Helpful for pre-writing"), {
-                {tr("Escape the blinking cursor"), {}},
-                {tr("Healthy ideation strategies"), {}}}},
-            {tr("How to Mind Map"), {
-                {tr("Begin with an idea"), {}},
-                {tr("Build connections outward"), {}},
-                {tr("Reorganize as needed"), {}}}}
-        };
+        td.name = translateBuiltin(td.name);
+        td.description = translateBuiltin(td.description);
+        translateContent(td.content);
 
         m_templates[td.id] = td;
         m_orderedIds.append(td.id);
@@ -173,6 +99,9 @@ void TemplateRegistry::loadFromDirectory(const QString& dirPath) {
     QDir dir(dirPath);
     if (!dir.exists())
         return;
+
+    const TemplateColorScheme lightDefaults = colorSchemeFromTheme(ThemeManager::lightColors());
+    const TemplateColorScheme darkDefaults = colorSchemeFromTheme(ThemeManager::darkColors());
 
     const auto files = dir.entryList({"*.json"}, QDir::Files);
     for (const QString& fileName : files) {
@@ -189,7 +118,8 @@ void TemplateRegistry::loadFromDirectory(const QString& dirPath) {
         if (obj["$schema"].toString() != "ymind-template-v1")
             continue;
 
-        TemplateDescriptor td = TemplateDescriptor::fromJson(obj);
+        TemplateDescriptor td =
+            TemplateDescriptor::fromJson(obj, lightDefaults, darkDefaults);
         if (td.id.isEmpty())
             continue;
 

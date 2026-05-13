@@ -9,8 +9,10 @@ deploy/
 *.zip
 out/
 templates/
-# But the website ships its own bundled-templates directory (manifest.json +
-# downloadable .json styles) that must be included in the GitHub Pages build.
+# Built-in templates baked into the app via Qt resources (resources/templates/)
+# and the website's bundled-templates directory must both be tracked.
+!resources/templates/
+!resources/templates/**
 !website/public/templates/
 !website/public/templates/**
 CLAUDE.md

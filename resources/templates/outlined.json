@@ -1,0 +1,32 @@
+{
+    "$schema": "ymind-template-v1",
+    "id": "builtin.outlined",
+    "name": "Outlined",
+    "description": "Minimalist style — colored borders, no fills, no shadow",
+    "layout": {
+        "algorithm": "bilateral",
+        "depthSpacing": 100.0,
+        "spreadSpacing": 16.0
+    },
+    "nodeStyle": {
+        "shape": "roundedRect",
+        "borderRadius": 8.0,
+        "padding": 12.0,
+        "fillMode": "outlined",
+        "borderWidth": 1.6,
+        "borderColorSource": "node",
+        "drawShadow": false
+    },
+    "rootStyle": {
+        "borderWidth": 2.4,
+        "padding": 16.0
+    },
+    "edgeStyle": {
+        "width": 1.8,
+        "colorSource": "target",
+        "anchor": "center",
+        "curvature": 0.4,
+        "colorModifier": "same",
+        "lineCap": "round"
+    }
+}
