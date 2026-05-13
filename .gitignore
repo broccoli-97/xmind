@@ -3,6 +3,8 @@ build-*/
 deploy/
 *.ymind
 *.sh
+# CI helper scripts must be tracked even though *.sh is ignored by default
+!.github/scripts/*.sh
 .cache/*
 *.zip
 out/

@@ -103,6 +103,36 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout (full history for changelog)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Determine version and previous tag
+        id: meta
+        shell: bash
+        run: |
+          CURRENT_TAG="${GITHUB_REF#refs/tags/}"
+          echo "current_tag=${CURRENT_TAG}" >> "$GITHUB_OUTPUT"
+          # Find the most recent v* tag before the current one (by version sort)
+          PREV_TAG=$(git tag -l 'v*' --sort=-version:refname \
+                      | grep -v "^${CURRENT_TAG}$" \
+                      | head -1 || true)
+          echo "prev_tag=${PREV_TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate changelog
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          chmod +x .github/scripts/generate-changelog.sh
+          .github/scripts/generate-changelog.sh \
+            "${{ steps.meta.outputs.prev_tag }}" \
+            "${{ steps.meta.outputs.current_tag }}" \
+            > release_notes.md
+          echo "----- release_notes.md -----"
+          cat release_notes.md
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -112,5 +142,5 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: true
+          body_path: release_notes.md
           files: artifacts/*
