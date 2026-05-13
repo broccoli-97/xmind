@@ -40,8 +40,8 @@ static const ThemeColors kLightColors = {
 };
 
 static const ThemeColors kDarkColors = {
-    /* canvasBackground    */ QColor("#1A1A2E"),
-    /* canvasGridDot       */ QColor("#2A2A4A"),
+    /* canvasBackground    */ QColor("#1E1E1E"),
+    /* canvasGridDot       */ QColor("#3F3F46"),
     /* nodePalette         */
     {QColor("#42A5F5"), QColor("#66BB6A"), QColor("#FFA726"), QColor("#AB47BC"), QColor("#EF5350"),
      QColor("#26C6DA")},
@@ -49,7 +49,7 @@ static const ThemeColors kDarkColors = {
     /* nodeSelectionBorder */ QColor("#FFB300"),
     /* nodeText            */ QColor("#FFFFFF"),
     /* edgeLightenFactor   */ 120,
-    /* exportBackground    */ QColor("#1A1A2E"),
+    /* exportBackground    */ QColor("#1E1E1E"),
     /* editorBackground    */ QColor("#2A2A4A"),
     /* editorBorder        */ QColor("#42A5F5"),
     /* editorText          */ QColor("#E0E0E0"),
