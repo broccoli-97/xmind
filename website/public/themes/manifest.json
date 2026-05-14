@@ -4,12 +4,56 @@
         {
             "id": "morandi",
             "name": "Morandi",
-            "description": "Low-saturation Morandi palette with soft 60% tinted fills. Light and dark variants included.",
+            "description": "Refined Morandi palette — soft, painterly hues with a clean modern lift. Light and dark variants included.",
             "folder": "morandi",
             "preview": {
-                "palette": ["#A99687", "#94A28D", "#A6B0BA", "#C2B091", "#A99AA8"],
+                "palette": ["#C7A99A", "#A8BFA9", "#B5C7D4", "#DDC59C", "#C5AEC2"],
                 "fillAlpha": 0.6,
-                "background": "#F4F0EB"
+                "background": "#F7F3EC"
+            }
+        },
+        {
+            "id": "nord",
+            "name": "Nord",
+            "description": "Frosted Nordic palette — cool blues, sage, and soft warm accents. Calm, modern, dev-friendly.",
+            "folder": "nord",
+            "preview": {
+                "palette": ["#5E81AC", "#8FBCBB", "#A3BE8C", "#B48EAD", "#D08770"],
+                "fillAlpha": 0.55,
+                "background": "#ECEFF4"
+            }
+        },
+        {
+            "id": "sakura",
+            "name": "Sakura",
+            "description": "Cherry-blossom palette — soft pinks, fresh leaf greens, and wisteria. Delicate and elegant.",
+            "folder": "sakura",
+            "preview": {
+                "palette": ["#E8A4B8", "#F4C2C2", "#B8D8B8", "#C8B5D8", "#FAD9A6"],
+                "fillAlpha": 0.55,
+                "background": "#FDF6F4"
+            }
+        },
+        {
+            "id": "forest",
+            "name": "Forest",
+            "description": "Botanical journal palette — mossy greens, bark, and autumn warmth on a paper-toned canvas.",
+            "folder": "forest",
+            "preview": {
+                "palette": ["#5C8A5E", "#8AAB5C", "#A66B3D", "#C97B4A", "#5A7FA3"],
+                "fillAlpha": 0.45,
+                "background": "#FAF6EE"
+            }
+        },
+        {
+            "id": "candy",
+            "name": "Candy",
+            "description": "Playful pastel palette — macaron pinks, mints, peach, and buttercup. Bold but soft.",
+            "folder": "candy",
+            "preview": {
+                "palette": ["#F48FB1", "#80DEEA", "#FFCC80", "#CE93D8", "#A5D6A7"],
+                "fillAlpha": 0.7,
+                "background": "#FFF8FB"
             }
         }
     ]

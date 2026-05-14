@@ -50,6 +50,10 @@ void ThemeRegistry::loadBuiltins() {
     const QStringList kBuiltinPaths = {
         ":/themes/default.json",
         ":/themes/morandi.json",
+        ":/themes/nord.json",
+        ":/themes/sakura.json",
+        ":/themes/forest.json",
+        ":/themes/candy.json",
         ":/themes/outlined.json",
         ":/themes/tinted.json",
     };

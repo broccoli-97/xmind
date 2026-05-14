@@ -86,6 +86,22 @@ namespace BuiltinTemplateStrings {
 
 // Morandi
 [[maybe_unused]] static const char* const kThemeMorandiName = QT_TRANSLATE_NOOP("ThemeRegistry", "Morandi");
-[[maybe_unused]] static const char* const kThemeMorandiDesc = QT_TRANSLATE_NOOP("ThemeRegistry", "Low-saturation Morandi palette with soft 60% tinted fills");
+[[maybe_unused]] static const char* const kThemeMorandiDesc = QT_TRANSLATE_NOOP("ThemeRegistry", "Refined Morandi palette — soft, painterly hues with a clean modern lift");
+
+// Nord
+[[maybe_unused]] static const char* const kThemeNordName = QT_TRANSLATE_NOOP("ThemeRegistry", "Nord");
+[[maybe_unused]] static const char* const kThemeNordDesc = QT_TRANSLATE_NOOP("ThemeRegistry", "Frosted Nordic palette — cool blues, sage, and soft warm accents");
+
+// Sakura
+[[maybe_unused]] static const char* const kThemeSakuraName = QT_TRANSLATE_NOOP("ThemeRegistry", "Sakura");
+[[maybe_unused]] static const char* const kThemeSakuraDesc = QT_TRANSLATE_NOOP("ThemeRegistry", "Cherry-blossom palette — soft pinks, fresh leaf greens, and wisteria");
+
+// Forest
+[[maybe_unused]] static const char* const kThemeForestName = QT_TRANSLATE_NOOP("ThemeRegistry", "Forest");
+[[maybe_unused]] static const char* const kThemeForestDesc = QT_TRANSLATE_NOOP("ThemeRegistry", "Botanical journal palette — mossy greens, bark, and autumn warmth on paper");
+
+// Candy
+[[maybe_unused]] static const char* const kThemeCandyName = QT_TRANSLATE_NOOP("ThemeRegistry", "Candy");
+[[maybe_unused]] static const char* const kThemeCandyDesc = QT_TRANSLATE_NOOP("ThemeRegistry", "Playful pastel palette — macaron pinks, mints, peach, and buttercup");
 
 } // namespace BuiltinTemplateStrings

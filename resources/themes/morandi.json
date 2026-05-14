@@ -2,7 +2,7 @@
     "$schema": "ymind-theme-v1",
     "id": "builtin.morandi",
     "name": "Morandi",
-    "description": "Low-saturation Morandi palette with soft 60% tinted fills",
+    "description": "Refined Morandi palette — soft, painterly hues with a clean modern lift",
     "nodeStyle": {
         "shape": "roundedRect",
         "borderRadius": 8.0,
@@ -29,38 +29,38 @@
     "backgroundPattern": "dots",
     "colors": {
         "light": {
-            "canvasBackground": "#F4F0EB",
-            "canvasGridDot": "#E1DBD3",
+            "canvasBackground": "#F7F3EC",
+            "canvasGridDot": "#E8E1D6",
             "nodePalette": [
-                "#A99687",
-                "#94A28D",
-                "#A6B0BA",
-                "#C2B091",
-                "#A99AA8",
-                "#9FA89D"
+                "#C7A99A",
+                "#A8BFA9",
+                "#B5C7D4",
+                "#DDC59C",
+                "#C5AEC2",
+                "#BCC9A8"
             ],
             "nodeShadow": "#00000000",
             "nodeSelectionBorder": "#8C6F58",
             "nodeText": "#3B342E",
             "edgeLightenFactor": 100,
-            "exportBackground": "#F4F0EB"
+            "exportBackground": "#F7F3EC"
         },
         "dark": {
-            "canvasBackground": "#2A2724",
-            "canvasGridDot": "#403A35",
+            "canvasBackground": "#2E2A26",
+            "canvasGridDot": "#463F39",
             "nodePalette": [
-                "#B9A797",
-                "#A5B5A1",
-                "#B7C0CA",
-                "#D6C29F",
-                "#BAA8B8",
-                "#AFB9AC"
+                "#D2B9A8",
+                "#BACCB4",
+                "#C5D2DE",
+                "#E2CDA4",
+                "#CCBCCB",
+                "#C5D0BD"
             ],
             "nodeShadow": "#00000000",
-            "nodeSelectionBorder": "#E0B084",
+            "nodeSelectionBorder": "#EAB78C",
             "nodeText": "#EAE1D6",
             "edgeLightenFactor": 100,
-            "exportBackground": "#2A2724"
+            "exportBackground": "#2E2A26"
         }
     }
 }

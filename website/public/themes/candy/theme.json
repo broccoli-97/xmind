@@ -1,0 +1,66 @@
+{
+    "$schema": "ymind-theme-v1",
+    "id": "builtin.candy",
+    "name": "Candy",
+    "description": "Playful pastel palette — macaron pinks, mints, peach, and buttercup",
+    "nodeStyle": {
+        "shape": "roundedRect",
+        "borderRadius": 12.0,
+        "padding": 14.0,
+        "fillMode": "tinted",
+        "fillAlpha": 0.70,
+        "borderWidth": 1.4,
+        "borderColorSource": "darker",
+        "drawShadow": false
+    },
+    "rootStyle": {
+        "fillAlpha": 0.88,
+        "borderWidth": 2.0,
+        "padding": 16.0
+    },
+    "edgeStyle": {
+        "width": 2.0,
+        "colorSource": "target",
+        "anchor": "center",
+        "curvature": 0.65,
+        "colorModifier": "same",
+        "lineCap": "round"
+    },
+    "backgroundPattern": "dots",
+    "colors": {
+        "light": {
+            "canvasBackground": "#FFF8FB",
+            "canvasGridDot": "#FCE4EC",
+            "nodePalette": [
+                "#F48FB1",
+                "#80DEEA",
+                "#FFCC80",
+                "#CE93D8",
+                "#A5D6A7",
+                "#FFE082"
+            ],
+            "nodeShadow": "#00000000",
+            "nodeSelectionBorder": "#EC407A",
+            "nodeText": "#4A2E40",
+            "edgeLightenFactor": 100,
+            "exportBackground": "#FFF8FB"
+        },
+        "dark": {
+            "canvasBackground": "#2A1F2C",
+            "canvasGridDot": "#3A2D3E",
+            "nodePalette": [
+                "#FFB1CC",
+                "#9CEAF5",
+                "#FFD9A2",
+                "#DDAEE3",
+                "#BFE3C1",
+                "#FFEAA0"
+            ],
+            "nodeShadow": "#00000000",
+            "nodeSelectionBorder": "#FFB1CC",
+            "nodeText": "#FAEDF1",
+            "edgeLightenFactor": 100,
+            "exportBackground": "#2A1F2C"
+        }
+    }
+}

@@ -1,0 +1,66 @@
+{
+    "$schema": "ymind-theme-v1",
+    "id": "builtin.nord",
+    "name": "Nord",
+    "description": "Frosted Nordic palette — cool blues, sage, and soft warm accents",
+    "nodeStyle": {
+        "shape": "roundedRect",
+        "borderRadius": 8.0,
+        "padding": 14.0,
+        "fillMode": "tinted",
+        "fillAlpha": 0.55,
+        "borderWidth": 1.4,
+        "borderColorSource": "darker",
+        "drawShadow": false
+    },
+    "rootStyle": {
+        "fillAlpha": 0.78,
+        "borderWidth": 2.0,
+        "padding": 16.0
+    },
+    "edgeStyle": {
+        "width": 1.8,
+        "colorSource": "target",
+        "anchor": "center",
+        "curvature": 0.50,
+        "colorModifier": "same",
+        "lineCap": "round"
+    },
+    "backgroundPattern": "dots",
+    "colors": {
+        "light": {
+            "canvasBackground": "#ECEFF4",
+            "canvasGridDot": "#D8DEE9",
+            "nodePalette": [
+                "#5E81AC",
+                "#8FBCBB",
+                "#A3BE8C",
+                "#B48EAD",
+                "#D08770",
+                "#EBCB8B"
+            ],
+            "nodeShadow": "#00000000",
+            "nodeSelectionBorder": "#5E81AC",
+            "nodeText": "#2E3440",
+            "edgeLightenFactor": 100,
+            "exportBackground": "#ECEFF4"
+        },
+        "dark": {
+            "canvasBackground": "#2E3440",
+            "canvasGridDot": "#3B4252",
+            "nodePalette": [
+                "#81A1C1",
+                "#88C0D0",
+                "#A3BE8C",
+                "#B48EAD",
+                "#D08770",
+                "#EBCB8B"
+            ],
+            "nodeShadow": "#00000000",
+            "nodeSelectionBorder": "#88C0D0",
+            "nodeText": "#ECEFF4",
+            "edgeLightenFactor": 100,
+            "exportBackground": "#2E3440"
+        }
+    }
+}

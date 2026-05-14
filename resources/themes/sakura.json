@@ -1,0 +1,66 @@
+{
+    "$schema": "ymind-theme-v1",
+    "id": "builtin.sakura",
+    "name": "Sakura",
+    "description": "Cherry-blossom palette — soft pinks, fresh leaf greens, and wisteria",
+    "nodeStyle": {
+        "shape": "roundedRect",
+        "borderRadius": 10.0,
+        "padding": 14.0,
+        "fillMode": "tinted",
+        "fillAlpha": 0.55,
+        "borderWidth": 1.4,
+        "borderColorSource": "darker",
+        "drawShadow": false
+    },
+    "rootStyle": {
+        "fillAlpha": 0.80,
+        "borderWidth": 2.0,
+        "padding": 16.0
+    },
+    "edgeStyle": {
+        "width": 1.8,
+        "colorSource": "target",
+        "anchor": "center",
+        "curvature": 0.60,
+        "colorModifier": "same",
+        "lineCap": "round"
+    },
+    "backgroundPattern": "dots",
+    "colors": {
+        "light": {
+            "canvasBackground": "#FDF6F4",
+            "canvasGridDot": "#F2DDD9",
+            "nodePalette": [
+                "#E8A4B8",
+                "#F4C2C2",
+                "#B8D8B8",
+                "#C8B5D8",
+                "#FAD9A6",
+                "#B8D8E8"
+            ],
+            "nodeShadow": "#00000000",
+            "nodeSelectionBorder": "#C97B95",
+            "nodeText": "#4A3742",
+            "edgeLightenFactor": 100,
+            "exportBackground": "#FDF6F4"
+        },
+        "dark": {
+            "canvasBackground": "#2A2027",
+            "canvasGridDot": "#3D2F37",
+            "nodePalette": [
+                "#E8B5C7",
+                "#EFCBCB",
+                "#C8DDC8",
+                "#D5C5DF",
+                "#FBDEB1",
+                "#C8DCE8"
+            ],
+            "nodeShadow": "#00000000",
+            "nodeSelectionBorder": "#E8A4B8",
+            "nodeText": "#F5E6EC",
+            "edgeLightenFactor": 100,
+            "exportBackground": "#2A2027"
+        }
+    }
+}

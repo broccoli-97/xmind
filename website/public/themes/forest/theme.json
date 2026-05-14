@@ -1,0 +1,66 @@
+{
+    "$schema": "ymind-theme-v1",
+    "id": "builtin.forest",
+    "name": "Forest",
+    "description": "Botanical journal palette — mossy greens, bark, and autumn warmth on paper",
+    "nodeStyle": {
+        "shape": "roundedRect",
+        "borderRadius": 6.0,
+        "padding": 14.0,
+        "fillMode": "tinted",
+        "fillAlpha": 0.45,
+        "borderWidth": 1.8,
+        "borderColorSource": "darker",
+        "drawShadow": false
+    },
+    "rootStyle": {
+        "fillAlpha": 0.72,
+        "borderWidth": 2.4,
+        "padding": 16.0
+    },
+    "edgeStyle": {
+        "width": 2.0,
+        "colorSource": "target",
+        "anchor": "center",
+        "curvature": 0.55,
+        "colorModifier": "same",
+        "lineCap": "round"
+    },
+    "backgroundPattern": "dots",
+    "colors": {
+        "light": {
+            "canvasBackground": "#FAF6EE",
+            "canvasGridDot": "#E5DCC8",
+            "nodePalette": [
+                "#5C8A5E",
+                "#8AAB5C",
+                "#A66B3D",
+                "#C97B4A",
+                "#5A7FA3",
+                "#B8956A"
+            ],
+            "nodeShadow": "#00000000",
+            "nodeSelectionBorder": "#3D6B47",
+            "nodeText": "#2A3320",
+            "edgeLightenFactor": 100,
+            "exportBackground": "#FAF6EE"
+        },
+        "dark": {
+            "canvasBackground": "#1F2620",
+            "canvasGridDot": "#2C3528",
+            "nodePalette": [
+                "#7FB078",
+                "#A8C97A",
+                "#C49474",
+                "#E0A57A",
+                "#80A8C8",
+                "#D8B58E"
+            ],
+            "nodeShadow": "#00000000",
+            "nodeSelectionBorder": "#A8C97A",
+            "nodeText": "#DCEDD8",
+            "edgeLightenFactor": 100,
+            "exportBackground": "#1F2620"
+        }
+    }
+}
