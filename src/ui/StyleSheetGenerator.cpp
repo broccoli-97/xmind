@@ -82,9 +82,9 @@ static ColorMap darkColors() {
         {"treeSelFg",            "#FFFFFF"},
         {"treeBranchBg",         "#252526"},
         // Status bar
-        {"statusBarBg",          "#007ACC"},
-        {"statusBarFg",          "#FFFFFF"},
-        {"statusBarBorder",      "#0066AA"},
+        {"statusBarBg",          "#2D2D30"},
+        {"statusBarFg",          "#D4D4D4"},
+        {"statusBarBorder",      "#3F3F46"},
         // Scrollbar
         {"scrollBg",             "#2D2D30"},
         {"scrollHandleBg",       "#424242"},

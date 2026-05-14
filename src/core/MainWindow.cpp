@@ -915,8 +915,8 @@ void MainWindow::setupStatusBar() {
     m_updateStatusBtn = new QToolButton(this);
     m_updateStatusBtn->setObjectName("statusBarUpdateBtn");
     m_updateStatusBtn->setAutoRaise(true);
-    m_updateStatusBtn->setFixedSize(22, 22);
-    m_updateStatusBtn->setIconSize(QSize(16, 16));
+    m_updateStatusBtn->setFixedSize(24, 24);
+    m_updateStatusBtn->setIconSize(QSize(18, 18));
     connect(m_updateStatusBtn, &QToolButton::clicked, this, &MainWindow::onUpdateIconClicked);
     statusBar()->addPermanentWidget(m_updateStatusBtn);
 

@@ -118,26 +118,24 @@ QIcon IconFactory::makeToolIcon(const QString& name) {
         p.drawLine(10, 10, 22, 22);
         p.drawLine(22, 10, 10, 22);
     } else if (name == "update" || name == "update-available") {
-        // Cloud-style download arrow: tray at bottom with arrow descending into it.
+        // Rounded-square package with a download arrow — matches the line-art
+        // weight of the other toolbar icons and reads clearly at small sizes.
         bool available = (name == "update-available");
         QColor strokeColor = available ? QColor("#2E9E5B") : baseColor;
-        QPen strokePen(strokeColor, 2.0, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+        QPen strokePen(strokeColor, 2.4, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
         p.setPen(strokePen);
-        // Arrow shaft
-        p.drawLine(16, 6, 16, 20);
-        // Arrowhead
-        p.drawLine(16, 20, 10, 14);
-        p.drawLine(16, 20, 22, 14);
-        // Tray
-        p.drawLine(6, 26, 26, 26);
-        p.drawLine(6, 23, 6, 26);
-        p.drawLine(26, 23, 26, 26);
+        p.setBrush(Qt::NoBrush);
+        p.drawRoundedRect(QRectF(4, 4, 24, 24), 5.0, 5.0);
+        // Down arrow
+        p.drawLine(16, 9, 16, 22);
+        p.drawLine(16, 22, 10, 16);
+        p.drawLine(16, 22, 22, 16);
 
-        // For the available state, add a small filled accent dot to draw the eye.
+        // Notification badge for the available state, overlapping the corner.
         if (available) {
             p.setPen(Qt::NoPen);
             p.setBrush(QColor("#E53935"));
-            p.drawEllipse(QPointF(24, 7), 4.0, 4.0);
+            p.drawEllipse(QPointF(25.5, 6.5), 4.5, 4.5);
         }
     }
 

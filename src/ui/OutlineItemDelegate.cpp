@@ -1,6 +1,7 @@
 #include "ui/OutlineItemDelegate.h"
 #include "ui/ThemeManager.h"
 
+#include <QAbstractItemView>
 #include <QPainter>
 
 OutlineItemDelegate::OutlineItemDelegate(QObject* parent) : QStyledItemDelegate(parent) {}
@@ -20,27 +21,30 @@ void OutlineItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& o
     const QColor hoverBg = dark ? QColor(0x2A, 0x2D, 0x2E) : QColor(0xF0, 0xF0, 0xF0);
 
     // Strip the state flags so the QSS-styled base paint does NOT draw a flat
-    // selection/hover rectangle on top of (or behind) our rounded pill. The
-    // text color falls back to the regular tree foreground, which has good
-    // contrast on both light and dark selection backgrounds.
+    // selection/hover rectangle on top of our own fill.
     opt.state &= ~QStyle::State_Selected;
     opt.state &= ~QStyle::State_MouseOver;
     opt.state &= ~QStyle::State_HasFocus;
     opt.backgroundBrush = Qt::NoBrush;
 
     if (selected || hovered) {
+        // Span the highlight across the full row width so every selected row
+        // shares the same bar regardless of indent depth, with a small inset
+        // so the rounded corners read cleanly against the panel background.
+        QRectF bar = opt.rect;
+        if (const auto* view = qobject_cast<const QAbstractItemView*>(opt.widget)) {
+            const QRect vp = view->viewport()->rect();
+            bar.setLeft(vp.left());
+            bar.setRight(vp.right());
+        }
+        bar.adjust(4, 1, -4, -1);
+        constexpr qreal radius = 5.0;
+
         painter->save();
         painter->setRenderHint(QPainter::Antialiasing);
-
-        // Pill rect: inset horizontally and vertically so the highlight reads
-        // as a floating capsule rather than a row-spanning bar.
-        const QRectF pill = QRectF(opt.rect).adjusted(3, 2, -4, -2);
-        constexpr qreal radius = 6.0;
-
         painter->setPen(Qt::NoPen);
         painter->setBrush(selected ? selBg : hoverBg);
-        painter->drawRoundedRect(pill, radius, radius);
-
+        painter->drawRoundedRect(bar, radius, radius);
         painter->restore();
     }
 

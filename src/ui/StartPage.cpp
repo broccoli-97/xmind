@@ -1,9 +1,11 @@
 #include "ui/StartPage.h"
+#include "core/AppSettings.h"
 #include "core/TemplateDescriptor.h"
 #include "core/TemplateRegistry.h"
 #include "core/ThemeDescriptor.h"
 #include "core/ThemeRegistry.h"
 #include "ui/IconFactory.h"
+#include "ui/ThemeManager.h"
 #include "scene/MindMapScene.h"
 #include "scene/NodeItem.h"
 
@@ -106,11 +108,19 @@ QWidget* StartPage::create(QObject* /*receiver*/, std::function<void(const QStri
     blankRow->addWidget(blankBtn);
     outer->addLayout(blankRow);
 
-    // "Load Theme..." underlined link
+    // Link color is baked into the inline HTML because Qt's rich-text engine
+    // ignores `color: inherit` and QSS descendant rules for anchor tags. The
+    // helper re-emits the HTML so we can refresh it when the theme changes.
+    auto applyLinkHtml = [](QLabel* label, const QString& text) {
+        const QString color = ThemeManager::isDark() ? QStringLiteral("#FFFFFF")
+                                                     : QStringLiteral("#000000");
+        label->setText(QString("<a href=\"#\" style=\"color:%1;\">%2</a>").arg(color, text));
+    };
+
+    const QString loadText = QCoreApplication::translate("StartPage", "Load Theme...");
     outer->addSpacing(8);
-    auto* loadLink = new QLabel(
-        QString("<a href=\"#\" style=\"color: inherit;\">%1</a>")
-            .arg(QCoreApplication::translate("StartPage", "Load Theme...")));
+    auto* loadLink = new QLabel();
+    applyLinkHtml(loadLink, loadText);
     loadLink->setObjectName("loadTemplateLink");
     loadLink->setAlignment(Qt::AlignCenter);
     loadLink->setCursor(Qt::PointingHandCursor);
@@ -163,9 +173,10 @@ QWidget* StartPage::create(QObject* /*receiver*/, std::function<void(const QStri
 
     // "Browse themes online…" link — opens the GitHub Pages themes page where
     // users can grab additional .json styles to drop in their templates folder.
-    auto* browseLink = new QLabel(
-        QString("<a href=\"#\" style=\"color: inherit;\">%1</a>")
-            .arg(QCoreApplication::translate("StartPage", "Browse themes online...")));
+    const QString browseText =
+        QCoreApplication::translate("StartPage", "Browse themes online...");
+    auto* browseLink = new QLabel();
+    applyLinkHtml(browseLink, browseText);
     browseLink->setObjectName("loadTemplateLink");
     browseLink->setAlignment(Qt::AlignCenter);
     browseLink->setCursor(Qt::PointingHandCursor);
@@ -176,6 +187,15 @@ QWidget* StartPage::create(QObject* /*receiver*/, std::function<void(const QStri
     browseRow->setAlignment(Qt::AlignCenter);
     browseRow->addWidget(browseLink);
     outer->addLayout(browseRow);
+
+    // Refresh both link colors live when the user toggles the app theme.
+    // Receiver context is `page` so the connection drops automatically when
+    // the start page widget is destroyed.
+    QObject::connect(&AppSettings::instance(), &AppSettings::themeChanged, page,
+                     [applyLinkHtml, loadLink, loadText, browseLink, browseText]() {
+                         applyLinkHtml(loadLink, loadText);
+                         applyLinkHtml(browseLink, browseText);
+                     });
 
     return page;
 }
