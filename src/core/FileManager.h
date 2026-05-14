@@ -20,7 +20,7 @@ public:
     void exportAsPng();
     void exportAsSvg();
     void exportAsPdf();
-    void importFromText();
+    void importFromMarkdown();
 
 private:
     // Common export helper: shows save dialog, validates extension, runs exporter, shows status.

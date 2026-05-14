@@ -458,8 +458,8 @@ void MainWindow::setupMenuBar() {
 
     fileMenu->addSeparator();
 
-    auto* importAct = fileMenu->addAction(tr("&Import from Text..."));
-    connect(importAct, &QAction::triggered, m_fileManager, &FileManager::importFromText);
+    auto* importAct = fileMenu->addAction(tr("&Import from Markdown..."));
+    connect(importAct, &QAction::triggered, m_fileManager, &FileManager::importFromMarkdown);
 
     auto* exportMenu = fileMenu->addMenu(tr("&Export"));
 

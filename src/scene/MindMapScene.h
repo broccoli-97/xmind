@@ -1,6 +1,7 @@
 #pragma once
 
 #include "layout/LayoutEngine.h"
+#include "scene/MindMapExporter.h"
 
 #include <QGraphicsScene>
 #include <QMap>
@@ -59,6 +60,11 @@ public:
     bool exportToPdf(const QString& filePath);
     bool importFromText(const QString& text);
     bool importFromMarkdown(const QString& text, bool animate = true);
+    // Strict variant: see MindMapExporter::importFromMarkdownStrict. Returns
+    // false and leaves the scene untouched when `report->errors` is non-empty.
+    bool importFromMarkdownStrict(const QString& text,
+                                  MarkdownImportReport* report,
+                                  bool animate = true);
 
     // Immediate (non-animated) layout — required for headless/CLI rendering
     // where no event loop is available to drive QPropertyAnimation.

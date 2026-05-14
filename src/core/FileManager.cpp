@@ -187,15 +187,56 @@ void FileManager::exportAsPdf() {
              "PDF");
 }
 
-void FileManager::importFromText() {
-    QString filePath = QFileDialog::getOpenFileName(m_window, tr("Import from Text"), QString(),
-                                                    tr("Text Files (*.txt);;All Files (*)"));
+namespace {
+
+// Render the first N issues from the strict markdown parser as a single
+// translated block, with a "...and X more" tail if we truncate.
+QString formatMarkdownIssues(const QList<MarkdownImportIssue>& issues,
+                             int maxToShow = 10) {
+    QStringList lines;
+    const int n = std::min<int>(issues.size(), maxToShow);
+    for (int i = 0; i < n; ++i) {
+        const auto& iss = issues[i];
+        if (iss.line > 0)
+            lines << QObject::tr("Line %1: %2").arg(iss.line).arg(iss.message);
+        else
+            lines << iss.message;
+    }
+    if (issues.size() > maxToShow)
+        lines << QObject::tr("... and %1 more issue(s).").arg(issues.size() - maxToShow);
+    return lines.join('\n');
+}
+
+void showMarkdownImportError(QWidget* window,
+                             const QString& filePath,
+                             const MarkdownImportReport& report) {
+    QMessageBox box(window);
+    box.setIcon(QMessageBox::Warning);
+    box.setWindowTitle(QStringLiteral("YMind"));
+    box.setText(QObject::tr("Could not import %1.\n\n"
+                            "The file must be a simple Markdown outline "
+                            "(optional `# Title` followed by an unordered "
+                            "list with 2-space indentation). See "
+                            "docs/markdown-import-format.md for the full "
+                            "format.")
+                    .arg(QFileInfo(filePath).fileName()));
+    box.setDetailedText(formatMarkdownIssues(report.errors));
+    box.exec();
+}
+
+} // namespace
+
+void FileManager::importFromMarkdown() {
+    QString filePath = QFileDialog::getOpenFileName(
+        m_window, tr("Import from Markdown"), QString(),
+        tr("Markdown Files (*.md *.markdown);;All Files (*)"));
     if (filePath.isEmpty())
         return;
 
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QMessageBox::warning(m_window, "YMind", tr("Could not read file:\n%1").arg(filePath));
+        QMessageBox::warning(m_window, "YMind",
+                             tr("Could not read file:\n%1").arg(filePath));
         return;
     }
     QString text = QString::fromUtf8(file.readAll());
@@ -205,9 +246,9 @@ void FileManager::importFromText() {
     if (cur >= 0 && m_tabManager->isTabEmpty(cur)) {
         auto* scene = m_tabManager->currentScene();
         auto* view = m_tabManager->currentView();
-        if (!scene->importFromText(text)) {
-            QMessageBox::warning(m_window, "YMind",
-                                 tr("Could not parse text file:\n%1").arg(filePath));
+        MarkdownImportReport report;
+        if (!scene->importFromMarkdownStrict(text, &report)) {
+            showMarkdownImportError(m_window, filePath, report);
             return;
         }
         m_tabManager->setCurrentFilePath(QString());
@@ -221,9 +262,9 @@ void FileManager::importFromText() {
         auto* view = new MindMapView(m_window);
         view->setScene(scene);
 
-        if (!scene->importFromText(text)) {
-            QMessageBox::warning(m_window, "YMind",
-                                 tr("Could not parse text file:\n%1").arg(filePath));
+        MarkdownImportReport report;
+        if (!scene->importFromMarkdownStrict(text, &report)) {
+            showMarkdownImportError(m_window, filePath, report);
             delete scene;
             delete view;
             return;

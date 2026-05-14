@@ -397,6 +397,12 @@ bool MindMapScene::importFromMarkdown(const QString& text, bool animate) {
     return MindMapExporter(this).importFromMarkdown(text, animate);
 }
 
+bool MindMapScene::importFromMarkdownStrict(const QString& text,
+                                            MarkdownImportReport* report,
+                                            bool animate) {
+    return MindMapExporter(this).importFromMarkdownStrict(text, report, animate);
+}
+
 void MindMapScene::layoutWithoutAnimation() {
     if (!m_rootNode)
         return;
