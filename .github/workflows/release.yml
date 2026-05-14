@@ -70,8 +70,11 @@ jobs:
         run: |
           mkdir -p dist
           cp build/ymind dist/
-          chmod +x dist/ymind
-          ./linuxdeployqt dist/ymind -verbose=1
+          cp build/ymind-cli dist/
+          chmod +x dist/ymind dist/ymind-cli
+          # `-executable=` makes linuxdeployqt fix up ymind-cli's RPATH alongside
+          # ymind's, so both binaries can find the bundled Qt libs in the tarball.
+          ./linuxdeployqt dist/ymind -executable=dist/ymind-cli -verbose=1
           tar czf ymind-${{ matrix.name }}.tar.gz -C dist .
 
       - name: Package (Windows)
@@ -80,7 +83,11 @@ jobs:
         run: |
           mkdir -p dist
           cp build/Release/ymind.exe dist/
+          cp build/Release/ymind-cli.exe dist/
+          # Run windeployqt against both: ymind-cli is headless, so it may pull
+          # a slightly different plugin set than the GUI binary.
           windeployqt dist/ymind.exe || true
+          windeployqt dist/ymind-cli.exe || true
           7z a ymind-${{ matrix.name }}.zip ./dist/*
 
       - name: Package (macOS)
@@ -88,8 +95,10 @@ jobs:
         run: |
           mkdir -p dist/YMind.app/Contents/MacOS
           cp build/ymind dist/YMind.app/Contents/MacOS/
-          chmod +x dist/YMind.app/Contents/MacOS/ymind
-          macdeployqt dist/YMind.app -verbose=1
+          cp build/ymind-cli dist/YMind.app/Contents/MacOS/
+          chmod +x dist/YMind.app/Contents/MacOS/ymind dist/YMind.app/Contents/MacOS/ymind-cli
+          # `-executable=` fixes up ymind-cli's library paths inside the bundle.
+          macdeployqt dist/YMind.app -executable=dist/YMind.app/Contents/MacOS/ymind-cli -verbose=1
           tar czf ymind-${{ matrix.name }}.tar.gz -C dist .
 
       - name: Upload artifact
