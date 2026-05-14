@@ -191,7 +191,11 @@ export function Themes() {
                 return r.json() as Promise<Manifest>;
             })
             .then((m) => {
-                const list = m.themes ?? [];
+                // Temporarily show only the first theme on the public site;
+                // the extras (Nord/Sakura/Forest/Candy) need more than a
+                // palette swap before they're worth a dedicated card. Remove
+                // the slice to re-enable the full grid.
+                const list = (m.themes ?? []).slice(0, 1);
                 setThemes(list);
                 // Fetch each theme.json in parallel so previews can render
                 // with the real per-theme style attributes.
