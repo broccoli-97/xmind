@@ -427,14 +427,19 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
     }
 
     // ----- Text --------------------------------------------------------------
-    // For outlined / tinted modes, the body isn't a colored slab so default
-    // white text wouldn't read. Use the node color for the text — darker than
-    // the fill in light themes, lighter in dark themes — so the text always
-    // sits clearly on the canvas while still belonging to its node's hue.
+    // When the node has no colored slab behind the text (underline / none
+    // shapes, or outlined / tinted roundedRect fills), default white text
+    // would vanish on a light canvas. Tint the text from the node color
+    // instead — darker than the accent in light themes, lighter in dark
+    // themes — so it reads against the canvas while still belonging to the
+    // node's hue.
+    const bool textOnCanvas =
+        shape == QLatin1String("underline") || shape == QLatin1String("none") ||
+        (shape == QLatin1String("roundedRect") &&
+         (style.fillMode == QLatin1String("outlined") ||
+          style.fillMode == QLatin1String("tinted")));
     QColor effTextColor = textColor;
-    if (shape == QLatin1String("roundedRect") &&
-        (style.fillMode == QLatin1String("outlined") ||
-         style.fillMode == QLatin1String("tinted"))) {
+    if (textOnCanvas) {
         effTextColor = ThemeManager::isDark() ? nodeCol.lighter(140)
                                               : nodeCol.darker(120);
     }

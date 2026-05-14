@@ -1,6 +1,7 @@
 #include "scene/EdgeItem.h"
 #include "core/TemplateDescriptor.h"
 #include "core/ThemeDescriptor.h"
+#include "layout/LayoutStyle.h"
 #include "scene/MindMapScene.h"
 #include "scene/NodeItem.h"
 #include "ui/ThemeManager.h"
@@ -116,8 +117,18 @@ void EdgeItem::updatePath() {
     }
     const bool baseline = (anchor == QLatin1String("baseline"));
 
+    // TopDown layouts spread children horizontally below the parent. Routing
+    // such edges through the node's left/right edges (the old default for any
+    // |dx| > 10) makes the bezier sweep across sibling nodes that sit between
+    // parent and target. Force vertical routing (parent-bottom → child-top)
+    // whenever the scene is laid out top-down; horizontal/bilateral trees
+    // keep the side-entry behaviour.
+    const bool topDown = m_mindMapScene &&
+                         m_mindMapScene->layoutStyle() == LayoutStyle::TopDown;
+
     QPointF start, end;
     qreal dx = tgtPos.x() - srcPos.x();
+    const bool sideRouting = !topDown && qAbs(dx) > 10;
 
     // Vertical offset for "baseline" anchor: line meets the bottom of the
     // node's text rect rather than the vertical centre. Yields the
@@ -126,7 +137,7 @@ void EdgeItem::updatePath() {
         return baseline ? r.bottom() : 0.0;
     };
 
-    if (qAbs(dx) > 10) {
+    if (sideRouting) {
         if (dx > 0) {
             start = QPointF(srcPos.x() + srcRect.right(), srcPos.y() + vOffset(srcRect));
             end = QPointF(tgtPos.x() + tgtRect.left(), tgtPos.y() + vOffset(tgtRect));
@@ -149,7 +160,7 @@ void EdgeItem::updatePath() {
     qreal cdy = (end.y() - start.y()) * curvature;
 
     QPointF cp1, cp2;
-    if (qAbs(dx) > 10) {
+    if (sideRouting) {
         cp1 = QPointF(start.x() + cdx, start.y());
         cp2 = QPointF(end.x() - cdx, end.y());
     } else {

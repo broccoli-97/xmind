@@ -8,6 +8,7 @@ class OutlineWidget;
 class UpdateChecker;
 class QFrame;
 class QLabel;
+class QMenu;
 class QTimer;
 class QSplitter;
 class QToolButton;
@@ -32,8 +33,10 @@ private:
     void updateContentVisibility();
 
     void openSettings();
-    void switchTemplate();
-    void switchStyle();
+    void rebuildTemplateMenu();
+    void applyTemplateId(const QString& templateId);
+    void rebuildThemeMenu();
+    void applyThemeId(const QString& themeId);
     void openAbout();
     void saveWindowState();
     void restoreWindowState();
@@ -78,4 +81,7 @@ private:
     QAction* m_addSiblingAct = nullptr;
 
     QTimer* m_autoSaveTimer = nullptr;
+
+    QMenu* m_templateMenu = nullptr;
+    QMenu* m_themeMenu = nullptr;
 };

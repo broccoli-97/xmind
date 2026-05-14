@@ -16,6 +16,7 @@
 #include "ui/ThemeManager.h"
 
 #include <QAction>
+#include <QActionGroup>
 #include <QApplication>
 #include <QCloseEvent>
 #include <QDesktopServices>
@@ -23,7 +24,6 @@
 #include <QFrame>
 #include <QGraphicsItem>
 #include <QHBoxLayout>
-#include <QInputDialog>
 #include <QKeySequence>
 #include <QLabel>
 #include <QMenu>
@@ -577,21 +577,18 @@ void MainWindow::setupMenuBar() {
     });
 
     // ---- Template menu ----
-    auto* templateMenu = menuBar()->addMenu(tr("Te&mplate"));
-
-    auto* switchTemplateAct = templateMenu->addAction(tr("Switch Te&mplate..."));
-    connect(switchTemplateAct, &QAction::triggered, this, &MainWindow::switchTemplate);
+    // Templates are listed inline as checkable, mutually-exclusive actions.
+    // Clicking one applies it immediately — no intermediate dialog.
+    m_templateMenu = menuBar()->addMenu(tr("Te&mplate"));
+    connect(m_templateMenu, &QMenu::aboutToShow, this, &MainWindow::rebuildTemplateMenu);
+    rebuildTemplateMenu();
 
     // ---- Theme menu ----
-    auto* themeMenu = menuBar()->addMenu(tr("&Theme"));
-
-    auto* switchThemeAct = themeMenu->addAction(tr("Switch &Theme..."));
-    connect(switchThemeAct, &QAction::triggered, this, &MainWindow::switchStyle);
-
-    auto* browseThemesAct = themeMenu->addAction(tr("&Browse Themes Online..."));
-    connect(browseThemesAct, &QAction::triggered, this, []() {
-        QDesktopServices::openUrl(QUrl("https://broccoli-97.github.io/xmind/#themes"));
-    });
+    // Themes are listed inline as checkable, mutually-exclusive actions.
+    // Clicking one applies it immediately — no intermediate dialog.
+    m_themeMenu = menuBar()->addMenu(tr("&Theme"));
+    connect(m_themeMenu, &QMenu::aboutToShow, this, &MainWindow::rebuildThemeMenu);
+    rebuildThemeMenu();
 
     // ---- Help menu ----
     auto* helpMenu = menuBar()->addMenu(tr("&Help"));
@@ -685,38 +682,44 @@ void MainWindow::openSettings() {
 }
 
 // ---------------------------------------------------------------------------
-// Switch the active template on the currently visible scene. Reapplies the
+// Rebuild the Template menu in place. Called on aboutToShow so the list picks
+// up templates registered after startup (e.g. dropped in via the Start Page)
+// and the checkmark tracks the *current* tab's templateId.
+// ---------------------------------------------------------------------------
+void MainWindow::rebuildTemplateMenu() {
+    if (!m_templateMenu)
+        return;
+
+    m_templateMenu->clear();
+
+    auto* scene = m_tabManager ? m_tabManager->currentScene() : nullptr;
+    const QString activeId = scene ? scene->templateId() : QString();
+
+    auto* group = new QActionGroup(m_templateMenu);
+    group->setExclusive(true);
+
+    const auto templates = TemplateRegistry::instance().allTemplates();
+    for (const auto* td : templates) {
+        const QString id = td->id;
+        QAction* act = m_templateMenu->addAction(td->name);
+        act->setCheckable(true);
+        act->setChecked(id == activeId);
+        group->addAction(act);
+        connect(act, &QAction::triggered, this, [this, id]() { applyTemplateId(id); });
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Apply the chosen template to the currently visible scene. Reapplies the
 // new template's layout algorithm + structural overrides; keeps the user's
 // content (every node text + any structural changes they made) intact, and
 // keeps whichever theme is currently applied.
 // ---------------------------------------------------------------------------
-void MainWindow::switchTemplate() {
+void MainWindow::applyTemplateId(const QString& templateId) {
     auto* scene = m_tabManager->currentScene();
-    if (!scene)
+    if (!scene || templateId.isEmpty())
         return;
-
-    auto templates = TemplateRegistry::instance().allTemplates();
-    if (templates.isEmpty())
-        return;
-
-    QStringList names;
-    QStringList ids;
-    int currentIdx = 0;
-    for (const auto* td : templates) {
-        names << td->name;
-        ids << td->id;
-        if (td->id == scene->templateId())
-            currentIdx = ids.size() - 1;
-    }
-
-    bool ok = false;
-    QString chosen = QInputDialog::getItem(this, tr("Switch Template"),
-                                           tr("Choose a template:"), names, currentIdx,
-                                           /*editable=*/false, &ok);
-    if (!ok)
-        return;
-    int idx = names.indexOf(chosen);
-    if (idx < 0)
+    if (scene->templateId() == templateId)
         return;
 
     // Drop device caches so every item repaints with the new template's
@@ -728,7 +731,7 @@ void MainWindow::switchTemplate() {
     if (auto* view = m_tabManager->currentView())
         view->viewport()->update();
 
-    scene->setTemplateId(ids[idx]);
+    scene->setTemplateId(templateId);
     scene->autoLayout();
 
     QPointer<QGraphicsScene> guard(scene);
@@ -744,39 +747,50 @@ void MainWindow::switchTemplate() {
 }
 
 // ---------------------------------------------------------------------------
-// Switch the active theme on the currently visible scene. Re-skins the map
-// (colors, fills, borders, connectors) without touching layout or content.
+// Rebuild the Theme menu in place. Called on aboutToShow so the list reflects
+// any themes registered after startup (e.g. dropped in via the Start Page) and
+// the checkmark tracks the *current* tab's theme.
 // ---------------------------------------------------------------------------
-void MainWindow::switchStyle() {
-    auto* scene = m_tabManager->currentScene();
-    if (!scene)
+void MainWindow::rebuildThemeMenu() {
+    if (!m_themeMenu)
         return;
 
-    auto themes = ThemeRegistry::instance().allThemes();
-    if (themes.isEmpty())
-        return;
+    m_themeMenu->clear();
 
-    QStringList names;
-    QStringList ids;
-    int currentIdx = 0;
-    const QString activeId = scene->themeId().isEmpty()
-                                 ? ThemeRegistry::defaultThemeId()
-                                 : scene->themeId();
+    auto* scene = m_tabManager ? m_tabManager->currentScene() : nullptr;
+    const QString activeId = (scene && !scene->themeId().isEmpty())
+                                 ? scene->themeId()
+                                 : ThemeRegistry::defaultThemeId();
+
+    auto* group = new QActionGroup(m_themeMenu);
+    group->setExclusive(true);
+
+    const auto themes = ThemeRegistry::instance().allThemes();
     for (const auto* th : themes) {
-        names << th->name;
-        ids << th->id;
-        if (th->id == activeId)
-            currentIdx = ids.size() - 1;
+        const QString id = th->id;
+        QAction* act = m_themeMenu->addAction(th->name);
+        act->setCheckable(true);
+        act->setChecked(id == activeId);
+        group->addAction(act);
+        connect(act, &QAction::triggered, this, [this, id]() { applyThemeId(id); });
     }
 
-    bool ok = false;
-    QString chosen = QInputDialog::getItem(this, tr("Switch Theme"),
-                                           tr("Choose a theme:"), names, currentIdx,
-                                           /*editable=*/false, &ok);
-    if (!ok)
+    m_themeMenu->addSeparator();
+    auto* browseThemesAct = m_themeMenu->addAction(tr("&Browse Themes Online..."));
+    connect(browseThemesAct, &QAction::triggered, this, []() {
+        QDesktopServices::openUrl(QUrl("https://broccoli-97.github.io/xmind/#themes"));
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Apply the chosen theme to the currently visible scene. Re-skins the map
+// (colors, fills, borders, connectors) without touching layout or content.
+// ---------------------------------------------------------------------------
+void MainWindow::applyThemeId(const QString& themeId) {
+    auto* scene = m_tabManager->currentScene();
+    if (!scene || themeId.isEmpty())
         return;
-    int idx = names.indexOf(chosen);
-    if (idx < 0)
+    if (scene->themeId() == themeId)
         return;
 
     // Drop device caches so every item repaints with the new theme's
@@ -787,7 +801,7 @@ void MainWindow::switchStyle() {
     if (auto* view = m_tabManager->currentView())
         view->viewport()->update();
 
-    scene->setThemeId(ids[idx]);
+    scene->setThemeId(themeId);
 
     QPointer<QGraphicsScene> guard(scene);
     QTimer::singleShot(0, this, [guard]() {
