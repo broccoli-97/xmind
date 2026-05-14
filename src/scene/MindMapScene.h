@@ -58,6 +58,11 @@ public:
     bool exportToSvg(const QString& filePath);
     bool exportToPdf(const QString& filePath);
     bool importFromText(const QString& text);
+    bool importFromMarkdown(const QString& text, bool animate = true);
+
+    // Immediate (non-animated) layout — required for headless/CLI rendering
+    // where no event loop is available to drive QPropertyAnimation.
+    void layoutWithoutAnimation();
 
     // Scene management
     void clearScene();

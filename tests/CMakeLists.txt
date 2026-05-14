@@ -23,3 +23,4 @@ add_ymind_test(tst_AppSettings)
 
 # Tier 3 -- requires QApplication
 add_ymind_test(tst_MindMapSceneSerialization)
+add_ymind_test(tst_MarkdownImport)

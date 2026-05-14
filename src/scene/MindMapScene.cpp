@@ -393,6 +393,27 @@ bool MindMapScene::importFromText(const QString& text) {
     return MindMapExporter(this).importFromText(text);
 }
 
+bool MindMapScene::importFromMarkdown(const QString& text, bool animate) {
+    return MindMapExporter(this).importFromMarkdown(text, animate);
+}
+
+void MindMapScene::layoutWithoutAnimation() {
+    if (!m_rootNode)
+        return;
+
+    QMap<NodeItem*, QPointF> positions;
+    const auto* td = templateDescriptor();
+    if (td) {
+        LayoutParams params{td->layout.depthSpacing, td->layout.spreadSpacing};
+        positions = LayoutEngine::computeLayout(m_rootNode, td->layout.algorithm, params);
+    } else {
+        positions = LayoutEngine::computeLayout(m_rootNode, m_layoutStyle);
+    }
+
+    for (auto it = positions.begin(); it != positions.end(); ++it)
+        it.key()->setPos(it.value());
+}
+
 // --- Auto-layout ---
 
 void MindMapScene::autoLayout() {

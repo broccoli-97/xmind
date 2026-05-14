@@ -112,9 +112,20 @@ endif()
 target_sources(ymind PRIVATE src/main.cpp)
 target_link_libraries(ymind PRIVATE ymind_lib)
 
+# ---- CLI / MCP server --------------------------------------------------------
+# Headless companion binary: takes Markdown → SVG/PNG, and also runs as a
+# Model Context Protocol server (`ymind-cli mcp`). Reuses ymind_lib directly.
+
+add_executable(ymind-cli
+    src/cli/main_cli.cpp
+    src/cli/Renderer.h         src/cli/Renderer.cpp
+    src/cli/McpServer.h        src/cli/McpServer.cpp
+)
+target_link_libraries(ymind-cli PRIVATE ymind_lib)
+
 # ---- Install -----------------------------------------------------------------
 
-install(TARGETS ymind DESTINATION bin)
+install(TARGETS ymind ymind-cli DESTINATION bin)
 
 # ---- Testing -----------------------------------------------------------------
 

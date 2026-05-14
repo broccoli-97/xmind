@@ -7,6 +7,7 @@ const sections = [
     { id: 'layouts', key: 'nav.layouts' },
     { id: 'animation', key: 'nav.animation' },
     { id: 'themes', key: 'nav.themes' },
+    { id: 'mcp', key: 'nav.mcp' },
     { id: 'download', key: 'nav.download' },
 ];
 

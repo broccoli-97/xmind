@@ -4,6 +4,7 @@ export const en: Record<string, string> = {
     'nav.layouts': 'Layouts',
     'nav.animation': 'Animation',
     'nav.themes': 'Themes',
+    'nav.mcp': 'AI / MCP',
     'nav.download': 'Download',
 
     // Hero
@@ -110,6 +111,49 @@ export const en: Record<string, string> = {
         'Restart YMind, then pick the new theme under Theme → Switch Theme.',
     'themes.download': 'Download',
     'themes.loaderror': 'Could not load themes manifest',
+
+    // MCP / AI
+    'mcp.badge': 'Model Context Protocol',
+    'mcp.title': 'Use YMind from Claude, Cursor, or any AI',
+    'mcp.subtitle':
+        'YMind ships an MCP server that lets an AI turn Markdown into a beautiful auto-laid-out mindmap — runs locally, no cloud account needed.',
+
+    'mcp.tool.render.desc':
+        'Convert a Markdown outline into an SVG or PNG mindmap with a chosen layout and theme.',
+    'mcp.tool.layouts.desc':
+        'List the supported layout algorithms (bilateral, top-down, right-tree).',
+    'mcp.tool.themes.desc':
+        'List the available themes so the AI can pick one that matches the topic.',
+
+    'mcp.install.recommendedTag': 'Recommended',
+    'mcp.install.pluginTitle': 'Install as a Claude Code plugin',
+    'mcp.install.pluginBody':
+        'YMind ships as a Claude Code plugin. Two commands — no JSON editing, works in any session.',
+    'mcp.install.pluginNote':
+        'Run /reload-plugins (or restart Claude Code) after install. The MCP server registers automatically once enabled.',
+
+    'mcp.path.title': 'One-time setup: put ymind-cli on PATH',
+    'mcp.path.body':
+        'The plugin invokes the ymind-cli binary by name — it has to be discoverable in your shell. Symlink it once and you are done.',
+    'mcp.path.linuxMac': 'Linux / macOS',
+    'mcp.path.fromSource': 'From source build',
+
+    'mcp.manual.title': 'Other clients (Claude Desktop, Cursor)',
+    'mcp.manual.body':
+        'These clients do not support the Claude Code plugin marketplace yet. Drop this JSON into their MCP config:',
+    'mcp.client.claudeDesktop': 'Claude Desktop',
+    'mcp.client.cursor': 'Cursor',
+
+    'mcp.example.title': 'Try it',
+    'mcp.example.body':
+        'After registering the server, ask any MCP-enabled assistant something like:',
+    'mcp.example.youSay': 'You',
+    'mcp.example.prompt':
+        'Summarise this article as a mindmap. Use the bilateral layout and the Nord theme, then save the PNG to my desktop.',
+
+    'mcp.build.label': 'No installed binary?',
+    'mcp.build.body':
+        'Clone the repo and build from source — ymind-cli is produced alongside the GUI app:',
 
     // Footer
     'footer.license': 'Released under the Apache 2.0 License.',

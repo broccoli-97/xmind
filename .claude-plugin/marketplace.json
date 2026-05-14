@@ -1,0 +1,19 @@
+{
+  "name": "ymind",
+  "owner": {
+    "name": "YMind"
+  },
+  "metadata": {
+    "description": "Render Markdown as auto-laid-out mindmap images (SVG/PNG) via the YMind MCP server",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "ymind",
+      "source": "./",
+      "description": "MCP server that converts a Markdown outline into a beautiful auto-laid-out mindmap (SVG/PNG). Requires the ymind-cli binary on PATH — ships with YMind.",
+      "category": "productivity",
+      "tags": ["mindmap", "mcp", "markdown", "svg", "png", "diagram"]
+    }
+  ]
+}

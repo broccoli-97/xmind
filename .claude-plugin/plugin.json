@@ -1,0 +1,13 @@
+{
+  "name": "ymind",
+  "description": "Render Markdown as auto-laid-out mindmap images (SVG/PNG) via the YMind MCP server",
+  "version": "1.0.0",
+  "author": {
+    "name": "YMind contributors",
+    "url": "https://github.com/broccoli-97/xmind"
+  },
+  "homepage": "https://broccoli-97.github.io/xmind/#mcp",
+  "repository": "https://github.com/broccoli-97/xmind",
+  "license": "Apache-2.0",
+  "keywords": ["mindmap", "mcp", "markdown", "svg", "png", "diagram"]
+}

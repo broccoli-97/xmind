@@ -4,6 +4,7 @@ export const zh: Record<string, string> = {
     'nav.layouts': '布局',
     'nav.animation': '动画',
     'nav.themes': '主题',
+    'nav.mcp': 'AI / MCP',
     'nav.download': '下载',
 
     // Hero
@@ -99,6 +100,48 @@ export const zh: Record<string, string> = {
     'themes.howto.step3': '重启 YMind，然后在「主题 → 切换主题」中选择新主题。',
     'themes.download': '下载',
     'themes.loaderror': '无法加载主题清单',
+
+    // MCP / AI
+    'mcp.badge': 'Model Context Protocol',
+    'mcp.title': '在 Claude、Cursor 等 AI 中使用 YMind',
+    'mcp.subtitle':
+        'YMind 内置了一个 MCP 服务器，可以让 AI 把 Markdown 自动排版为精美的思维导图。完全在本地运行，无需任何云端账号。',
+
+    'mcp.tool.render.desc':
+        '把 Markdown 大纲转换为 SVG 或 PNG 思维导图，可指定布局与主题。',
+    'mcp.tool.layouts.desc':
+        '列出支持的布局算法（双向、自上而下、右侧树）。',
+    'mcp.tool.themes.desc':
+        '列出可用主题，方便 AI 根据内容挑选合适的视觉风格。',
+
+    'mcp.install.recommendedTag': '推荐',
+    'mcp.install.pluginTitle': '作为 Claude Code 插件安装',
+    'mcp.install.pluginBody':
+        'YMind 已发布为 Claude Code 插件。两条命令搞定，无需手写 JSON，在任意会话中均可使用。',
+    'mcp.install.pluginNote':
+        '安装后运行 /reload-plugins（或重启 Claude Code）。插件启用后 MCP 服务器会自动注册。',
+
+    'mcp.path.title': '一次性准备：把 ymind-cli 加到 PATH',
+    'mcp.path.body':
+        '插件通过 ymind-cli 这个命令名调用二进制，所以它必须能在 shell 中被找到。建立一次软链接即可永久解决。',
+    'mcp.path.linuxMac': 'Linux / macOS',
+    'mcp.path.fromSource': '源码构建',
+
+    'mcp.manual.title': '其他客户端（Claude 桌面版、Cursor）',
+    'mcp.manual.body':
+        '这些客户端暂时还不支持 Claude Code 插件市场。把下面的 JSON 粘贴到它们的 MCP 配置即可：',
+    'mcp.client.claudeDesktop': 'Claude 桌面版',
+    'mcp.client.cursor': 'Cursor',
+
+    'mcp.example.title': '试一试',
+    'mcp.example.body': '注册成功后，对支持 MCP 的助手说类似这样的话：',
+    'mcp.example.youSay': '你',
+    'mcp.example.prompt':
+        '把这篇文章总结成思维导图，使用双向布局和 Nord 主题，然后把 PNG 保存到桌面。',
+
+    'mcp.build.label': '没有现成的安装包？',
+    'mcp.build.body':
+        '克隆仓库后直接从源码构建即可，ymind-cli 会和 GUI 主程序一起生成：',
 
     // Footer
     'footer.license': '基于 Apache 2.0 许可证发布。',

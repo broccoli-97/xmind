@@ -6,6 +6,7 @@ import { LayoutShowcase } from './components/LayoutShowcase';
 import { AnimationDemo } from './components/AnimationDemo';
 import { Screenshots } from './components/Screenshots';
 import { Themes } from './components/Themes';
+import { MCPGuide } from './components/MCPGuide';
 import { Download } from './components/Download';
 import { Footer } from './components/Footer';
 
@@ -20,6 +21,7 @@ export default function App() {
                 <AnimationDemo />
                 <Screenshots />
                 <Themes />
+                <MCPGuide />
                 <Download />
             </main>
             <Footer />

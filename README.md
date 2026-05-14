@@ -28,6 +28,43 @@ A desktop mind map editor built with C++ and Qt6. Create, edit, and organize hie
 - **Settings** - Configurable theme, fonts, auto-save, and editor preferences
 - **Zoom & Pan** - Scroll wheel zoom, fit-to-view, and middle/right-click panning
 - **Keyboard-Driven** - Comprehensive keyboard shortcuts for efficient editing
+- **AI / MCP** - Ships with `ymind-cli`, a headless binary that doubles as a Model Context Protocol server. Lets Claude / Cursor / any MCP-compatible AI turn Markdown into a beautiful auto-laid-out mindmap. See the [setup guide](https://broccoli-97.github.io/xmind/#mcp).
+
+## Headless rendering (CLI + MCP server)
+
+Alongside the GUI, the build produces `ymind-cli` — a small companion binary for scripting and AI integration:
+
+```bash
+# Render Markdown to SVG/PNG
+./build/ymind-cli render -i notes.md -o map.svg
+./build/ymind-cli render -i notes.md -o map.png -f png --layout righttree --theme builtin.nord
+
+# Stdin → stdout
+cat notes.md | ./build/ymind-cli render -i - -o - -f svg > map.svg
+
+# Run as a Model Context Protocol server (stdio)
+./build/ymind-cli mcp
+```
+
+### Install as a Claude Code plugin (recommended)
+
+YMind ships as a Claude Code plugin — two commands and you're done:
+
+```
+/plugin marketplace add broccoli-97/xmind
+/plugin install ymind
+```
+
+Then ensure `ymind-cli` is on your PATH (one-time):
+
+```bash
+# After cmake --build build
+sudo ln -s "$PWD/build/ymind-cli" /usr/local/bin/ymind-cli
+# or, for a temporary session
+export PATH="$PWD/build:$PATH"
+```
+
+Ask Claude: *"summarise this article as a mindmap, use the nord theme, save it to ~/Desktop"* — and it will. Full configuration steps for Claude Desktop and Cursor are on the [docs site](https://broccoli-97.github.io/xmind/#mcp).
 
 ## Building
 
