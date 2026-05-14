@@ -4,6 +4,7 @@
 #include "layout/LayoutStyle.h"
 #include "scene/MindMapScene.h"
 #include "scene/NodeItem.h"
+#include "scene/SketchyPainter.h"
 #include "ui/ThemeManager.h"
 
 #include <QGraphicsSceneHoverEvent>
@@ -66,6 +67,8 @@ void EdgeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option
     QString dashStyle = QStringLiteral("solid");
     QString colorModifier = QStringLiteral("lighten");
     QString lineCap = QStringLiteral("round");
+    qreal roughness = 0.0;
+    int strokePasses = 1;
 
     if (m_mindMapScene) {
         const auto* th = m_mindMapScene->themeDescriptor();
@@ -76,6 +79,8 @@ void EdgeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option
             dashStyle = th->edgeStyle.dashStyle;
             colorModifier = th->edgeStyle.colorModifier;
             lineCap = th->edgeStyle.lineCap;
+            roughness = th->edgeStyle.roughness;
+            strokePasses = qMax(1, th->edgeStyle.strokePasses);
         }
         // Template override (e.g. Lined forces branch-colored edges).
         if (const auto* td = m_mindMapScene->templateDescriptor()) {
@@ -90,7 +95,13 @@ void EdgeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* /*option
     QPen pen(color, edgeWidth, penStyleFor(dashStyle), capStyleFor(lineCap));
     painter->setPen(pen);
     painter->setBrush(Qt::NoBrush);
-    painter->drawPath(m_path);
+    if (roughness > 0.0) {
+        SketchyPainter::drawRoughCubicBezier(painter, m_bezStart, m_bezCp1, m_bezCp2, m_bezEnd,
+                                             roughness, strokePasses,
+                                             quint32(reinterpret_cast<quintptr>(this)));
+    } else {
+        painter->drawPath(m_path);
+    }
 }
 
 void EdgeItem::updatePath() {
@@ -172,8 +183,23 @@ void EdgeItem::updatePath() {
     m_path.moveTo(start);
     m_path.cubicTo(cp1, cp2, end);
 
+    m_bezStart = start;
+    m_bezCp1 = cp1;
+    m_bezCp2 = cp2;
+    m_bezEnd = end;
+
     m_startPoint = start;
-    m_boundingRect = m_path.boundingRect().adjusted(-5, -5, 5, 5);
+    // Roughened bezier passes can push the curve out by up to ~16px when the
+    // edge spans a long distance — widen the bounding rect accordingly when
+    // the active theme requests sketch rendering.
+    qreal pad = 5.0;
+    if (m_mindMapScene) {
+        if (const auto* th = m_mindMapScene->themeDescriptor()) {
+            if (th->edgeStyle.roughness > 0.0)
+                pad = 18.0;
+        }
+    }
+    m_boundingRect = m_path.boundingRect().adjusted(-pad, -pad, pad, pad);
 }
 
 NodeItem* EdgeItem::sourceNode() const {

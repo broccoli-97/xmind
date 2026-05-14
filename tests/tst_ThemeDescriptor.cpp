@@ -16,6 +16,8 @@ private slots:
     void nodeStyleInheritsFromBase();
     void edgeStyleRoundTrip();
     void edgeStyleDefaults();
+    void sketchFieldsRoundTrip();
+    void sketchFieldsDefaultToClean();
     void descriptorRootStyleSynthesizedFromRootShape();
     void descriptorRootStyleExplicitOverlay();
     void descriptorRoundTrip();
@@ -177,6 +179,42 @@ void tst_ThemeDescriptor::edgeStyleDefaults() {
     QCOMPARE(e.dashStyle, QString("solid"));
     QCOMPARE(e.colorModifier, QString("lighten"));
     QCOMPARE(e.lineCap, QString("round"));
+}
+
+void tst_ThemeDescriptor::sketchFieldsRoundTrip() {
+    ThemeNodeStyle ns;
+    ns.roughness = 0.65;
+    ns.strokePasses = 2;
+    ns.fontFamily = "Caveat";
+    ns.fontPointSize = 17.0;
+    QJsonObject nsJson = ns.toJson();
+    ThemeNodeStyle ns2 = ThemeNodeStyle::fromJson(nsJson);
+    QCOMPARE(ns2.roughness, 0.65);
+    QCOMPARE(ns2.strokePasses, 2);
+    QCOMPARE(ns2.fontFamily, QString("Caveat"));
+    QCOMPARE(ns2.fontPointSize, 17.0);
+
+    ThemeEdgeStyle es;
+    es.roughness = 0.55;
+    es.strokePasses = 3;
+    QJsonObject esJson = es.toJson();
+    ThemeEdgeStyle es2 = ThemeEdgeStyle::fromJson(esJson);
+    QCOMPARE(es2.roughness, 0.55);
+    QCOMPARE(es2.strokePasses, 3);
+}
+
+void tst_ThemeDescriptor::sketchFieldsDefaultToClean() {
+    // Existing themes that don't mention the sketch fields must still render
+    // as crisp shapes — guard against accidental default changes.
+    ThemeNodeStyle ns = ThemeNodeStyle::fromJson(QJsonObject());
+    QCOMPARE(ns.roughness, 0.0);
+    QCOMPARE(ns.strokePasses, 1);
+    QVERIFY(ns.fontFamily.isEmpty());
+    QCOMPARE(ns.fontPointSize, 0.0);
+
+    ThemeEdgeStyle es = ThemeEdgeStyle::fromJson(QJsonObject());
+    QCOMPARE(es.roughness, 0.0);
+    QCOMPARE(es.strokePasses, 1);
 }
 
 void tst_ThemeDescriptor::descriptorRootStyleSynthesizedFromRootShape() {

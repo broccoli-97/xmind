@@ -78,6 +78,19 @@ struct ThemeNodeStyle {
     //   same top-level branch shares one color)
     QString paletteSource = "level";
 
+    // Hand-drawn / sketch rendering. roughness=0 (default) keeps the crisp
+    // path. roughness>0 perturbs the outline; strokePasses>1 redraws with a
+    // fresh jitter so two slightly-offset strokes overlay into a sketchy look.
+    qreal roughness = 0.0;
+    int strokePasses = 1;
+
+    // Optional font override for node text. Empty falls back to AppSettings.
+    // When the named family isn't installed, Qt's font matching falls back
+    // via the font's style hint — useful pairing for "Caveat" with the
+    // app's default cursive hint.
+    QString fontFamily;
+    qreal fontPointSize = 0.0; // 0 = inherit AppSettings::defaultFontSize
+
     static ThemeNodeStyle fromJson(const QJsonObject& json);
     static ThemeNodeStyle fromJson(const QJsonObject& json,
                                    const ThemeNodeStyle& base);
@@ -112,6 +125,11 @@ struct ThemeEdgeStyle {
 
     // Line cap: "round" (default) | "flat" | "square".
     QString lineCap = "round";
+
+    // Hand-drawn / sketch rendering — matches ThemeNodeStyle. roughness=0
+    // keeps the clean cubic bezier; positive values perturb the curve.
+    qreal roughness = 0.0;
+    int strokePasses = 1;
 
     static ThemeEdgeStyle fromJson(const QJsonObject& json);
     static ThemeEdgeStyle fromJson(const QJsonObject& json,

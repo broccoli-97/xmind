@@ -6,6 +6,7 @@
 #include "layout/LayoutStyle.h"
 #include "scene/EdgeItem.h"
 #include "scene/MindMapScene.h"
+#include "scene/SketchyPainter.h"
 #include "ui/ThemeManager.h"
 
 #include <QFontMetricsF>
@@ -245,6 +246,26 @@ QString effShape(const ThemeDescriptor* th, const TemplateDescriptor* td, int le
     return effStyle(th, td, level).shape;
 }
 
+// Compose the effective font: start from `base` (the per-node QFont seeded
+// from AppSettings) and apply theme overrides on top. A theme can swap the
+// family (e.g. sketch theme → "Caveat") or bump the point size without
+// touching the user's app-wide preference.
+QFont effFont(const ThemeDescriptor* th, const TemplateDescriptor* td, int level,
+              const QFont& base) {
+    const ThemeNodeStyle s = effStyle(th, td, level);
+    QFont f = base;
+    if (!s.fontFamily.isEmpty()) {
+        f.setFamily(s.fontFamily);
+        // Cursive style hint nudges Qt's font matcher toward a handwritten
+        // fallback when the named family isn't installed — relevant for
+        // custom themes that name a font we don't bundle.
+        f.setStyleHint(QFont::Cursive, QFont::PreferDefault);
+    }
+    if (s.fontPointSize > 0.0)
+        f.setPointSizeF(s.fontPointSize);
+    return f;
+}
+
 bool effDrawShadow(const ThemeDescriptor* th, const TemplateDescriptor* td, int level,
                    const QString& shape) {
     if (shape != QLatin1String("roundedRect"))
@@ -272,15 +293,20 @@ QRectF NodeItem::boundingRect() const {
     const int lvl = level();
     QString shape = effShape(th, td, lvl);
     bool withShadow = effDrawShadow(th, td, lvl, shape);
+    const auto s = effStyle(th, td, lvl);
+    // Sketch outlines wobble outside m_rect by up to ~5px — match the cap in
+    // SketchyPainter::drawRoughRoundedRect so the AA strokes aren't clipped.
+    const qreal sketchPad = s.roughness > 0.0 ? 6.0 : 0.0;
     if (!withShadow) {
         // No shadow → the rect itself plus a tiny anti-alias margin is enough.
-        return m_rect.adjusted(-2, -2, 2, 2);
+        const qreal m = 2.0 + sketchPad;
+        return m_rect.adjusted(-m, -m, m, m);
     }
-    const auto s = effStyle(th, td, lvl);
     constexpr qreal kMargin = 2.0;
-    return m_rect.adjusted(-s.shadowSpread - kMargin, -s.shadowSpread - kMargin,
-                           s.shadowSpread + kMargin,
-                           s.shadowSpread + s.shadowOffsetY + kMargin);
+    return m_rect.adjusted(-s.shadowSpread - kMargin - sketchPad,
+                           -s.shadowSpread - kMargin - sketchPad,
+                           s.shadowSpread + kMargin + sketchPad,
+                           s.shadowSpread + s.shadowOffsetY + kMargin + sketchPad);
 }
 
 QPainterPath NodeItem::shape() const {
@@ -423,7 +449,25 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
         }
         painter->setBrush(brush);
 
-        painter->drawRoundedRect(m_rect, radius, radius);
+        if (style.roughness > 0.0 && !selected) {
+            // Sketch mode: fill stays a clean rounded rect (jittering the
+            // fill bleeds outside the body and looks dirty); only the
+            // outline gets the rough multi-pass treatment. Selection state
+            // skips sketch — the focus ring should read as a deliberate
+            // clean overlay, not part of the drawn shape.
+            painter->setPen(Qt::NoPen);
+            painter->drawRoundedRect(m_rect, radius, radius);
+            if (pen.style() != Qt::NoPen) {
+                painter->setPen(pen);
+                painter->setBrush(Qt::NoBrush);
+                SketchyPainter::drawRoughRoundedRect(
+                    painter, m_rect, radius, style.roughness,
+                    qMax(1, style.strokePasses),
+                    quint32(reinterpret_cast<quintptr>(this)));
+            }
+        } else {
+            painter->drawRoundedRect(m_rect, radius, radius);
+        }
     }
 
     // ----- Text --------------------------------------------------------------
@@ -444,7 +488,7 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
                                               : nodeCol.darker(120);
     }
     painter->setPen(effTextColor);
-    painter->setFont(m_font);
+    painter->setFont(effFont(th, td, lvl, m_font));
     QRectF textArea = m_rect.adjusted(padding, padding, -padding, -padding);
     painter->drawText(textArea, Qt::AlignCenter | Qt::TextWrapAnywhere, m_text);
 }
@@ -541,7 +585,7 @@ QColor NodeItem::branchColor() const {
 }
 
 QFont NodeItem::font() const {
-    return m_font;
+    return effFont(nodeTheme(m_mindMapScene), nodeTemplate(m_mindMapScene), level(), m_font);
 }
 
 void NodeItem::addEdge(EdgeItem* edge) {
@@ -615,6 +659,10 @@ QVariant NodeItem::itemChange(GraphicsItemChange change, const QVariant& value) 
         }
     } else if (change == ItemSceneHasChanged) {
         m_mindMapScene = dynamic_cast<MindMapScene*>(scene());
+        // The constructor measured this node with no scene — themes that
+        // bump the font (e.g. sketch swaps in Caveat at 17pt) need a re-fit
+        // now that we can read theme overrides.
+        updateGeometry();
     }
     return QGraphicsObject::itemChange(change, value);
 }
@@ -671,12 +719,23 @@ void NodeItem::updateGeometry() {
     const qreal minW = effMinWidth(th, td, lvl);
     const qreal maxW = effMaxWidth(th, td, lvl);
 
-    QFontMetricsF fm(m_font);
+    QFontMetricsF fm(effFont(th, td, lvl, m_font));
+    // Slanted/cursive fonts (e.g. Caveat in the sketch theme) draw the final
+    // glyph past its advance metric — the italic angle pushes the upper-right
+    // corner outside horizontalAdvance. Use the largest of advance, the
+    // logical bounding rect, and the ink-tight bounding rect so the
+    // rendered rectangle is wide enough for any font shape.
     qreal textW = fm.horizontalAdvance(m_text);
+    textW = qMax(textW, fm.boundingRect(m_text).width());
+    textW = qMax(textW, fm.tightBoundingRect(m_text).width() + fm.ascent() * 0.2);
     qreal w = qMax(minW, qMin(maxW, textW + pad * 2));
 
-    // When text exceeds available width, wrap to multiple lines
-    qreal availableTextW = w - pad * 2;
+    // Wrap layout. boundingRect-with-flags reports slightly wider than
+    // horizontalAdvance for slanted fonts; without a small slack it can
+    // wrap a string that we already sized to fit. The 2px buffer absorbs
+    // that measurement jitter without altering wrap behaviour for genuinely
+    // long text (which hits maxW long before slack matters).
+    qreal availableTextW = w - pad * 2 + 2.0;
     QRectF textRect =
         fm.boundingRect(QRectF(0, 0, availableTextW, 0), Qt::TextWrapAnywhere, m_text);
     qreal h = textRect.height() + pad * 2;

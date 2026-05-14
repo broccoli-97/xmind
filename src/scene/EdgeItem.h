@@ -31,6 +31,12 @@ private:
     QPainterPath m_path;
     QRectF m_boundingRect;
     QPointF m_startPoint;
+    // Cubic bezier endpoints/handles cached for sketch rendering, which
+    // perturbs the control points rather than re-walking the stroked path.
+    QPointF m_bezStart;
+    QPointF m_bezCp1;
+    QPointF m_bezCp2;
+    QPointF m_bezEnd;
     bool m_sourceHoverActive = false;
 
     static constexpr qreal kHitWidth = 20.0;

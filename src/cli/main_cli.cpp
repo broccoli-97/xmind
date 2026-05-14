@@ -10,6 +10,7 @@
 #include <QCommandLineOption>
 #include <QCommandLineParser>
 #include <QFile>
+#include <QFontDatabase>
 #include <QTextStream>
 
 namespace {
@@ -159,6 +160,8 @@ int main(int argc, char* argv[]) {
     app.setOrganizationName(QStringLiteral("YMind"));
     app.setApplicationName(QStringLiteral("ymind-cli"));
     app.setApplicationVersion(QStringLiteral(YMIND_VERSION));
+
+    QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/Caveat.ttf"));
 
     TemplateRegistry::instance().loadBuiltins();
     LayoutAlgorithmRegistry::instance().registerBuiltins();

@@ -2,6 +2,7 @@
 #include "core/MainWindow.h"
 
 #include <QApplication>
+#include <QFontDatabase>
 #include <QLibraryInfo>
 #include <QStyleFactory>
 #include <QTranslator>
@@ -12,6 +13,8 @@ int main(int argc, char* argv[]) {
     app.setOrganizationName("YMind");
     app.setApplicationName("YMind");
     app.setApplicationVersion(YMIND_VERSION);
+
+    QFontDatabase::addApplicationFont(":/fonts/Caveat.ttf");
 
     // Load translations based on language setting
     QString lang = AppSettings::instance().language();

@@ -1,0 +1,72 @@
+{
+    "$schema": "ymind-theme-v1",
+    "id": "builtin.sketch",
+    "name": "Sketch",
+    "description": "Hand-drawn marker on warm paper — Excalidraw-style wobbly outlines",
+    "nodeStyle": {
+        "shape": "roundedRect",
+        "borderRadius": 6.0,
+        "padding": 14.0,
+        "fillMode": "tinted",
+        "fillAlpha": 0.20,
+        "borderWidth": 2.4,
+        "borderColorSource": "node",
+        "drawShadow": false,
+        "roughness": 0.7,
+        "strokePasses": 2,
+        "fontFamily": "Caveat",
+        "fontPointSize": 17.0
+    },
+    "rootStyle": {
+        "borderWidth": 3.2,
+        "padding": 18.0,
+        "fillAlpha": 0.28
+    },
+    "edgeStyle": {
+        "width": 2.0,
+        "colorSource": "target",
+        "anchor": "center",
+        "curvature": 0.5,
+        "colorModifier": "same",
+        "lineCap": "round",
+        "roughness": 0.6,
+        "strokePasses": 2
+    },
+    "backgroundPattern": "dots",
+    "colors": {
+        "light": {
+            "canvasBackground": "#FBF5E7",
+            "canvasGridDot": "#E5DBC4",
+            "nodePalette": [
+                "#1971C2",
+                "#2F9E44",
+                "#E03131",
+                "#9C36B5",
+                "#F08C00",
+                "#0C8599"
+            ],
+            "nodeShadow": "#00000000",
+            "nodeSelectionBorder": "#F08C00",
+            "nodeText": "#2C2A26",
+            "edgeLightenFactor": 100,
+            "exportBackground": "#FBF5E7"
+        },
+        "dark": {
+            "canvasBackground": "#1F1B16",
+            "canvasGridDot": "#2C2620",
+            "nodePalette": [
+                "#74C0FC",
+                "#8CE99A",
+                "#FF8787",
+                "#D0BFFF",
+                "#FFC078",
+                "#66D9E8"
+            ],
+            "nodeShadow": "#00000000",
+            "nodeSelectionBorder": "#FFC078",
+            "nodeText": "#F4ECD8",
+            "edgeLightenFactor": 100,
+            "exportBackground": "#1F1B16"
+        }
+    }
+}

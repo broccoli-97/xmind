@@ -117,6 +117,10 @@ ThemeNodeStyle ThemeNodeStyle::fromJson(const QJsonObject& json,
     s.shadowOpacity = getDouble(json, "shadowOpacity", base.shadowOpacity);
     s.selectionWidth = getDouble(json, "selectionWidth", base.selectionWidth);
     s.paletteSource = getStr(json, "paletteSource", base.paletteSource);
+    s.roughness = getDouble(json, "roughness", base.roughness);
+    s.strokePasses = getInt(json, "strokePasses", base.strokePasses);
+    s.fontFamily = getStr(json, "fontFamily", base.fontFamily);
+    s.fontPointSize = getDouble(json, "fontPointSize", base.fontPointSize);
     return s;
 }
 
@@ -140,6 +144,14 @@ QJsonObject ThemeNodeStyle::toJson() const {
     obj["shadowOpacity"] = shadowOpacity;
     obj["selectionWidth"] = selectionWidth;
     obj["paletteSource"] = paletteSource;
+    if (roughness != 0.0)
+        obj["roughness"] = roughness;
+    if (strokePasses != 1)
+        obj["strokePasses"] = strokePasses;
+    if (!fontFamily.isEmpty())
+        obj["fontFamily"] = fontFamily;
+    if (fontPointSize > 0.0)
+        obj["fontPointSize"] = fontPointSize;
     return obj;
 }
 
@@ -161,6 +173,8 @@ ThemeEdgeStyle ThemeEdgeStyle::fromJson(const QJsonObject& json,
     s.dashStyle = getStr(json, "dashStyle", base.dashStyle);
     s.colorModifier = getStr(json, "colorModifier", base.colorModifier);
     s.lineCap = getStr(json, "lineCap", base.lineCap);
+    s.roughness = getDouble(json, "roughness", base.roughness);
+    s.strokePasses = getInt(json, "strokePasses", base.strokePasses);
     return s;
 }
 
@@ -173,6 +187,10 @@ QJsonObject ThemeEdgeStyle::toJson() const {
     obj["dashStyle"] = dashStyle;
     obj["colorModifier"] = colorModifier;
     obj["lineCap"] = lineCap;
+    if (roughness != 0.0)
+        obj["roughness"] = roughness;
+    if (strokePasses != 1)
+        obj["strokePasses"] = strokePasses;
     return obj;
 }
 

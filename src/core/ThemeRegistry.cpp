@@ -56,6 +56,7 @@ void ThemeRegistry::loadBuiltins() {
         ":/themes/candy.json",
         ":/themes/outlined.json",
         ":/themes/tinted.json",
+        ":/themes/sketch.json",
     };
 
     for (const QString& path : kBuiltinPaths) {
