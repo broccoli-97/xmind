@@ -75,8 +75,9 @@ jobs:
           # Copy icon assets
           Copy-Item packaging\msstore\assets\*.png staging\assets\
 
-          # Include LGPL license text (Qt LGPL compliance)
-          Invoke-WebRequest -Uri "https://www.gnu.org/licenses/lgpl-3.0.txt" -OutFile staging\LGPL-3.0.txt
+          # Include LGPL license text (Qt LGPL compliance) — vendored to avoid
+          # flaky gnu.org reachability from GitHub Actions runners
+          Copy-Item packaging\msstore\LGPL-3.0.txt staging\LGPL-3.0.txt
 
           # Include app license
           if (Test-Path LICENSE) {
