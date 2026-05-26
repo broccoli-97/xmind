@@ -1,0 +1,68 @@
+{
+    "$schema": "ymind-theme-v1",
+    "id": "builtin.whimsy",
+    "name": "Whimsy",
+    "description": "Playful pill-shaped pastels on warm cream — soft branch colors with darker outlines",
+    "nodeStyle": {
+        "shape": "roundedRect",
+        "borderRadius": 22.0,
+        "padding": 14.0,
+        "fillMode": "tinted",
+        "fillAlpha": 0.55,
+        "borderWidth": 1.4,
+        "borderColorSource": "darker",
+        "paletteSource": "branch",
+        "drawShadow": false
+    },
+    "rootStyle": {
+        "shape": "none",
+        "padding": 18.0,
+        "fontFamily": "Georgia",
+        "fontPointSize": 22.0
+    },
+    "edgeStyle": {
+        "width": 2.6,
+        "colorSource": "branch",
+        "anchor": "center",
+        "curvature": 0.6,
+        "colorModifier": "same",
+        "lineCap": "round"
+    },
+    "backgroundPattern": "dots",
+    "colors": {
+        "light": {
+            "canvasBackground": "#F8F0DE",
+            "canvasGridDot": "#E6D6B6",
+            "nodePalette": [
+                "#5BBAD7",
+                "#9E7DC6",
+                "#E0746B",
+                "#E6AB46",
+                "#5FB9A1",
+                "#D17BAA"
+            ],
+            "nodeShadow": "#00000000",
+            "nodeSelectionBorder": "#E0746B",
+            "nodeText": "#3D332A",
+            "edgeLightenFactor": 100,
+            "exportBackground": "#F8F0DE"
+        },
+        "dark": {
+            "canvasBackground": "#2A241D",
+            "canvasGridDot": "#3A3226",
+            "nodePalette": [
+                "#7CC9E0",
+                "#B89EE0",
+                "#F09287",
+                "#F1C277",
+                "#82CFB9",
+                "#E2A1C6"
+            ],
+            "nodeShadow": "#00000000",
+            "nodeSelectionBorder": "#F09287",
+            "nodeText": "#F4ECDB",
+            "edgeLightenFactor": 100,
+            "exportBackground": "#2A241D"
+        }
+    }
+}

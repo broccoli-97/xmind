@@ -18,6 +18,7 @@
         <file alias="outlined.json">themes/outlined.json</file>
         <file alias="tinted.json">themes/tinted.json</file>
         <file alias="sketch.json">themes/sketch.json</file>
+        <file alias="whimsy.json">themes/whimsy.json</file>
     </qresource>
     <qresource prefix="/fonts">
         <file alias="Caveat.ttf">fonts/Caveat.ttf</file>
