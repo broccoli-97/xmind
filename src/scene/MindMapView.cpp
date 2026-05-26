@@ -7,7 +7,9 @@
 #include <QPainter>
 #include <QParallelAnimationGroup>
 #include <QPropertyAnimation>
+#include <QResizeEvent>
 #include <QScrollBar>
+#include <QTimer>
 #include <QVariantAnimation>
 #include <QWheelEvent>
 #include <QtMath>
@@ -23,6 +25,13 @@ MindMapView::MindMapView(QWidget* parent) : QGraphicsView(parent) {
     setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     setSceneRect(-5000, -5000, 10000, 10000);
     setAttribute(Qt::WA_InputMethodEnabled, true);
+
+    // Coalesce the bursts of resizeEvents during a window drag into a single
+    // zoomToFit after the user stops resizing.
+    m_resizeFitTimer = new QTimer(this);
+    m_resizeFitTimer->setSingleShot(true);
+    m_resizeFitTimer->setInterval(120);
+    connect(m_resizeFitTimer, &QTimer::timeout, this, &MindMapView::zoomToFit);
 }
 
 void MindMapView::wheelEvent(QWheelEvent* event) {
@@ -70,6 +79,14 @@ void MindMapView::mouseReleaseEvent(QMouseEvent* event) {
     QGraphicsView::mouseReleaseEvent(event);
 }
 
+void MindMapView::resizeEvent(QResizeEvent* event) {
+    QGraphicsView::resizeEvent(event);
+    // Refit content when the window stops changing size. Debounced so a drag
+    // doesn't fire dozens of fitInView calls and animations.
+    if (scene() && !scene()->items().isEmpty())
+        m_resizeFitTimer->start();
+}
+
 void MindMapView::zoomIn() {
     if (canZoomIn())
         scale(1.2, 1.2);
@@ -103,6 +120,17 @@ void MindMapView::zoomToFit() {
     // Let Qt compute the target
     fitInView(bounds, Qt::KeepAspectRatio);
     QTransform newTransform = transform();
+
+    // Cap zoom-in: fitInView happily scales to ~10x for a tiny one-node
+    // scene, which makes the node fill the entire viewport. Clamp to
+    // kFitMaxScale so few-node maps stay readable instead of gigantic.
+    qreal fitScale = newTransform.m11();
+    if (fitScale > kFitMaxScale) {
+        setTransform(QTransform::fromScale(kFitMaxScale, kFitMaxScale));
+        centerOn(bounds.center());
+        newTransform = transform();
+    }
+
     QPointF newCenter = mapToScene(viewport()->rect().center());
 
     qreal oldScale = oldTransform.m11();
