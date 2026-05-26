@@ -508,7 +508,13 @@ NodeItem* NodeItem::parentNode() const {
 }
 
 void NodeItem::setParentNode(NodeItem* parent) {
+    if (m_parentNode == parent)
+        return;
     m_parentNode = parent;
+    // Level changed → re-measure. Themes whose rootStyle overrides padding or
+    // font (e.g. Whimsy: Georgia 22pt) would otherwise leave a child sized
+    // for level=0 when it was added to the scene before being parented.
+    updateGeometry();
 }
 
 QList<NodeItem*> NodeItem::childNodes() const {
@@ -598,6 +604,10 @@ void NodeItem::removeEdge(EdgeItem* edge) {
 
 QRectF NodeItem::nodeRect() const {
     return m_rect;
+}
+
+void NodeItem::refreshGeometry() {
+    updateGeometry();
 }
 
 void NodeItem::moveSubtree(const QPointF& delta) {

@@ -180,11 +180,17 @@ void MindMapScene::setThemeId(const QString& id) {
     m_themeId = id;
     // Force every node to drop its device-coord cache so a theme swap repaints
     // with the new fill/border/edge style instead of the stale cached pixmap.
+    // Also re-measure each node — themes differ in padding/font/min-width, and
+    // without a refresh the m_rect stays at the previous theme's dimensions.
     const auto items = this->items();
     for (auto* it : items) {
         it->setCacheMode(QGraphicsItem::NoCache);
+        if (auto* node = dynamic_cast<NodeItem*>(it))
+            node->refreshGeometry();
         it->update();
     }
+    for (auto* e : m_edges)
+        e->updatePath();
     for (auto* v : views())
         v->viewport()->update();
 }

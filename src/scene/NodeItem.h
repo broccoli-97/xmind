@@ -47,6 +47,10 @@ public:
     QRectF nodeRect() const;
     void moveSubtree(const QPointF& delta);
 
+    // Re-measure this node against the current theme/template. Call after a
+    // theme swap so existing nodes pick up new padding/font/min-max widths.
+    void refreshGeometry();
+
     void showAddButton();
     void hideAddButton();
 
