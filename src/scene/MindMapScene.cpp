@@ -141,14 +141,21 @@ bool MindMapScene::isEditing() const {
 }
 
 LayoutStyle MindMapScene::layoutStyle() const {
+    // Template wins when set — m_layoutStyle is the user's fallback for
+    // template-less scenes (legacy v1 files, CLI without --template). Single
+    // source of truth at read-time replaces the old setTemplateId sync.
+    if (const auto* td = templateDescriptor())
+        return algorithmNameToLayoutStyle(td->layout.algorithm);
     return m_layoutStyle;
 }
 
 void MindMapScene::setLayoutStyle(LayoutStyle style) {
-    if (m_layoutStyle != style) {
-        m_layoutStyle = style;
+    if (m_layoutStyle == style)
+        return;
+    const LayoutStyle oldEffective = layoutStyle();
+    m_layoutStyle = style;
+    if (layoutStyle() != oldEffective)
         emit layoutStyleChanged();
-    }
 }
 
 QString MindMapScene::templateId() const {
@@ -156,16 +163,12 @@ QString MindMapScene::templateId() const {
 }
 
 void MindMapScene::setTemplateId(const QString& id) {
+    if (m_templateId == id)
+        return;
+    const LayoutStyle oldEffective = layoutStyle();
     m_templateId = id;
-    // Sync layout style from template
-    const auto* td = templateDescriptor();
-    if (td) {
-        LayoutStyle ls = algorithmNameToLayoutStyle(td->layout.algorithm);
-        if (m_layoutStyle != ls) {
-            m_layoutStyle = ls;
-            emit layoutStyleChanged();
-        }
-    }
+    if (layoutStyle() != oldEffective)
+        emit layoutStyleChanged();
     invalidateStyle();
 }
 
