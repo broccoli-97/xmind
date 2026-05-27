@@ -60,3 +60,32 @@ jobs:
       - name: Test (macOS/Windows)
         if: runner.os != 'Linux'
         run: cd build && ctest -V -C Release
+
+      # Catches new tr() strings (e.g. a freshly added button) that were
+      # never registered in translations/ymind_zh_CN.ts. lupdate scans the
+      # source tree and rewrites the .ts; if any <source>/<translation>
+      # element would change, the PR is missing an entry. <location> line
+      # tags drift naturally as code shifts, so we strip them before
+      # diffing -- only real string changes should fail the check. Linux
+      # only -- the check is platform-independent.
+      - name: Verify translation coverage (lupdate drift)
+        if: runner.os == 'Linux'
+        run: |
+          cp translations/ymind_zh_CN.ts /tmp/ymind_zh_CN.before.ts
+          lupdate -no-obsolete src -ts translations/ymind_zh_CN.ts
+          # Ignore <location.../> lines (auto-shifting line numbers).
+          if ! diff \
+              <(grep -v '<location ' /tmp/ymind_zh_CN.before.ts) \
+              <(grep -v '<location ' translations/ymind_zh_CN.ts) \
+              > /tmp/ts.diff; then
+            echo "::error::translations/ymind_zh_CN.ts is out of date."
+            echo "A tr() string was added, changed, or removed in source"
+            echo "without updating the translation file. Run 'lupdate'"
+            echo "locally, fill in the Chinese translation for any new"
+            echo "entries, and commit the result."
+            echo "---- Drift (ignoring <location> lines) ----"
+            cat /tmp/ts.diff
+            exit 1
+          fi
+          # Restore the file so subsequent steps see the committed version.
+          mv /tmp/ymind_zh_CN.before.ts translations/ymind_zh_CN.ts
