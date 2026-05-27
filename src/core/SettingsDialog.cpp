@@ -2,15 +2,20 @@
 #include "core/AppSettings.h"
 #include "ui/ThemeManager.h"
 
+#include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialogButtonBox>
+#include <QDir>
 #include <QFontComboBox>
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QLabel>
+#include <QMessageBox>
+#include <QProcess>
 #include <QPushButton>
 #include <QSpinBox>
+#include <QTimer>
 #include <QVBoxLayout>
 
 SettingsDialog::SettingsDialog(QWidget* parent) : QDialog(parent) {
@@ -118,5 +123,28 @@ void SettingsDialog::apply() {
     s.setDefaultFontSize(m_fontSizeSpin->value());
     s.setDefaultFontFamily(m_fontFamilyCombo->currentFont().family());
     s.setCheckForUpdatesEnabled(m_checkUpdatesCheck->isChecked());
-    s.setLanguage(m_languageCombo->currentData().toString());
+
+    const QString oldLang = s.language();
+    const QString newLang = m_languageCombo->currentData().toString();
+    s.setLanguage(newLang);
+
+    if (oldLang != newLang) {
+        auto reply = QMessageBox::question(
+            this, tr("Restart Required"),
+            tr("The language change will take effect after restarting YMind. Restart now?"),
+            QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
+        if (reply == QMessageBox::Yes) {
+            const QString program = QApplication::applicationFilePath();
+            const QStringList args = QApplication::arguments().mid(1);
+            const QString workingDir = QDir::currentPath();
+            QObject::connect(qApp, &QCoreApplication::aboutToQuit, qApp,
+                             [program, args, workingDir]() {
+                                 QProcess::startDetached(program, args, workingDir);
+                             });
+            // Defer so this dialog's accept() can return first. closeAllWindows()
+            // routes through MainWindow::closeEvent -> maybeSave(), so cancelling
+            // an unsaved-changes prompt aborts the restart cleanly.
+            QTimer::singleShot(0, qApp, []() { qApp->closeAllWindows(); });
+        }
+    }
 }
