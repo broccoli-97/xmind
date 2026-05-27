@@ -10,10 +10,18 @@ class MindMapSerializer {
 public:
     explicit MindMapSerializer(MindMapScene* scene);
 
+    // Current on-disk format version. Bump when toJson() changes shape, and
+    // add a migrator in MindMapSerializer.cpp's `migrators` table.
+    static constexpr int kCurrentVersion = 3;
+
     QJsonObject toJson() const;
     bool fromJson(const QJsonObject& json);
     bool saveToFile(const QString& filePath);
     bool loadFromFile(const QString& filePath);
+
+    // Run the chain of registered migrators on `json` until it reaches the
+    // current version. Exposed for tests; fromJson() runs it internally.
+    static QJsonObject migrate(QJsonObject json);
 
 private:
     QJsonObject nodeToJson(NodeItem* node) const;

@@ -1,4 +1,6 @@
+#include "core/RegistryStyleProvider.h"
 #include "core/TemplateRegistry.h"
+#include "core/ThemeRegistry.h"
 #include "layout/LayoutAlgorithmRegistry.h"
 #include "scene/MindMapScene.h"
 #include "scene/NodeItem.h"
@@ -26,7 +28,9 @@ private slots:
 
 void tst_MindMapSceneSerialization::initTestCase() {
     TemplateRegistry::instance().loadBuiltins();
+    ThemeRegistry::instance().loadBuiltins();
     LayoutAlgorithmRegistry::instance().registerBuiltins();
+    MindMapScene::setDefaultStyleProvider(&RegistryStyleProvider::instance());
 }
 
 void tst_MindMapSceneSerialization::toJsonBasicStructure() {
@@ -52,7 +56,7 @@ void tst_MindMapSceneSerialization::jsonRoundTrip() {
     // Build a scene
     MindMapScene scene1;
     scene1.rootNode()->setText("Central");
-    scene1.setTemplateId("builtin.mindmap");
+    scene1.setTemplateId(TemplateId("builtin.mindmap"));
     auto* a = scene1.addNode("A", scene1.rootNode());
     scene1.addNode("A1", a);
     scene1.addNode("B", scene1.rootNode());
@@ -66,7 +70,7 @@ void tst_MindMapSceneSerialization::jsonRoundTrip() {
 
     // Compare structure
     QCOMPARE(scene2.rootNode()->text(), QString("Central"));
-    QCOMPARE(scene2.templateId(), QString("builtin.mindmap"));
+    QCOMPARE(scene2.templateId(), TemplateId("builtin.mindmap"));
 
     auto rootChildren = scene2.rootNode()->childNodes();
     QCOMPARE(rootChildren.size(), 2);
@@ -110,7 +114,7 @@ void tst_MindMapSceneSerialization::fromJsonV1LayoutStyleMigration() {
     MindMapScene scene;
     QVERIFY(scene.fromJson(json));
     // Should have auto-mapped layoutStyle 1 to builtin.orgchart
-    QCOMPARE(scene.templateId(), QString("builtin.orgchart"));
+    QCOMPARE(scene.templateId(), TemplateId("builtin.orgchart"));
     QCOMPARE(scene.layoutStyle(), LayoutStyle::TopDown);
 }
 

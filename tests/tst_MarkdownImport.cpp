@@ -1,4 +1,6 @@
+#include "core/RegistryStyleProvider.h"
 #include "core/TemplateRegistry.h"
+#include "core/ThemeRegistry.h"
 #include "layout/LayoutAlgorithmRegistry.h"
 #include "scene/MindMapScene.h"
 #include "scene/NodeItem.h"
@@ -24,7 +26,9 @@ private slots:
 
 void tst_MarkdownImport::initTestCase() {
     TemplateRegistry::instance().loadBuiltins();
+    ThemeRegistry::instance().loadBuiltins();
     LayoutAlgorithmRegistry::instance().registerBuiltins();
+    MindMapScene::setDefaultStyleProvider(&RegistryStyleProvider::instance());
 }
 
 void tst_MarkdownImport::empty() {

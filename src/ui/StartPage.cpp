@@ -217,11 +217,11 @@ void StartPage::loadTemplate(const QString& templateId, MindMapScene* scene) {
     auto* root = scene->rootNode();
     root->setText(td->content.text);
 
-    scene->setTemplateId(templateId);
+    scene->setTemplateId(TemplateId(templateId));
     // New documents start on the default theme. The user can switch to any
     // other theme afterwards from the Theme menu without affecting layout.
-    if (scene->themeId().isEmpty())
-        scene->setThemeId(ThemeRegistry::defaultThemeId());
+    if (!scene->themeId().isValid())
+        scene->setThemeId(ThemeId(ThemeRegistry::defaultThemeId()));
 
     buildContentTree(scene, root, td->content.children);
 

@@ -1,5 +1,6 @@
 #include "cli/McpServer.h"
 #include "cli/Renderer.h"
+#include "core/RegistryStyleProvider.h"
 #include "core/ThemeDescriptor.h"
 #include "core/ThemeRegistry.h"
 #include "core/TemplateRegistry.h"
@@ -166,6 +167,7 @@ int main(int argc, char* argv[]) {
     TemplateRegistry::instance().loadBuiltins();
     LayoutAlgorithmRegistry::instance().registerBuiltins();
     ThemeRegistry::instance().loadBuiltins();
+    MindMapScene::setDefaultStyleProvider(&RegistryStyleProvider::instance());
 
     QStringList args = app.arguments();
     if (args.size() < 2) {

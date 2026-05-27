@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/Identifiers.h"
 #include "layout/LayoutEngine.h"
 #include "scene/MindMapExporter.h"
 
@@ -14,12 +15,23 @@ class QUndoStack;
 class TemplateDescriptor;
 class ThemeDescriptor;
 class InlineEditController;
+class StyleProvider;
 
 class MindMapScene : public QGraphicsScene {
     Q_OBJECT
 
 public:
     explicit MindMapScene(QObject* parent = nullptr);
+
+    // Style lookup. Injection is global because constructing a scene happens
+    // in dozens of test cases — making every site explicit was more churn
+    // than the win warranted. App startup (MainWindow, tests, CLI) sets the
+    // default once; per-scene overrides via setStyleProvider() are still
+    // available for callers that need them.
+    static StyleProvider* defaultStyleProvider();
+    static void setDefaultStyleProvider(StyleProvider* provider);
+    void setStyleProvider(StyleProvider* provider);
+    StyleProvider* styleProvider() const;
 
     NodeItem* rootNode() const;
     NodeItem* addNode(const QString& text, NodeItem* parent);
@@ -35,13 +47,13 @@ public:
     void setLayoutStyle(LayoutStyle style);
 
     // Template — layout + starter content (picked when the map was created)
-    QString templateId() const;
-    void setTemplateId(const QString& id);
+    TemplateId templateId() const;
+    void setTemplateId(const TemplateId& id);
     const TemplateDescriptor* templateDescriptor() const;
 
     // Theme — visual style, swappable any time without affecting layout/content
-    QString themeId() const;
-    void setThemeId(const QString& id);
+    ThemeId themeId() const;
+    void setThemeId(const ThemeId& id);
     const ThemeDescriptor* themeDescriptor() const;
 
     EdgeItem* findEdge(NodeItem* parent, NodeItem* child) const;
@@ -118,8 +130,9 @@ private:
     bool m_modified = false;
     bool m_batchLoading = false;
     LayoutStyle m_layoutStyle = LayoutStyle::Bilateral;
-    QString m_templateId;
-    QString m_themeId;
+    TemplateId m_templateId;
+    ThemeId m_themeId;
+    StyleProvider* m_styleProvider = nullptr;
 
     // Editing
     InlineEditController* m_editController;

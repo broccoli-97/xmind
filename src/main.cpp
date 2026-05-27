@@ -1,5 +1,6 @@
 #include "core/AppSettings.h"
 #include "core/MainWindow.h"
+#include "core/Services.h"
 
 #include <QApplication>
 #include <QFontDatabase>
@@ -33,7 +34,8 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    MainWindow window;
+    Services services = Services::productionDefaults();
+    MainWindow window(services);
     window.show();
 
     return app.exec();

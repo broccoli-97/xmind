@@ -2,22 +2,27 @@
 
 #include <QMainWindow>
 
-class TabManager;
+class AutoSaveManager;
 class FileManager;
+class MindMapToolBar;
 class OutlineWidget;
-class UpdateChecker;
 class QFrame;
 class QLabel;
 class QMenu;
-class QTimer;
 class QSplitter;
 class QToolButton;
+class TabManager;
+class TemplateMenuController;
+class ThemeMenuController;
+class UpdateNotifier;
+
+struct Services;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget* parent = nullptr);
+    explicit MainWindow(const Services& services, QWidget* parent = nullptr);
     ~MainWindow() override;
 
 protected:
@@ -26,52 +31,45 @@ protected:
 private:
     void setupCentralLayout();
     void setupActions();
-    void setupToolBar();
     void setupMenuBar();
+
+    // Run `f(scene)` / `f(view)` on the active tab's scene/view if one exists.
+    // Kills the swarm of `[this](){ if (auto* s = ...->currentScene()) s->...; }`
+    // lambdas that menu wiring would otherwise need.
+    template <typename F>
+    void withCurrentScene(F&& f);
+    template <typename F>
+    void withCurrentView(F&& f);
 
     void updateWindowTitle();
     void updateContentVisibility();
 
     void openSettings();
-    void rebuildTemplateMenu();
-    void applyTemplateId(const QString& templateId);
-    void rebuildThemeMenu();
-    void applyThemeId(const QString& themeId);
     void openAbout();
     void saveWindowState();
     void restoreWindowState();
-    void setupAutoSaveTimer();
-    void onAutoSaveTimeout();
-    void onAutoSaveSettingsChanged();
     void applyTheme();
     void refreshOutline();
     void setupStatusBar();
-    void onUpdateAvailable(const QString& latestVersion, const QString& releaseUrl);
-    void onUpdateIconClicked();
-    void refreshUpdateIcon();
 
     // Managers
+    const Services* m_services = nullptr;
     TabManager* m_tabManager = nullptr;
     FileManager* m_fileManager = nullptr;
-    UpdateChecker* m_updateChecker = nullptr;
+    AutoSaveManager* m_autoSave = nullptr;
+    UpdateNotifier* m_updateNotifier = nullptr;
+    TemplateMenuController* m_templateMenuController = nullptr;
+    ThemeMenuController* m_themeMenuController = nullptr;
 
     // Widgets
     OutlineWidget* m_outlineWidget = nullptr;
-    QWidget* m_toolbarWidget = nullptr;
+    MindMapToolBar* m_toolbar = nullptr;
     QSplitter* m_contentSplitter = nullptr;
     QWidget* m_rightPanel = nullptr;
 
     QToolButton* m_toggleOutlineBtn = nullptr;
     QToolButton* m_toggleToolbarBtn = nullptr;
-    QToolButton* m_undoBtn = nullptr;
-    QToolButton* m_redoBtn = nullptr;
     QLabel* m_statusHelpLabel = nullptr;
-    QToolButton* m_updateStatusBtn = nullptr;
-    QLabel* m_versionLabel = nullptr;
-    QFrame* m_updateBanner = nullptr;
-    QLabel* m_updateBannerLabel = nullptr;
-    QString m_pendingUpdateVersion;
-    QString m_pendingUpdateUrl;
 
     QAction* m_toggleToolbarAct = nullptr;
     QAction* m_toggleOutlineAct = nullptr;
@@ -79,9 +77,4 @@ private:
     QAction* m_redoAct = nullptr;
     QAction* m_addChildAct = nullptr;
     QAction* m_addSiblingAct = nullptr;
-
-    QTimer* m_autoSaveTimer = nullptr;
-
-    QMenu* m_templateMenu = nullptr;
-    QMenu* m_themeMenu = nullptr;
 };

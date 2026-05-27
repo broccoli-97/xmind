@@ -120,7 +120,7 @@ bool renderMarkdown(MindMapScene* scene,
                 *error = QStringLiteral("unknown theme id: %1").arg(themeId);
             return false;
         }
-        scene->setThemeId(themeId);
+        scene->setThemeId(ThemeId(themeId));
     }
 
     if (!scene->importFromMarkdown(markdown, /*animate=*/false)) {

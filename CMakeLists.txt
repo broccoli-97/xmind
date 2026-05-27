@@ -34,10 +34,15 @@ add_library(ymind_lib OBJECT
     # Core – application infrastructure
     src/core/AboutDialog.h        src/core/AboutDialog.cpp
     src/core/AppSettings.h        src/core/AppSettings.cpp
+    src/core/AutoSaveManager.h    src/core/AutoSaveManager.cpp
     src/core/BuiltinTemplateStrings.h
     src/core/Commands.h           src/core/Commands.cpp
     src/core/FileManager.h        src/core/FileManager.cpp
+    src/core/Identifiers.h
     src/core/MainWindow.h         src/core/MainWindow.cpp
+    src/core/RegistryStyleProvider.h src/core/RegistryStyleProvider.cpp
+    src/core/Services.h           src/core/Services.cpp
+    src/core/UpdateNotifier.h     src/core/UpdateNotifier.cpp
     src/core/SettingsDialog.h     src/core/SettingsDialog.cpp
     src/core/TemplateDescriptor.h src/core/TemplateDescriptor.cpp
     src/core/TemplateRegistry.h   src/core/TemplateRegistry.cpp
@@ -46,12 +51,14 @@ add_library(ymind_lib OBJECT
     src/core/UpdateChecker.h      src/core/UpdateChecker.cpp
 
     # Scene – graphics-scene items
+    src/scene/AddButtonOverlay.h      src/scene/AddButtonOverlay.cpp
     src/scene/EdgeItem.h              src/scene/EdgeItem.cpp
     src/scene/InlineEditController.h  src/scene/InlineEditController.cpp
     src/scene/MindMapExporter.h       src/scene/MindMapExporter.cpp
     src/scene/MindMapScene.h          src/scene/MindMapScene.cpp
     src/scene/MindMapSerializer.h     src/scene/MindMapSerializer.cpp
     src/scene/MindMapView.h           src/scene/MindMapView.cpp
+    src/scene/StyleProvider.h
     src/scene/NodeItem.h              src/scene/NodeItem.cpp
     src/scene/NodeStyleResolver.h     src/scene/NodeStyleResolver.cpp
     src/scene/SketchyPainter.h        src/scene/SketchyPainter.cpp
@@ -67,13 +74,16 @@ add_library(ymind_lib OBJECT
     src/layout/LayoutStyle.h
 
     # UI – widgets and theming
-    src/ui/IconFactory.h          src/ui/IconFactory.cpp
-    src/ui/OutlineItemDelegate.h  src/ui/OutlineItemDelegate.cpp
-    src/ui/OutlineWidget.h        src/ui/OutlineWidget.cpp
-    src/ui/StartPage.h            src/ui/StartPage.cpp
-    src/ui/StyleSheetGenerator.h  src/ui/StyleSheetGenerator.cpp
-    src/ui/TabManager.h           src/ui/TabManager.cpp
-    src/ui/ThemeManager.h         src/ui/ThemeManager.cpp
+    src/ui/IconFactory.h            src/ui/IconFactory.cpp
+    src/ui/MindMapToolBar.h         src/ui/MindMapToolBar.cpp
+    src/ui/OutlineItemDelegate.h    src/ui/OutlineItemDelegate.cpp
+    src/ui/OutlineWidget.h          src/ui/OutlineWidget.cpp
+    src/ui/StartPage.h              src/ui/StartPage.cpp
+    src/ui/StyleSheetGenerator.h    src/ui/StyleSheetGenerator.cpp
+    src/ui/TabManager.h             src/ui/TabManager.cpp
+    src/ui/TemplateMenuController.h src/ui/TemplateMenuController.cpp
+    src/ui/ThemeManager.h           src/ui/ThemeManager.cpp
+    src/ui/ThemeMenuController.h    src/ui/ThemeMenuController.cpp
 )
 
 target_include_directories(ymind_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)

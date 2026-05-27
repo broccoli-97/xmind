@@ -1,26 +1,28 @@
 #include "core/MainWindow.h"
+#include "core/AboutDialog.h"
 #include "core/AppSettings.h"
+#include "core/AutoSaveManager.h"
 #include "core/FileManager.h"
+#include "core/Services.h"
+#include "core/SettingsDialog.h"
 #include "core/TemplateRegistry.h"
 #include "core/ThemeRegistry.h"
+#include "core/UpdateNotifier.h"
 #include "layout/LayoutAlgorithmRegistry.h"
-#include "ui/IconFactory.h"
 #include "scene/MindMapScene.h"
 #include "scene/MindMapView.h"
+#include "ui/IconFactory.h"
+#include "ui/MindMapToolBar.h"
 #include "ui/OutlineWidget.h"
-#include "core/AboutDialog.h"
-#include "core/SettingsDialog.h"
-#include "core/UpdateChecker.h"
 #include "ui/TabManager.h"
+#include "ui/TemplateMenuController.h"
 #include "ui/ThemeManager.h"
+#include "ui/ThemeMenuController.h"
 
 #include <QAction>
-#include <QActionGroup>
 #include <QApplication>
 #include <QCloseEvent>
-#include <QDesktopServices>
 #include <QFileInfo>
-#include <QFrame>
 #include <QHBoxLayout>
 #include <QKeySequence>
 #include <QLabel>
@@ -34,43 +36,63 @@
 #include <QStandardPaths>
 #include <QStatusBar>
 #include <QTabBar>
-#include <QTimer>
 #include <QToolButton>
 #include <QUndoStack>
-#include <QUrl>
 #include <QVBoxLayout>
+
+template <typename F>
+void MainWindow::withCurrentScene(F&& f) {
+    if (auto* s = m_tabManager->currentScene())
+        f(s);
+}
+
+template <typename F>
+void MainWindow::withCurrentView(F&& f) {
+    if (auto* v = m_tabManager->currentView())
+        f(v);
+}
 
 // ---------------------------------------------------------------------------
 // Constructor
 // ---------------------------------------------------------------------------
-MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
+MainWindow::MainWindow(const Services& services, QWidget* parent)
+    : QMainWindow(parent), m_services(&services) {
     resize(1280, 800);
 
     // Initialize registries before anything else
-    LayoutAlgorithmRegistry::instance().registerBuiltins();
-    TemplateRegistry::instance().loadBuiltins();
-    ThemeRegistry::instance().loadBuiltins();
+    m_services->layouts->registerBuiltins();
+    m_services->templates->loadBuiltins();
+    m_services->themes->loadBuiltins();
+    MindMapScene::setDefaultStyleProvider(m_services->styleProvider);
     const QString userData =
         QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/YMind";
-    TemplateRegistry::instance().loadFromDirectory(userData + "/templates");
+    m_services->templates->loadFromDirectory(userData + "/templates");
     // User themes live in their own folder; also accept legacy themes dropped
     // alongside templates so existing downloads keep working.
-    ThemeRegistry::instance().loadFromDirectory(userData + "/themes");
-    ThemeRegistry::instance().loadFromDirectory(userData + "/templates");
+    m_services->themes->loadFromDirectory(userData + "/themes");
+    m_services->themes->loadFromDirectory(userData + "/templates");
 
     m_tabManager = new TabManager(this);
     m_fileManager = new FileManager(this, m_tabManager, this);
 
-    // Apply theme before creating any tabs so that QTabBar computes
-    // tab geometry with the stylesheet already in effect.  Otherwise the
-    // first tab is sized using the default style and a visible gap appears
-    // between the tab and the "+" button.
+    // Apply theme before creating any tabs so QTabBar computes tab geometry
+    // with the stylesheet already in effect — otherwise the first tab is sized
+    // using the default style and a visible gap appears next to the "+" button.
     applyTheme();
 
     setupActions();
 
-    // Initialize TabManager (creates tab bar, "+" button, content stack)
     m_tabManager->init(m_undoAct, m_redoAct);
+
+    m_updateNotifier = new UpdateNotifier(this);
+    connect(m_updateNotifier, &UpdateNotifier::upToDateMessage, this,
+            [this](const QString& title, const QString& msg) {
+                QMessageBox::information(this, title, msg);
+            });
+    connect(m_updateNotifier, &UpdateNotifier::checkFailedMessage, this,
+            [this](const QString& title, const QString& msg) {
+                QMessageBox::warning(this, title, msg);
+            });
 
     setupCentralLayout();
     setupMenuBar();
@@ -81,7 +103,6 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
         refreshOutline();
         updateContentVisibility();
 
-        // Reconnect undo stack -> refreshOutline for the new tab's scene
         auto* scene = m_tabManager->currentScene();
         if (scene) {
             disconnect(scene->undoStack(), &QUndoStack::indexChanged, this, nullptr);
@@ -94,35 +115,17 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 
     m_tabManager->addNewTab();
 
-    // Auto-save timer
-    m_autoSaveTimer = new QTimer(this);
-    connect(m_autoSaveTimer, &QTimer::timeout, this, &MainWindow::onAutoSaveTimeout);
-    setupAutoSaveTimer();
+    m_autoSave = new AutoSaveManager(m_tabManager, this);
+    connect(m_autoSave, &AutoSaveManager::autoSaved, this, [this]() {
+        updateWindowTitle();
+        statusBar()->showMessage(tr("Auto-saved"), 3000);
+    });
 
-    // Settings signals
-    connect(&AppSettings::instance(), &AppSettings::autoSaveSettingsChanged, this,
-            &MainWindow::onAutoSaveSettingsChanged);
-    connect(&AppSettings::instance(), &AppSettings::themeChanged, this, &MainWindow::applyTheme);
+    connect(m_services->settings, &AppSettings::themeChanged, this, &MainWindow::applyTheme);
 
     restoreWindowState();
 
-    // Update checker
-    m_updateChecker = new UpdateChecker(this);
-    connect(m_updateChecker, &UpdateChecker::updateAvailable, this,
-            &MainWindow::onUpdateAvailable);
-    connect(m_updateChecker, &UpdateChecker::upToDate, this, [this]() {
-        QMessageBox::information(this, tr("Check for Updates"),
-                                 tr("You are running the latest version of YMind."));
-    });
-    connect(m_updateChecker, &UpdateChecker::checkFailed, this, [this](const QString& msg) {
-        QMessageBox::warning(this, tr("Check for Updates"),
-                             tr("Could not check for updates:\n%1").arg(msg));
-    });
-
     setupStatusBar();
-
-    if (AppSettings::instance().checkForUpdatesEnabled())
-        QTimer::singleShot(3000, m_updateChecker, [this]() { m_updateChecker->checkForUpdates(false); });
 }
 
 // ---------------------------------------------------------------------------
@@ -130,18 +133,18 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 // otherwise Qt may invoke slots on a partially-destroyed MainWindow.
 // ---------------------------------------------------------------------------
 MainWindow::~MainWindow() {
-    m_autoSaveTimer->stop();
-
     // Disconnect undo stack signals that target this MainWindow before the base
     // class destructor deletes child scenes (whose undo stacks would emit
-    // indexChanged during cleanup, calling refreshOutline on a half-destroyed object).
+    // indexChanged during cleanup, calling refreshOutline on a half-destroyed
+    // object).
     for (const auto& tab : m_tabManager->tabs()) {
         if (tab.scene && tab.scene->undoStack())
             disconnect(tab.scene->undoStack(), nullptr, this, nullptr);
     }
 
     disconnect(m_tabManager, nullptr, this, nullptr);
-    disconnect(&AppSettings::instance(), nullptr, this, nullptr);
+    if (m_services && m_services->settings)
+        disconnect(m_services->settings, nullptr, this, nullptr);
 }
 
 // ---------------------------------------------------------------------------
@@ -153,38 +156,7 @@ void MainWindow::setupCentralLayout() {
     mainLayout->setContentsMargins(0, 0, 0, 0);
     mainLayout->setSpacing(0);
 
-    // ---- Update notification banner (hidden until an update is found) ----
-    m_updateBanner = new QFrame(this);
-    m_updateBanner->setObjectName("updateBanner");
-    m_updateBanner->setVisible(false);
-    auto* bannerLayout = new QHBoxLayout(m_updateBanner);
-    bannerLayout->setContentsMargins(12, 6, 6, 6);
-    bannerLayout->setSpacing(8);
-
-    auto* bannerIcon = new QLabel(m_updateBanner);
-    bannerIcon->setPixmap(IconFactory::makeToolIcon("update-available").pixmap(18, 18));
-    bannerLayout->addWidget(bannerIcon);
-
-    m_updateBannerLabel = new QLabel(m_updateBanner);
-    m_updateBannerLabel->setObjectName("updateBannerLabel");
-    m_updateBannerLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
-    m_updateBannerLabel->setOpenExternalLinks(false);
-    connect(m_updateBannerLabel, &QLabel::linkActivated, this, [this](const QString& link) {
-        QDesktopServices::openUrl(QUrl(link));
-    });
-    bannerLayout->addWidget(m_updateBannerLabel, 1);
-
-    auto* bannerClose = new QToolButton(m_updateBanner);
-    bannerClose->setObjectName("updateBannerClose");
-    bannerClose->setIcon(IconFactory::makeToolIcon("close-panel"));
-    bannerClose->setIconSize(QSize(14, 14));
-    bannerClose->setAutoRaise(true);
-    bannerClose->setFixedSize(22, 22);
-    bannerClose->setToolTip(tr("Dismiss"));
-    connect(bannerClose, &QToolButton::clicked, m_updateBanner, &QFrame::hide);
-    bannerLayout->addWidget(bannerClose);
-
-    mainLayout->addWidget(m_updateBanner);
+    mainLayout->addWidget(m_updateNotifier->banner());
 
     // ---- Tab bar row ----
     auto* tabBarRowWidget = new QWidget(this);
@@ -225,7 +197,11 @@ void MainWindow::setupCentralLayout() {
     mainLayout->addWidget(tabBarRowWidget);
 
     // ---- Inline toolbar ----
-    setupToolBar();
+    m_toolbar = new MindMapToolBar(m_tabManager, m_fileManager, m_undoAct, m_redoAct, this);
+    connect(m_toolbar, &MindMapToolBar::closeRequested, this, [this]() {
+        if (m_toggleToolbarAct)
+            m_toggleToolbarAct->setChecked(false);
+    });
 
     // ---- Content area: splitter with outline + right panel (toolbar + tab pages) ----
     m_contentSplitter = new QSplitter(Qt::Horizontal, this);
@@ -237,13 +213,11 @@ void MainWindow::setupCentralLayout() {
     });
     m_contentSplitter->addWidget(m_outlineWidget);
 
-    // Right panel: toolbar above content stack
     m_rightPanel = new QWidget(this);
     auto* rightLayout = new QVBoxLayout(m_rightPanel);
     rightLayout->setContentsMargins(0, 0, 0, 0);
     rightLayout->setSpacing(0);
-    rightLayout->addWidget(m_toolbarWidget);
-
+    rightLayout->addWidget(m_toolbar);
     rightLayout->addWidget(m_tabManager->contentStack(), 1);
 
     m_contentSplitter->addWidget(m_rightPanel);
@@ -267,154 +241,21 @@ void MainWindow::setupActions() {
     m_undoAct->setShortcut(QKeySequence::Undo);
     m_undoAct->setEnabled(false);
     connect(m_undoAct, &QAction::triggered, this, [this]() {
-        auto* scene = m_tabManager->currentScene();
-        if (scene && !scene->isEditing())
-            scene->undoStack()->undo();
+        withCurrentScene([](MindMapScene* s) {
+            if (!s->isEditing())
+                s->undoStack()->undo();
+        });
     });
 
     m_redoAct = new QAction(tr("&Redo"), this);
     m_redoAct->setShortcuts({QKeySequence::Redo, QKeySequence("Ctrl+Y")});
     m_redoAct->setEnabled(false);
     connect(m_redoAct, &QAction::triggered, this, [this]() {
-        auto* scene = m_tabManager->currentScene();
-        if (scene && !scene->isEditing())
-            scene->undoStack()->redo();
+        withCurrentScene([](MindMapScene* s) {
+            if (!s->isEditing())
+                s->undoStack()->redo();
+        });
     });
-}
-
-// ---------------------------------------------------------------------------
-// Toolbar
-// ---------------------------------------------------------------------------
-void MainWindow::setupToolBar() {
-    m_toolbarWidget = new QWidget(this);
-    m_toolbarWidget->setObjectName("inlineToolbar");
-
-    auto* layout = new QHBoxLayout(m_toolbarWidget);
-    layout->setContentsMargins(4, 2, 4, 2);
-    layout->setSpacing(2);
-
-    // Add stretch at the beginning to center buttons
-    layout->addStretch();
-
-    auto addButton = [&](const QString& iconName, const QString& text,
-                         const QString& tooltip) -> QToolButton* {
-        auto* btn = new QToolButton(m_toolbarWidget);
-        btn->setProperty("iconName", iconName);
-        btn->setIcon(IconFactory::makeToolIcon(iconName));
-        btn->setText(text);
-        btn->setToolTip(tooltip);
-        btn->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
-        btn->setAutoRaise(true);
-        btn->setIconSize(QSize(24, 24));
-        layout->addWidget(btn);
-        return btn;
-    };
-
-    auto addSeparator = [&]() {
-        auto* sep = new QFrame(m_toolbarWidget);
-        sep->setFrameShape(QFrame::VLine);
-        sep->setFrameShadow(QFrame::Sunken);
-        sep->setFixedHeight(28);
-        layout->addWidget(sep);
-    };
-
-    // Undo/Redo at the very left
-    m_undoBtn = addButton("undo", tr("Undo"), tr("Undo last action (Ctrl+Z)"));
-    m_undoBtn->setEnabled(false);
-    connect(m_undoBtn, &QToolButton::clicked, this, [this]() {
-        auto* scene = m_tabManager->currentScene();
-        if (scene)
-            scene->undoStack()->undo();
-    });
-    connect(m_undoAct, &QAction::changed, m_undoBtn, [this]() {
-        m_undoBtn->setEnabled(m_undoAct->isEnabled());
-    });
-
-    m_redoBtn = addButton("redo", tr("Redo"), tr("Redo last action (Ctrl+Y)"));
-    m_redoBtn->setEnabled(false);
-    connect(m_redoBtn, &QToolButton::clicked, this, [this]() {
-        auto* scene = m_tabManager->currentScene();
-        if (scene)
-            scene->undoStack()->redo();
-    });
-    connect(m_redoAct, &QAction::changed, m_redoBtn, [this]() {
-        m_redoBtn->setEnabled(m_redoAct->isEnabled());
-    });
-
-    addSeparator();
-
-    auto* addChildBtn = addButton("add-child", tr("Add Child"), tr("Add a child node (Enter)"));
-    connect(addChildBtn, &QToolButton::clicked, this,
-            [this]() { if (auto* s = m_tabManager->currentScene()) s->addChildToSelected(); });
-
-    auto* addSiblingBtn =
-        addButton("add-sibling", tr("Add Sibling"), tr("Add a sibling node (Ctrl+Enter)"));
-    connect(addSiblingBtn, &QToolButton::clicked, this,
-            [this]() { if (auto* s = m_tabManager->currentScene()) s->addSiblingToSelected(); });
-
-    auto* deleteBtn = addButton("delete", tr("Delete"), tr("Delete selected node (Del)"));
-    connect(deleteBtn, &QToolButton::clicked, this,
-            [this]() { if (auto* s = m_tabManager->currentScene()) s->deleteSelected(); });
-
-    addSeparator();
-
-    auto* layoutBtn =
-        addButton("auto-layout", tr("Auto Layout"), tr("Automatically arrange all nodes (Ctrl+L)"));
-    connect(layoutBtn, &QToolButton::clicked, this,
-            [this]() { if (auto* s = m_tabManager->currentScene()) s->autoLayout(); });
-
-    addSeparator();
-
-    auto* zoomInBtn = addButton("zoom-in", tr("Zoom In"), tr("Zoom in (Ctrl++)"));
-    connect(zoomInBtn, &QToolButton::clicked, this,
-            [this]() { if (auto* v = m_tabManager->currentView()) v->zoomIn(); });
-
-    auto* zoomOutBtn = addButton("zoom-out", tr("Zoom Out"), tr("Zoom out (Ctrl+-)"));
-    connect(zoomOutBtn, &QToolButton::clicked, this,
-            [this]() { if (auto* v = m_tabManager->currentView()) v->zoomOut(); });
-
-    auto* fitBtn = addButton("fit-view", tr("Fit View"), tr("Fit all nodes in view (Ctrl+0)"));
-    connect(fitBtn, &QToolButton::clicked, this,
-            [this]() { if (auto* v = m_tabManager->currentView()) v->zoomToFit(); });
-
-    addSeparator();
-
-    auto* exportBtn = new QToolButton(m_toolbarWidget);
-    exportBtn->setProperty("iconName", "export");
-    exportBtn->setIcon(IconFactory::makeToolIcon("export"));
-    exportBtn->setText(tr("Export"));
-    exportBtn->setToolTip(tr("Export mind map"));
-    exportBtn->setPopupMode(QToolButton::InstantPopup);
-    exportBtn->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
-    exportBtn->setAutoRaise(true);
-    exportBtn->setIconSize(QSize(24, 24));
-    auto* exportBtnMenu = new QMenu(exportBtn);
-    exportBtnMenu->addAction(tr("As Text..."), m_fileManager, &FileManager::exportAsText);
-    exportBtnMenu->addAction(tr("As Markdown..."), m_fileManager, &FileManager::exportAsMarkdown);
-    exportBtnMenu->addSeparator();
-    exportBtnMenu->addAction(tr("As PNG..."), m_fileManager, &FileManager::exportAsPng);
-    exportBtnMenu->addAction(tr("As SVG..."), m_fileManager, &FileManager::exportAsSvg);
-    exportBtnMenu->addAction(tr("As PDF..."), m_fileManager, &FileManager::exportAsPdf);
-    exportBtn->setMenu(exportBtnMenu);
-    layout->addWidget(exportBtn);
-
-    // Add stretch at the end to center buttons and push close button to the right
-    layout->addStretch();
-
-    // Close button at right end of toolbar
-    auto* closeBtn = new QToolButton(m_toolbarWidget);
-    closeBtn->setIcon(IconFactory::makeToolIcon("close-panel"));
-    closeBtn->setProperty("iconName", "close-panel");
-    closeBtn->setToolTip(tr("Hide Toolbar"));
-    closeBtn->setAutoRaise(true);
-    closeBtn->setFixedSize(20, 20);
-    closeBtn->setIconSize(QSize(14, 14));
-    closeBtn->setObjectName("closePanelBtn");
-    connect(closeBtn, &QToolButton::clicked, this, [this]() {
-        if (m_toggleToolbarAct)
-            m_toggleToolbarAct->setChecked(false);
-    });
-    layout->addWidget(closeBtn);
 }
 
 // ---------------------------------------------------------------------------
@@ -459,23 +300,12 @@ void MainWindow::setupMenuBar() {
     connect(importAct, &QAction::triggered, m_fileManager, &FileManager::importFromMarkdown);
 
     auto* exportMenu = fileMenu->addMenu(tr("&Export"));
-
-    auto* exportTextAct = exportMenu->addAction(tr("As &Text..."));
-    connect(exportTextAct, &QAction::triggered, m_fileManager, &FileManager::exportAsText);
-
-    auto* exportMdAct = exportMenu->addAction(tr("As &Markdown..."));
-    connect(exportMdAct, &QAction::triggered, m_fileManager, &FileManager::exportAsMarkdown);
-
+    exportMenu->addAction(tr("As &Text..."), m_fileManager, &FileManager::exportAsText);
+    exportMenu->addAction(tr("As &Markdown..."), m_fileManager, &FileManager::exportAsMarkdown);
     exportMenu->addSeparator();
-
-    auto* exportPngAct = exportMenu->addAction(tr("As &PNG..."));
-    connect(exportPngAct, &QAction::triggered, m_fileManager, &FileManager::exportAsPng);
-
-    auto* exportSvgAct = exportMenu->addAction(tr("As &SVG..."));
-    connect(exportSvgAct, &QAction::triggered, m_fileManager, &FileManager::exportAsSvg);
-
-    auto* exportPdfAct = exportMenu->addAction(tr("As P&DF..."));
-    connect(exportPdfAct, &QAction::triggered, m_fileManager, &FileManager::exportAsPdf);
+    exportMenu->addAction(tr("As &PNG..."), m_fileManager, &FileManager::exportAsPng);
+    exportMenu->addAction(tr("As &SVG..."), m_fileManager, &FileManager::exportAsSvg);
+    exportMenu->addAction(tr("As P&DF..."), m_fileManager, &FileManager::exportAsPdf);
 
     fileMenu->addSeparator();
 
@@ -492,25 +322,27 @@ void MainWindow::setupMenuBar() {
 
     m_addChildAct = editMenu->addAction(tr("Add &Child"));
     m_addChildAct->setToolTip(tr("Add a child node (Enter)"));
-    connect(m_addChildAct, &QAction::triggered, this,
-            [this]() { if (auto* s = m_tabManager->currentScene()) s->addChildToSelected(); });
+    connect(m_addChildAct, &QAction::triggered, this, [this]() {
+        withCurrentScene([](MindMapScene* s) { s->addChildToSelected(); });
+    });
 
     m_addSiblingAct = editMenu->addAction(tr("Add &Sibling"));
     m_addSiblingAct->setToolTip(tr("Add a sibling node (Ctrl+Enter)"));
-    connect(m_addSiblingAct, &QAction::triggered, this,
-            [this]() { if (auto* s = m_tabManager->currentScene()) s->addSiblingToSelected(); });
+    connect(m_addSiblingAct, &QAction::triggered, this, [this]() {
+        withCurrentScene([](MindMapScene* s) { s->addSiblingToSelected(); });
+    });
 
     auto* deleteAct = editMenu->addAction(tr("&Delete"));
     deleteAct->setToolTip(tr("Delete selected node (Del)"));
     connect(deleteAct, &QAction::triggered, this,
-            [this]() { if (auto* s = m_tabManager->currentScene()) s->deleteSelected(); });
+            [this]() { withCurrentScene([](MindMapScene* s) { s->deleteSelected(); }); });
 
     editMenu->addSeparator();
 
     auto* autoLayoutAct = editMenu->addAction(tr("&Auto Layout"));
     autoLayoutAct->setShortcut(QKeySequence("Ctrl+L"));
     connect(autoLayoutAct, &QAction::triggered, this,
-            [this]() { if (auto* s = m_tabManager->currentScene()) s->autoLayout(); });
+            [this]() { withCurrentScene([](MindMapScene* s) { s->autoLayout(); }); });
 
     editMenu->addSeparator();
 
@@ -525,17 +357,17 @@ void MainWindow::setupMenuBar() {
     auto* zoomInAct = viewMenu->addAction(tr("Zoom &In"));
     zoomInAct->setShortcut(QKeySequence::ZoomIn);
     connect(zoomInAct, &QAction::triggered, this,
-            [this]() { if (auto* v = m_tabManager->currentView()) v->zoomIn(); });
+            [this]() { withCurrentView([](MindMapView* v) { v->zoomIn(); }); });
 
     auto* zoomOutAct = viewMenu->addAction(tr("Zoom &Out"));
     zoomOutAct->setShortcut(QKeySequence::ZoomOut);
     connect(zoomOutAct, &QAction::triggered, this,
-            [this]() { if (auto* v = m_tabManager->currentView()) v->zoomOut(); });
+            [this]() { withCurrentView([](MindMapView* v) { v->zoomOut(); }); });
 
     auto* fitAct = viewMenu->addAction(tr("&Fit to View"));
     fitAct->setShortcut(QKeySequence("Ctrl+0"));
     connect(fitAct, &QAction::triggered, this,
-            [this]() { if (auto* v = m_tabManager->currentView()) v->zoomToFit(); });
+            [this]() { withCurrentView([](MindMapView* v) { v->zoomToFit(); }); });
 
     viewMenu->addSeparator();
 
@@ -574,25 +406,18 @@ void MainWindow::setupMenuBar() {
     });
 
     // ---- Template menu ----
-    // Templates are listed inline as checkable, mutually-exclusive actions.
-    // Clicking one applies it immediately — no intermediate dialog.
-    m_templateMenu = menuBar()->addMenu(tr("Te&mplate"));
-    connect(m_templateMenu, &QMenu::aboutToShow, this, &MainWindow::rebuildTemplateMenu);
-    rebuildTemplateMenu();
+    auto* templateMenu = menuBar()->addMenu(tr("Te&mplate"));
+    m_templateMenuController = new TemplateMenuController(templateMenu, m_tabManager, this);
 
     // ---- Theme menu ----
-    // Themes are listed inline as checkable, mutually-exclusive actions.
-    // Clicking one applies it immediately — no intermediate dialog.
-    m_themeMenu = menuBar()->addMenu(tr("&Theme"));
-    connect(m_themeMenu, &QMenu::aboutToShow, this, &MainWindow::rebuildThemeMenu);
-    rebuildThemeMenu();
+    auto* themeMenu = menuBar()->addMenu(tr("&Theme"));
+    m_themeMenuController = new ThemeMenuController(themeMenu, m_tabManager, this);
 
     // ---- Help menu ----
     auto* helpMenu = menuBar()->addMenu(tr("&Help"));
 
     auto* checkUpdatesAct = helpMenu->addAction(tr("Check for &Updates..."));
-    connect(checkUpdatesAct, &QAction::triggered, this,
-            [this]() { m_updateChecker->checkForUpdates(true); });
+    connect(checkUpdatesAct, &QAction::triggered, m_updateNotifier, &UpdateNotifier::checkNow);
 
     helpMenu->addSeparator();
 
@@ -648,7 +473,7 @@ void MainWindow::updateContentVisibility() {
     bool showToolbar = !onStartPage && m_toggleToolbarAct && m_toggleToolbarAct->isChecked();
     bool showOutline = !onStartPage && m_toggleOutlineAct && m_toggleOutlineAct->isChecked();
 
-    m_toolbarWidget->setVisible(showToolbar);
+    m_toolbar->setVisible(showToolbar);
     m_outlineWidget->setVisible(showOutline);
 
     if (m_toggleOutlineBtn)
@@ -678,148 +503,25 @@ void MainWindow::openSettings() {
     dlg.exec();
 }
 
-// ---------------------------------------------------------------------------
-// Rebuild the Template menu in place. Called on aboutToShow so the list picks
-// up templates registered after startup (e.g. dropped in via the Start Page)
-// and the checkmark tracks the *current* tab's templateId.
-// ---------------------------------------------------------------------------
-void MainWindow::rebuildTemplateMenu() {
-    if (!m_templateMenu)
-        return;
-
-    m_templateMenu->clear();
-
-    auto* scene = m_tabManager ? m_tabManager->currentScene() : nullptr;
-    const QString activeId = scene ? scene->templateId() : QString();
-
-    auto* group = new QActionGroup(m_templateMenu);
-    group->setExclusive(true);
-
-    const auto templates = TemplateRegistry::instance().allTemplates();
-    for (const auto* td : templates) {
-        const QString id = td->id;
-        QAction* act = m_templateMenu->addAction(td->name);
-        act->setCheckable(true);
-        act->setChecked(id == activeId);
-        group->addAction(act);
-        connect(act, &QAction::triggered, this, [this, id]() { applyTemplateId(id); });
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Apply the chosen template to the currently visible scene. Reapplies the
-// new template's layout algorithm + structural overrides; keeps the user's
-// content (every node text + any structural changes they made) intact, and
-// keeps whichever theme is currently applied.
-// ---------------------------------------------------------------------------
-void MainWindow::applyTemplateId(const QString& templateId) {
-    auto* scene = m_tabManager->currentScene();
-    if (!scene || templateId.isEmpty())
-        return;
-    if (scene->templateId() == templateId)
-        return;
-
-    // Setter owns cache invalidation + re-measure; we still drive a re-layout
-    // here because the new template's algorithm and spacing change positions.
-    scene->setTemplateId(templateId);
-    scene->autoLayout();
-}
-
-// ---------------------------------------------------------------------------
-// Rebuild the Theme menu in place. Called on aboutToShow so the list reflects
-// any themes registered after startup (e.g. dropped in via the Start Page) and
-// the checkmark tracks the *current* tab's theme.
-// ---------------------------------------------------------------------------
-void MainWindow::rebuildThemeMenu() {
-    if (!m_themeMenu)
-        return;
-
-    m_themeMenu->clear();
-
-    auto* scene = m_tabManager ? m_tabManager->currentScene() : nullptr;
-    const QString activeId = (scene && !scene->themeId().isEmpty())
-                                 ? scene->themeId()
-                                 : ThemeRegistry::defaultThemeId();
-
-    auto* group = new QActionGroup(m_themeMenu);
-    group->setExclusive(true);
-
-    const auto themes = ThemeRegistry::instance().allThemes();
-    for (const auto* th : themes) {
-        const QString id = th->id;
-        QAction* act = m_themeMenu->addAction(th->name);
-        act->setCheckable(true);
-        act->setChecked(id == activeId);
-        group->addAction(act);
-        connect(act, &QAction::triggered, this, [this, id]() { applyThemeId(id); });
-    }
-
-    m_themeMenu->addSeparator();
-    auto* browseThemesAct = m_themeMenu->addAction(tr("&Browse Themes Online..."));
-    connect(browseThemesAct, &QAction::triggered, this, []() {
-        QDesktopServices::openUrl(QUrl("https://broccoli-97.github.io/xmind/#themes"));
-    });
-}
-
-// ---------------------------------------------------------------------------
-// Apply the chosen theme to the currently visible scene. Re-skins the map
-// (colors, fills, borders, connectors) without touching layout or content.
-// ---------------------------------------------------------------------------
-void MainWindow::applyThemeId(const QString& themeId) {
-    auto* scene = m_tabManager->currentScene();
-    if (!scene || themeId.isEmpty())
-        return;
-    if (scene->themeId() == themeId)
-        return;
-
-    scene->setThemeId(themeId);
-}
-
 void MainWindow::openAbout() {
     AboutDialog dlg(this);
     dlg.exec();
 }
 
 void MainWindow::saveWindowState() {
-    auto& s = AppSettings::instance();
-    s.setWindowGeometry(saveGeometry());
-    s.setWindowState(QMainWindow::saveState());
+    auto* s = m_services->settings;
+    s->setWindowGeometry(saveGeometry());
+    s->setWindowState(QMainWindow::saveState());
 }
 
 void MainWindow::restoreWindowState() {
-    auto& s = AppSettings::instance();
-    QByteArray geo = s.windowGeometry();
+    auto* s = m_services->settings;
+    QByteArray geo = s->windowGeometry();
     if (!geo.isEmpty())
         restoreGeometry(geo);
-    QByteArray state = s.windowState();
+    QByteArray state = s->windowState();
     if (!state.isEmpty())
         QMainWindow::restoreState(state);
-}
-
-void MainWindow::setupAutoSaveTimer() {
-    auto& s = AppSettings::instance();
-    if (s.autoSaveEnabled()) {
-        m_autoSaveTimer->start(s.autoSaveIntervalMinutes() * 60 * 1000);
-    } else {
-        m_autoSaveTimer->stop();
-    }
-}
-
-void MainWindow::onAutoSaveTimeout() {
-    for (int i = 0; i < m_tabManager->tabCount(); ++i) {
-        const auto& tab = m_tabManager->tabs()[i];
-        if (!tab.filePath.isEmpty() && tab.scene->isModified()) {
-            if (tab.scene->saveToFile(tab.filePath)) {
-                m_tabManager->updateTabText(i);
-            }
-        }
-    }
-    updateWindowTitle();
-    statusBar()->showMessage(tr("Auto-saved"), 3000);
-}
-
-void MainWindow::onAutoSaveSettingsChanged() {
-    setupAutoSaveTimer();
 }
 
 // ---------------------------------------------------------------------------
@@ -828,14 +530,12 @@ void MainWindow::onAutoSaveSettingsChanged() {
 void MainWindow::applyTheme() {
     ThemeManager::applyTheme(m_tabManager->tabs());
 
-    // Refresh icons that are generated dynamically so they match the new theme
-    // Update toggle buttons
     if (m_toggleOutlineBtn)
         m_toggleOutlineBtn->setIcon(IconFactory::makeToolIcon("sidebar"));
     if (m_toggleToolbarBtn)
         m_toggleToolbarBtn->setIcon(IconFactory::makeToolIcon("toolbar"));
 
-    // Update all tool buttons that expose an "iconName" property
+    // Refresh all tool buttons that expose an "iconName" property
     const auto btns = this->findChildren<QToolButton*>();
     for (auto* btn : btns) {
         QVariant prop = btn->property("iconName");
@@ -846,10 +546,8 @@ void MainWindow::applyTheme() {
         }
     }
 
-    // Refresh tab icons for the new theme
     m_tabManager->updateAllTabIcons();
 
-    // Refresh template preview icons on any visible start pages
     if (auto* stack = m_tabManager->contentStack()) {
         const auto cards = stack->findChildren<QPushButton*>("templateCard");
         for (auto* card : cards) {
@@ -872,57 +570,6 @@ void MainWindow::setupStatusBar() {
     m_statusHelpLabel->setAlignment(Qt::AlignCenter);
     statusBar()->addWidget(m_statusHelpLabel, 1);
 
-    m_updateStatusBtn = new QToolButton(this);
-    m_updateStatusBtn->setObjectName("statusBarUpdateBtn");
-    m_updateStatusBtn->setAutoRaise(true);
-    m_updateStatusBtn->setFixedSize(24, 24);
-    m_updateStatusBtn->setIconSize(QSize(18, 18));
-    connect(m_updateStatusBtn, &QToolButton::clicked, this, &MainWindow::onUpdateIconClicked);
-    statusBar()->addPermanentWidget(m_updateStatusBtn);
-
-    m_versionLabel = new QLabel(QString("v%1").arg(QCoreApplication::applicationVersion()), this);
-    m_versionLabel->setObjectName("statusBarVersionLabel");
-    statusBar()->addPermanentWidget(m_versionLabel);
-
-    refreshUpdateIcon();
-}
-
-// ---------------------------------------------------------------------------
-// Update notifications
-// ---------------------------------------------------------------------------
-void MainWindow::onUpdateAvailable(const QString& latestVersion, const QString& releaseUrl) {
-    m_pendingUpdateVersion = latestVersion;
-    m_pendingUpdateUrl = releaseUrl;
-
-    if (m_updateBannerLabel && m_updateBanner) {
-        m_updateBannerLabel->setText(
-            tr("A new version <b>v%1</b> of YMind is available. "
-               "<a href=\"%2\" style=\"color: inherit; text-decoration: underline;\">Download</a>")
-                .arg(latestVersion, releaseUrl));
-        m_updateBanner->setVisible(true);
-    }
-
-    refreshUpdateIcon();
-}
-
-void MainWindow::onUpdateIconClicked() {
-    if (!m_pendingUpdateUrl.isEmpty()) {
-        QDesktopServices::openUrl(QUrl(m_pendingUpdateUrl));
-        return;
-    }
-    if (m_updateChecker)
-        m_updateChecker->checkForUpdates(true);
-}
-
-void MainWindow::refreshUpdateIcon() {
-    if (!m_updateStatusBtn)
-        return;
-
-    bool available = !m_pendingUpdateVersion.isEmpty();
-    m_updateStatusBtn->setIcon(
-        IconFactory::makeToolIcon(available ? "update-available" : "update"));
-    m_updateStatusBtn->setToolTip(
-        available
-            ? tr("Update available: v%1 — click to open download page").arg(m_pendingUpdateVersion)
-            : tr("Check for updates"));
+    statusBar()->addPermanentWidget(m_updateNotifier->statusButton());
+    statusBar()->addPermanentWidget(m_updateNotifier->versionLabel());
 }

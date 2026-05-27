@@ -1,15 +1,14 @@
 #include "scene/MindMapScene.h"
 #include "core/Commands.h"
 #include "core/TemplateDescriptor.h"
-#include "core/TemplateRegistry.h"
 #include "core/ThemeDescriptor.h"
-#include "core/ThemeRegistry.h"
 #include "scene/EdgeItem.h"
 #include "scene/InlineEditController.h"
 #include "scene/MindMapExporter.h"
 #include "scene/MindMapSerializer.h"
 #include "scene/MindMapView.h"
 #include "scene/NodeItem.h"
+#include "scene/StyleProvider.h"
 
 #include <QEasingCurve>
 #include <QGraphicsSceneMouseEvent>
@@ -20,6 +19,26 @@
 #include <QPropertyAnimation>
 #include <QTimer>
 #include <QUndoStack>
+
+// Global fallback set by app/tests at startup so existing default-constructed
+// scenes keep working without their callsites needing to inject a provider.
+static StyleProvider* s_defaultStyleProvider = nullptr;
+
+StyleProvider* MindMapScene::defaultStyleProvider() {
+    return s_defaultStyleProvider;
+}
+
+void MindMapScene::setDefaultStyleProvider(StyleProvider* provider) {
+    s_defaultStyleProvider = provider;
+}
+
+void MindMapScene::setStyleProvider(StyleProvider* provider) {
+    m_styleProvider = provider;
+}
+
+StyleProvider* MindMapScene::styleProvider() const {
+    return m_styleProvider ? m_styleProvider : s_defaultStyleProvider;
+}
 
 MindMapScene::MindMapScene(QObject* parent) : QGraphicsScene(parent) {
     m_undoStack = new QUndoStack(this);
@@ -96,16 +115,13 @@ void MindMapScene::removeNode(NodeItem* node) {
         removeNode(child);
     }
 
-    // Remove edges connected to this node
-    QList<EdgeItem*> edgesToRemove;
-    for (auto* edge : m_edges) {
-        if (edge->sourceNode() == node || edge->targetNode() == node) {
-            edgesToRemove.append(edge);
-        }
-    }
-    for (auto* edge : edgesToRemove) {
-        edge->sourceNode()->removeEdge(edge);
-        edge->targetNode()->removeEdge(edge);
+    // Drop edges incident to this node. The node already tracks them on its
+    // own m_edges, so we don't need to scan the scene's full edge list.
+    const auto incident = node->edges();
+    for (auto* edge : incident) {
+        NodeItem* other = (edge->sourceNode() == node) ? edge->targetNode() : edge->sourceNode();
+        if (other)
+            other->removeEdge(edge);
         m_edges.removeOne(edge);
         removeItem(edge);
         delete edge;
@@ -158,11 +174,11 @@ void MindMapScene::setLayoutStyle(LayoutStyle style) {
         emit layoutStyleChanged();
 }
 
-QString MindMapScene::templateId() const {
+TemplateId MindMapScene::templateId() const {
     return m_templateId;
 }
 
-void MindMapScene::setTemplateId(const QString& id) {
+void MindMapScene::setTemplateId(const TemplateId& id) {
     if (m_templateId == id)
         return;
     const LayoutStyle oldEffective = layoutStyle();
@@ -173,16 +189,17 @@ void MindMapScene::setTemplateId(const QString& id) {
 }
 
 const TemplateDescriptor* MindMapScene::templateDescriptor() const {
-    if (m_templateId.isEmpty())
+    if (!m_templateId.isValid())
         return nullptr;
-    return TemplateRegistry::instance().templateById(m_templateId);
+    auto* sp = styleProvider();
+    return sp ? sp->templateById(m_templateId.toString()) : nullptr;
 }
 
-QString MindMapScene::themeId() const {
+ThemeId MindMapScene::themeId() const {
     return m_themeId;
 }
 
-void MindMapScene::setThemeId(const QString& id) {
+void MindMapScene::setThemeId(const ThemeId& id) {
     m_themeId = id;
     invalidateStyle();
 }
@@ -220,8 +237,11 @@ void MindMapScene::invalidateStyle() {
 }
 
 const ThemeDescriptor* MindMapScene::themeDescriptor() const {
-    QString id = m_themeId.isEmpty() ? ThemeRegistry::defaultThemeId() : m_themeId;
-    return ThemeRegistry::instance().themeById(id);
+    auto* sp = styleProvider();
+    if (!sp)
+        return nullptr;
+    const QString id = m_themeId.isValid() ? m_themeId.toString() : sp->defaultThemeId();
+    return sp->themeById(id);
 }
 
 EdgeItem* MindMapScene::findEdge(NodeItem* parent, NodeItem* child) const {

@@ -43,6 +43,7 @@ public:
 
     void addEdge(EdgeItem* edge);
     void removeEdge(EdgeItem* edge);
+    QList<EdgeItem*> edges() const { return m_edges; }
 
     QRectF nodeRect() const;
     void moveSubtree(const QPointF& delta);
