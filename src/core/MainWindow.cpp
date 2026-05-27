@@ -7,7 +7,6 @@
 #include "ui/IconFactory.h"
 #include "scene/MindMapScene.h"
 #include "scene/MindMapView.h"
-#include "scene/NodeItem.h"
 #include "ui/OutlineWidget.h"
 #include "core/AboutDialog.h"
 #include "core/SettingsDialog.h"
@@ -22,14 +21,12 @@
 #include <QDesktopServices>
 #include <QFileInfo>
 #include <QFrame>
-#include <QGraphicsItem>
 #include <QHBoxLayout>
 #include <QKeySequence>
 #include <QLabel>
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
-#include <QPointer>
 #include <QPushButton>
 #include <QSignalBlocker>
 #include <QSplitter>
@@ -722,28 +719,10 @@ void MainWindow::applyTemplateId(const QString& templateId) {
     if (scene->templateId() == templateId)
         return;
 
-    // Drop device caches so every item repaints with the new template's
-    // shape/anchor overrides, then re-run autoLayout against the new
-    // algorithm + spacing.
-    const auto items = scene->items();
-    for (auto* item : items)
-        item->setCacheMode(QGraphicsItem::NoCache);
-    if (auto* view = m_tabManager->currentView())
-        view->viewport()->update();
-
+    // Setter owns cache invalidation + re-measure; we still drive a re-layout
+    // here because the new template's algorithm and spacing change positions.
     scene->setTemplateId(templateId);
     scene->autoLayout();
-
-    QPointer<QGraphicsScene> guard(scene);
-    QTimer::singleShot(0, this, [guard]() {
-        if (!guard)
-            return;
-        const auto its = guard->items();
-        for (auto* item : its) {
-            if (dynamic_cast<NodeItem*>(item))
-                item->setCacheMode(QGraphicsItem::DeviceCoordinateCache);
-        }
-    });
 }
 
 // ---------------------------------------------------------------------------
@@ -793,26 +772,7 @@ void MainWindow::applyThemeId(const QString& themeId) {
     if (scene->themeId() == themeId)
         return;
 
-    // Drop device caches so every item repaints with the new theme's
-    // fill/border/edge style, then restore the cache after the repaint.
-    const auto items = scene->items();
-    for (auto* item : items)
-        item->setCacheMode(QGraphicsItem::NoCache);
-    if (auto* view = m_tabManager->currentView())
-        view->viewport()->update();
-
     scene->setThemeId(themeId);
-
-    QPointer<QGraphicsScene> guard(scene);
-    QTimer::singleShot(0, this, [guard]() {
-        if (!guard)
-            return;
-        const auto its = guard->items();
-        for (auto* item : its) {
-            if (dynamic_cast<NodeItem*>(item))
-                item->setCacheMode(QGraphicsItem::DeviceCoordinateCache);
-        }
-    });
 }
 
 void MainWindow::openAbout() {

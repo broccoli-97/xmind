@@ -106,6 +106,12 @@ private:
     void finishEditing();
     void markModified();
 
+    // Theme/template swap invalidation. Drops device-coord caches, re-measures
+    // nodes (padding/font/min-width can change), repaints edges, and schedules
+    // cache restoration on the next event-loop tick so the no-cache repaint
+    // completes first. Owns the entire dance so callers don't have to.
+    void invalidateStyle();
+
     NodeItem* m_rootNode = nullptr;
     QList<EdgeItem*> m_edges;
     QUndoStack* m_undoStack;

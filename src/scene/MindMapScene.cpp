@@ -16,7 +16,9 @@
 #include <QJsonObject>
 #include <QKeyEvent>
 #include <QParallelAnimationGroup>
+#include <QPointer>
 #include <QPropertyAnimation>
+#include <QTimer>
 #include <QUndoStack>
 
 MindMapScene::MindMapScene(QObject* parent) : QGraphicsScene(parent) {
@@ -164,6 +166,7 @@ void MindMapScene::setTemplateId(const QString& id) {
             emit layoutStyleChanged();
         }
     }
+    invalidateStyle();
 }
 
 const TemplateDescriptor* MindMapScene::templateDescriptor() const {
@@ -178,12 +181,16 @@ QString MindMapScene::themeId() const {
 
 void MindMapScene::setThemeId(const QString& id) {
     m_themeId = id;
-    // Force every node to drop its device-coord cache so a theme swap repaints
-    // with the new fill/border/edge style instead of the stale cached pixmap.
-    // Also re-measure each node — themes differ in padding/font/min-width, and
-    // without a refresh the m_rect stays at the previous theme's dimensions.
-    const auto items = this->items();
-    for (auto* it : items) {
+    invalidateStyle();
+}
+
+void MindMapScene::invalidateStyle() {
+    // Drop device caches so items repaint with the new theme/template's
+    // fill/border/edge style instead of a stale cached pixmap. Re-measure
+    // each node — themes/templates differ in padding/font/min-width, and
+    // without a refresh m_rect stays at the previous style's dimensions.
+    const auto allItems = this->items();
+    for (auto* it : allItems) {
         it->setCacheMode(QGraphicsItem::NoCache);
         if (auto* node = dynamic_cast<NodeItem*>(it))
             node->refreshGeometry();
@@ -193,6 +200,20 @@ void MindMapScene::setThemeId(const QString& id) {
         e->updatePath();
     for (auto* v : views())
         v->viewport()->update();
+
+    // Restore device caches on the next tick so the no-cache repaint above
+    // completes first. Only NodeItem uses DeviceCoordinateCache; leave edges
+    // and overlays alone.
+    QPointer<MindMapScene> guard(this);
+    QTimer::singleShot(0, this, [guard]() {
+        if (!guard)
+            return;
+        const auto its = guard->items();
+        for (auto* item : its) {
+            if (dynamic_cast<NodeItem*>(item))
+                item->setCacheMode(QGraphicsItem::DeviceCoordinateCache);
+        }
+    });
 }
 
 const ThemeDescriptor* MindMapScene::themeDescriptor() const {
