@@ -2,14 +2,14 @@
     "$schema": "ymind-theme-v1",
     "id": "builtin.whimsy",
     "name": "Whimsy",
-    "description": "Playful pill-shaped pastels on warm cream — soft branch colors with darker outlines",
+    "description": "Sunset confetti — saturated solid pills on warm peach",
     "nodeStyle": {
         "shape": "roundedRect",
-        "borderRadius": 22.0,
-        "padding": 14.0,
-        "fillMode": "tinted",
-        "fillAlpha": 0.55,
-        "borderWidth": 1.4,
+        "borderRadius": 13.0,
+        "padding": 7.0,
+        "fillMode": "solid",
+        "fillAlpha": 1.0,
+        "borderWidth": 0.0,
         "borderColorSource": "darker",
         "paletteSource": "branch",
         "drawShadow": false
@@ -21,7 +21,7 @@
         "fontPointSize": 22.0
     },
     "edgeStyle": {
-        "width": 2.6,
+        "width": 2.4,
         "colorSource": "branch",
         "anchor": "center",
         "curvature": 0.6,
@@ -31,36 +31,36 @@
     "backgroundPattern": "dots",
     "colors": {
         "light": {
-            "canvasBackground": "#F8F0DE",
-            "canvasGridDot": "#E6D6B6",
+            "canvasBackground": "#F4E4DA",
+            "canvasGridDot": "#E0D5CE",
             "nodePalette": [
-                "#5BBAD7",
-                "#9E7DC6",
-                "#E0746B",
-                "#E6AB46",
-                "#5FB9A1",
-                "#D17BAA"
+                "#E85854",
+                "#9D69D2",
+                "#E9AB2B",
+                "#009ED8",
+                "#5BBE62",
+                "#E662A8"
             ],
             "nodeShadow": "#00000000",
-            "nodeSelectionBorder": "#E0746B",
-            "nodeText": "#3D332A",
+            "nodeSelectionBorder": "#E85854",
+            "nodeText": "#FCFCFC",
             "edgeLightenFactor": 100,
-            "exportBackground": "#F8F0DE"
+            "exportBackground": "#F4E4DA"
         },
         "dark": {
             "canvasBackground": "#2A241D",
             "canvasGridDot": "#3A3226",
             "nodePalette": [
-                "#7CC9E0",
-                "#B89EE0",
-                "#F09287",
-                "#F1C277",
-                "#82CFB9",
-                "#E2A1C6"
+                "#E85854",
+                "#9D69D2",
+                "#E9AB2B",
+                "#009ED8",
+                "#5BBE62",
+                "#E662A8"
             ],
             "nodeShadow": "#00000000",
-            "nodeSelectionBorder": "#F09287",
-            "nodeText": "#F4ECDB",
+            "nodeSelectionBorder": "#E85854",
+            "nodeText": "#FCFCFC",
             "edgeLightenFactor": 100,
             "exportBackground": "#2A241D"
         }
