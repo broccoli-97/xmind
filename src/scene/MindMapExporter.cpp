@@ -4,6 +4,7 @@
 #include "scene/NodeItem.h"
 #include "ui/ThemeManager.h"
 
+#include <QCoreApplication>
 #include <QImage>
 #include <QPageSize>
 #include <QPainter>
@@ -75,7 +76,7 @@ bool MindMapExporter::exportToSvg(const QString& filePath) {
     generator.setFileName(filePath);
     generator.setSize(contentRect.size().toSize());
     generator.setViewBox(QRectF(QPointF(0, 0), contentRect.size()));
-    generator.setTitle("YMind Export");
+    generator.setTitle(QCoreApplication::translate("MindMapExporter", "YMind Export"));
 
     QPainter painter(&generator);
     if (!painter.isActive())

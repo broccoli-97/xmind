@@ -562,99 +562,107 @@
     </message>
 </context>
 <context>
+    <name>MindMapExporter</name>
+    <message>
+        <location filename="../src/scene/MindMapExporter.cpp" line="79"/>
+        <source>YMind Export</source>
+        <translation>YMind 导出</translation>
+    </message>
+</context>
+<context>
     <name>MindMapScene</name>
     <message>
-        <location filename="../src/scene/MindMapExporter.cpp" line="335"/>
+        <location filename="../src/scene/MindMapExporter.cpp" line="336"/>
         <source>Underlined headings (setext) are not supported. Use `# Title` on a single line.</source>
         <translation>不支持下划线标题（setext 风格）。请在单独一行使用 `# 标题`。</translation>
     </message>
     <message>
-        <location filename="../src/scene/MindMapExporter.cpp" line="340"/>
+        <location filename="../src/scene/MindMapExporter.cpp" line="341"/>
         <source>Horizontal rules are not supported.</source>
         <translation>不支持水平分割线。</translation>
     </message>
     <message>
-        <location filename="../src/scene/MindMapExporter.cpp" line="354"/>
+        <location filename="../src/scene/MindMapExporter.cpp" line="355"/>
         <source>Fenced code blocks are not supported.</source>
         <translation>不支持围栏代码块。</translation>
     </message>
     <message>
-        <location filename="../src/scene/MindMapExporter.cpp" line="360"/>
+        <location filename="../src/scene/MindMapExporter.cpp" line="361"/>
         <source>Raw HTML is not supported.</source>
         <translation>不支持原始 HTML。</translation>
     </message>
     <message>
-        <location filename="../src/scene/MindMapExporter.cpp" line="367"/>
+        <location filename="../src/scene/MindMapExporter.cpp" line="368"/>
         <source>Blockquotes (&gt;) are not supported.</source>
         <translation>不支持块引用（&gt;）。</translation>
     </message>
     <message>
-        <location filename="../src/scene/MindMapExporter.cpp" line="373"/>
+        <location filename="../src/scene/MindMapExporter.cpp" line="374"/>
         <source>Ordered lists are not supported. Use `-`, `*` or `+` bullets.</source>
         <translation>不支持有序列表。请使用 `-`、`*` 或 `+` 项目符号。</translation>
     </message>
     <message>
-        <location filename="../src/scene/MindMapExporter.cpp" line="380"/>
+        <location filename="../src/scene/MindMapExporter.cpp" line="381"/>
         <source>Tables are not supported.</source>
         <translation>不支持表格。</translation>
     </message>
     <message>
-        <location filename="../src/scene/MindMapExporter.cpp" line="386"/>
+        <location filename="../src/scene/MindMapExporter.cpp" line="387"/>
         <source>Heading must have a space after `#` (e.g. `# Title`).</source>
         <translation>标题的 `#` 之后必须有空格（例如 `# 标题`）。</translation>
     </message>
     <message>
-        <location filename="../src/scene/MindMapExporter.cpp" line="398"/>
+        <location filename="../src/scene/MindMapExporter.cpp" line="399"/>
         <source>Only `# Title` (H1) is supported. Use list nesting instead of `%1`.</source>
         <translation>仅支持 `# 标题`（H1）。请使用列表嵌套代替 `%1`。</translation>
     </message>
     <message>
-        <location filename="../src/scene/MindMapExporter.cpp" line="406"/>
+        <location filename="../src/scene/MindMapExporter.cpp" line="407"/>
         <source>`# Title` must be the very first content (only one root is allowed).</source>
         <translation>`# 标题` 必须是最前面的内容（只允许一个根节点）。</translation>
     </message>
     <message>
-        <location filename="../src/scene/MindMapExporter.cpp" line="412"/>
+        <location filename="../src/scene/MindMapExporter.cpp" line="413"/>
         <source>Heading text is empty.</source>
         <translation>标题文本为空。</translation>
     </message>
     <message>
-        <location filename="../src/scene/MindMapExporter.cpp" line="438"/>
+        <location filename="../src/scene/MindMapExporter.cpp" line="439"/>
         <source>Indentation must use spaces, not tabs (2 spaces per level).</source>
         <translation>缩进必须使用空格，而非制表符（每级 2 个空格）。</translation>
     </message>
     <message>
-        <location filename="../src/scene/MindMapExporter.cpp" line="447"/>
+        <location filename="../src/scene/MindMapExporter.cpp" line="448"/>
         <source>Indentation must be a multiple of 2 spaces (got %1).</source>
         <translation>缩进必须是 2 个空格的倍数（实际为 %1）。</translation>
     </message>
     <message>
-        <location filename="../src/scene/MindMapExporter.cpp" line="456"/>
+        <location filename="../src/scene/MindMapExporter.cpp" line="457"/>
         <source>List item text is empty.</source>
         <translation>列表项文本为空。</translation>
     </message>
     <message>
-        <location filename="../src/scene/MindMapExporter.cpp" line="466"/>
+        <location filename="../src/scene/MindMapExporter.cpp" line="467"/>
         <source>First list item must not be indented (it becomes the root).</source>
         <translation>第一个列表项不能缩进（它将作为根节点）。</translation>
     </message>
     <message>
-        <location filename="../src/scene/MindMapExporter.cpp" line="479"/>
+        <location filename="../src/scene/MindMapExporter.cpp" line="480"/>
         <source>Indentation skipped a level: jumped from depth %1 to %2.</source>
         <translation>缩进跳过一级：从第 %1 级直接跳到第 %2 级。</translation>
     </message>
     <message>
-        <location filename="../src/scene/MindMapExporter.cpp" line="509"/>
+        <location filename="../src/scene/MindMapExporter.cpp" line="510"/>
         <source>Stray text outside of the unordered list structure: &quot;%1&quot;.</source>
         <translation>无序列表结构之外存在多余文本：&quot;%1&quot;。</translation>
     </message>
     <message>
-        <location filename="../src/scene/MindMapExporter.cpp" line="516"/>
+        <location filename="../src/scene/MindMapExporter.cpp" line="517"/>
         <source>The file is empty — nothing to import.</source>
         <translation>文件为空 — 没有可导入的内容。</translation>
     </message>
     <message>
-        <location filename="../src/scene/MindMapExporter.cpp" line="587"/>
+        <location filename="../src/scene/MindMapExporter.cpp" line="588"/>
         <location filename="../src/scene/MindMapScene.cpp" line="29"/>
         <location filename="../src/scene/MindMapSerializer.cpp" line="112"/>
         <source>Central Topic</source>
@@ -773,6 +781,11 @@ The file must be a simple Markdown outline (optional `# Title` followed by an un
         <location filename="../src/core/SettingsDialog.cpp" line="61"/>
         <source>Default font:</source>
         <translation>默认字体：</translation>
+    </message>
+    <message>
+        <location filename="../src/core/SettingsDialog.cpp" line="64"/>
+        <source> pt</source>
+        <translation> 磅</translation>
     </message>
     <message>
         <location filename="../src/core/SettingsDialog.cpp" line="65"/>

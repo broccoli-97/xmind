@@ -61,7 +61,7 @@ SettingsDialog::SettingsDialog(QWidget* parent) : QDialog(parent) {
     editorLayout->addRow(tr("Default font:"), m_fontFamilyCombo);
     m_fontSizeSpin = new QSpinBox;
     m_fontSizeSpin->setRange(8, 24);
-    m_fontSizeSpin->setSuffix(" pt");
+    m_fontSizeSpin->setSuffix(tr(" pt"));
     editorLayout->addRow(tr("Default font size:"), m_fontSizeSpin);
     auto* hint = new QLabel(tr("Applies to newly created nodes only"));
     hint->setObjectName("settingsHint");
