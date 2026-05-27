@@ -38,7 +38,7 @@ void UpdateChecker::onReplyFinished(QNetworkReply* reply) {
     QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
     if (!doc.isObject()) {
         if (m_manual)
-            emit checkFailed("Invalid response from GitHub.");
+            emit checkFailed(tr("Invalid response from GitHub."));
         return;
     }
 
@@ -48,7 +48,7 @@ void UpdateChecker::onReplyFinished(QNetworkReply* reply) {
 
     if (tagName.isEmpty()) {
         if (m_manual)
-            emit checkFailed("No release tag found.");
+            emit checkFailed(tr("No release tag found."));
         return;
     }
 

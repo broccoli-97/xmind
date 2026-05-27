@@ -4,13 +4,16 @@
 #include "scene/MindMapScene.h"
 #include "scene/NodeItem.h"
 
+#include <QCoreApplication>
+
 // ===========================================================================
 // AddNodeCommand
 // ===========================================================================
 
 AddNodeCommand::AddNodeCommand(MindMapScene* scene, NodeItem* parent, const QString& text,
                                QUndoCommand* parentCmd)
-    : QUndoCommand("Add Node", parentCmd), m_scene(scene), m_parent(parent), m_text(text) {}
+    : QUndoCommand(QCoreApplication::translate("Commands", "Add Node"), parentCmd),
+      m_scene(scene), m_parent(parent), m_text(text) {}
 
 AddNodeCommand::~AddNodeCommand() {
     if (m_ownsObjects) {
@@ -71,7 +74,8 @@ void AddNodeCommand::undo() {
 // ===========================================================================
 
 RemoveNodeCommand::RemoveNodeCommand(MindMapScene* scene, NodeItem* node, QUndoCommand* parentCmd)
-    : QUndoCommand("Delete Node", parentCmd), m_scene(scene) {
+    : QUndoCommand(QCoreApplication::translate("Commands", "Delete Node"), parentCmd),
+      m_scene(scene) {
     m_snapshot = captureSubtree(node);
 }
 
@@ -179,7 +183,7 @@ void RemoveNodeCommand::undo() {
 
 EditTextCommand::EditTextCommand(MindMapScene* scene, NodeItem* node, const QString& oldText,
                                  const QString& newText, QUndoCommand* parentCmd)
-    : QUndoCommand("Edit Text", parentCmd),
+    : QUndoCommand(QCoreApplication::translate("Commands", "Edit Text"), parentCmd),
       m_scene(scene),
       m_node(node),
       m_oldText(oldText),
@@ -201,7 +205,8 @@ void EditTextCommand::redo() {
 
 MoveNodeCommand::MoveNodeCommand(NodeItem* node, const QPointF& oldPos, const QPointF& newPos,
                                  QUndoCommand* parentCmd)
-    : QUndoCommand("Move Node", parentCmd), m_node(node), m_oldPos(oldPos), m_newPos(newPos) {}
+    : QUndoCommand(QCoreApplication::translate("Commands", "Move Node"), parentCmd),
+      m_node(node), m_oldPos(oldPos), m_newPos(newPos) {}
 
 void MoveNodeCommand::undo() {
     QPointF delta = m_oldPos - m_node->pos();

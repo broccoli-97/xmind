@@ -96,7 +96,7 @@ QWidget* StartPage::create(QObject* /*receiver*/, std::function<void(const QStri
     // Spacing
     outer->addSpacing(16);
 
-    // Blank Canvas button + Load Template link
+    // Blank Canvas button + Load Theme link
     auto* blankBtn =
         new QPushButton(QCoreApplication::translate("StartPage", "Blank Canvas"));
     blankBtn->setObjectName("blankCanvasBtn");

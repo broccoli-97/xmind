@@ -35,6 +35,29 @@
     </message>
 </context>
 <context>
+    <name>Commands</name>
+    <message>
+        <location filename="../src/core/Commands.cpp" line="15"/>
+        <source>Add Node</source>
+        <translation>添加节点</translation>
+    </message>
+    <message>
+        <location filename="../src/core/Commands.cpp" line="77"/>
+        <source>Delete Node</source>
+        <translation>删除节点</translation>
+    </message>
+    <message>
+        <location filename="../src/core/Commands.cpp" line="186"/>
+        <source>Edit Text</source>
+        <translation>编辑文本</translation>
+    </message>
+    <message>
+        <location filename="../src/core/Commands.cpp" line="208"/>
+        <source>Move Node</source>
+        <translation>移动节点</translation>
+    </message>
+</context>
+<context>
     <name>FileManager</name>
     <message>
         <location filename="../src/core/FileManager.cpp" line="26"/>
@@ -638,8 +661,8 @@
         <translation>中心主题</translation>
     </message>
     <message>
-        <location filename="../src/scene/MindMapScene.cpp" line="212"/>
-        <location filename="../src/scene/MindMapScene.cpp" line="232"/>
+        <location filename="../src/scene/MindMapScene.cpp" line="218"/>
+        <location filename="../src/scene/MindMapScene.cpp" line="238"/>
         <source>New Topic</source>
         <translation>新主题</translation>
     </message>
@@ -1166,6 +1189,19 @@ Do you want to save your changes?</source>
         <location filename="../src/core/BuiltinTemplateStrings.h" line="109"/>
         <source>Hand-drawn marker on warm paper — Excalidraw-style wobbly outlines</source>
         <translation>暖色纸上的手绘记号 — Excalidraw 风格颤动笔触</translation>
+    </message>
+</context>
+<context>
+    <name>UpdateChecker</name>
+    <message>
+        <location filename="../src/core/UpdateChecker.cpp" line="41"/>
+        <source>Invalid response from GitHub.</source>
+        <translation>GitHub 返回的响应无效。</translation>
+    </message>
+    <message>
+        <location filename="../src/core/UpdateChecker.cpp" line="51"/>
+        <source>No release tag found.</source>
+        <translation>未找到发布版本标签。</translation>
     </message>
 </context>
 </TS>
