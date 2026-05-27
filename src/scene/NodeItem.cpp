@@ -6,6 +6,7 @@
 #include "layout/LayoutStyle.h"
 #include "scene/EdgeItem.h"
 #include "scene/MindMapScene.h"
+#include "scene/NodeStyleResolver.h"
 #include "scene/SketchyPainter.h"
 #include "ui/ThemeManager.h"
 
@@ -197,9 +198,8 @@ NodeItem::NodeItem(const QString& text, QGraphicsItem* parent)
 
 NodeItem::~NodeItem() = default;
 
-// ----- Style resolution helpers -----------------------------------------------
-// Centralize the "template field if set, else NodeItem constant" fallback so
-// updateGeometry/paint/shape can all read the same effective values.
+// Style resolution lives in NodeStyleResolver. These two helpers just resolve
+// the descriptors a node currently sees through its (possibly null) scene.
 
 namespace {
 
@@ -211,89 +211,12 @@ const TemplateDescriptor* nodeTemplate(const MindMapScene* scene) {
     return scene ? scene->templateDescriptor() : nullptr;
 }
 
-// Compose the effective node style for a given level. The theme provides the
-// base; the template may override a small set of structural fields (node
-// shape, paletteSource) so that templates like Lined keep their character
-// regardless of which theme is applied.
-ThemeNodeStyle effStyle(const ThemeDescriptor* th, const TemplateDescriptor* td,
-                        int level) {
-    ThemeNodeStyle s = th ? th->nodeStyleForLevel(level) : ThemeNodeStyle{};
-    if (td) {
-        if (level == 0 && !td->rootShapeOverride.isEmpty())
-            s.shape = td->rootShapeOverride;
-        else if (!td->nodeShapeOverride.isEmpty())
-            s.shape = td->nodeShapeOverride;
-        if (!td->paletteSourceOverride.isEmpty())
-            s.paletteSource = td->paletteSourceOverride;
-    }
-    return s;
-}
-
-qreal effPadding(const ThemeDescriptor* th, const TemplateDescriptor* td, int level) {
-    return effStyle(th, td, level).padding;
-}
-qreal effRadius(const ThemeDescriptor* th, const TemplateDescriptor* td, int level) {
-    return effStyle(th, td, level).borderRadius;
-}
-qreal effMinWidth(const ThemeDescriptor* th, const TemplateDescriptor* td, int level) {
-    return effStyle(th, td, level).minWidth;
-}
-qreal effMaxWidth(const ThemeDescriptor* th, const TemplateDescriptor* td, int level) {
-    return effStyle(th, td, level).maxWidth;
-}
-
-QString effShape(const ThemeDescriptor* th, const TemplateDescriptor* td, int level) {
-    return effStyle(th, td, level).shape;
-}
-
-// Compose the effective font: start from `base` (the per-node QFont seeded
-// from AppSettings) and apply theme overrides on top. A theme can swap the
-// family (e.g. sketch theme → "Caveat") or bump the point size without
-// touching the user's app-wide preference.
-QFont effFont(const ThemeDescriptor* th, const TemplateDescriptor* td, int level,
-              const QFont& base) {
-    const ThemeNodeStyle s = effStyle(th, td, level);
-    QFont f = base;
-    if (!s.fontFamily.isEmpty()) {
-        f.setFamily(s.fontFamily);
-        // Cursive style hint nudges Qt's font matcher toward a handwritten
-        // fallback when the named family isn't installed — relevant for
-        // custom themes that name a font we don't bundle.
-        f.setStyleHint(QFont::Cursive, QFont::PreferDefault);
-    }
-    if (s.fontPointSize > 0.0)
-        f.setPointSizeF(s.fontPointSize);
-    return f;
-}
-
-bool effDrawShadow(const ThemeDescriptor* th, const TemplateDescriptor* td, int level,
-                   const QString& shape) {
-    if (shape != QLatin1String("roundedRect"))
-        return false;
-    const auto s = effStyle(th, td, level);
-    if (s.fillMode != QLatin1String("solid"))
-        return false;
-    return s.drawShadow;
-}
-
-QColor borderColorFor(const ThemeNodeStyle& s, const QColor& nodeColor,
-                      const QColor& fixedColor) {
-    if (s.borderColorSource == QLatin1String("darker"))
-        return nodeColor.darker(125);
-    if (s.borderColorSource == QLatin1String("fixed") && fixedColor.isValid())
-        return fixedColor;
-    return nodeColor;
-}
-
 } // namespace
 
 QRectF NodeItem::boundingRect() const {
-    const auto* th = nodeTheme(m_mindMapScene);
-    const auto* td = nodeTemplate(m_mindMapScene);
-    const int lvl = level();
-    QString shape = effShape(th, td, lvl);
-    bool withShadow = effDrawShadow(th, td, lvl, shape);
-    const auto s = effStyle(th, td, lvl);
+    NodeStyleResolver resolver(nodeTheme(m_mindMapScene), nodeTemplate(m_mindMapScene));
+    const auto s = resolver.styleForLevel(level());
+    const bool withShadow = NodeStyleResolver::drawsShadow(s, s.shape);
     // Sketch outlines wobble outside m_rect by up to ~5px — match the cap in
     // SketchyPainter::drawRoughRoundedRect so the AA strokes aren't clipped.
     const qreal sketchPad = s.roughness > 0.0 ? 6.0 : 0.0;
@@ -310,18 +233,15 @@ QRectF NodeItem::boundingRect() const {
 }
 
 QPainterPath NodeItem::shape() const {
-    const auto* th = nodeTheme(m_mindMapScene);
-    const auto* td = nodeTemplate(m_mindMapScene);
-    const int lvl = level();
-    QString s = effShape(th, td, lvl);
+    NodeStyleResolver resolver(nodeTheme(m_mindMapScene), nodeTemplate(m_mindMapScene));
+    const auto style = resolver.styleForLevel(level());
     QPainterPath path;
-    if (s == QLatin1String("none") || s == QLatin1String("underline")) {
+    if (style.shape == QLatin1String("none") || style.shape == QLatin1String("underline")) {
         // For shapeless / underline styles, hit-test the text rect (a bit
         // padded) so clicks on the text still select the node.
         path.addRect(m_rect.adjusted(-2, -2, 2, 2));
     } else {
-        const qreal r = effRadius(th, td, lvl);
-        path.addRoundedRect(m_rect, r, r);
+        path.addRoundedRect(m_rect, style.borderRadius, style.borderRadius);
     }
     return path;
 }
@@ -348,15 +268,16 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
         fixedBorderColor = tc.nodeBorderColor;
     }
 
+    NodeStyleResolver resolver(th, td);
     const int lvl = level();
-    const ThemeNodeStyle style = effStyle(th, td, lvl);
+    const ThemeNodeStyle style = resolver.styleForLevel(lvl);
     const QString shape = style.shape;
     const qreal radius = style.borderRadius;
     const qreal padding = style.padding;
     const QColor nodeCol = nodeColor();
 
     // ----- Drop shadow -------------------------------------------------------
-    if (effDrawShadow(th, td, lvl, shape)) {
+    if (NodeStyleResolver::drawsShadow(style, shape)) {
         painter->setPen(Qt::NoPen);
         const int layers = qMax(1, style.shadowLayers);
         const qreal spread = style.shadowSpread;
@@ -430,7 +351,7 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
         if (selected) {
             pen = QPen(selectionBorder, style.selectionWidth);
         } else if (style.borderWidth > 0.0) {
-            QColor borderC = borderColorFor(style, nodeCol, fixedBorderColor);
+            QColor borderC = NodeStyleResolver::resolveBorderColor(style, nodeCol, fixedBorderColor);
             pen = QPen(borderC, style.borderWidth);
         }
         painter->setPen(pen);
@@ -488,7 +409,7 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
                                               : nodeCol.darker(120);
     }
     painter->setPen(effTextColor);
-    painter->setFont(effFont(th, td, lvl, m_font));
+    painter->setFont(resolver.fontForLevel(lvl, m_font));
     QRectF textArea = m_rect.adjusted(padding, padding, -padding, -padding);
     painter->drawText(textArea, Qt::AlignCenter | Qt::TextWrapAnywhere, m_text);
 }
@@ -591,7 +512,8 @@ QColor NodeItem::branchColor() const {
 }
 
 QFont NodeItem::font() const {
-    return effFont(nodeTheme(m_mindMapScene), nodeTemplate(m_mindMapScene), level(), m_font);
+    return NodeStyleResolver(nodeTheme(m_mindMapScene), nodeTemplate(m_mindMapScene))
+        .fontForLevel(level(), m_font);
 }
 
 void NodeItem::addEdge(EdgeItem* edge) {
@@ -722,14 +644,14 @@ void NodeItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event) {
 
 void NodeItem::updateGeometry() {
     prepareGeometryChange();
-    const auto* th = nodeTheme(m_mindMapScene);
-    const auto* td = nodeTemplate(m_mindMapScene);
+    NodeStyleResolver resolver(nodeTheme(m_mindMapScene), nodeTemplate(m_mindMapScene));
     const int lvl = level();
-    const qreal pad = effPadding(th, td, lvl);
-    const qreal minW = effMinWidth(th, td, lvl);
-    const qreal maxW = effMaxWidth(th, td, lvl);
+    const auto style = resolver.styleForLevel(lvl);
+    const qreal pad = style.padding;
+    const qreal minW = style.minWidth;
+    const qreal maxW = style.maxWidth;
 
-    QFontMetricsF fm(effFont(th, td, lvl, m_font));
+    QFontMetricsF fm(resolver.fontForLevel(lvl, m_font));
     // Slanted/cursive fonts (e.g. Caveat in the sketch theme) draw the final
     // glyph past its advance metric — the italic angle pushes the upper-right
     // corner outside horizontalAdvance. Use the largest of advance, the

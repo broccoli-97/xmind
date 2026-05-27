@@ -53,6 +53,7 @@ add_library(ymind_lib OBJECT
     src/scene/MindMapSerializer.h     src/scene/MindMapSerializer.cpp
     src/scene/MindMapView.h           src/scene/MindMapView.cpp
     src/scene/NodeItem.h              src/scene/NodeItem.cpp
+    src/scene/NodeStyleResolver.h     src/scene/NodeStyleResolver.cpp
     src/scene/SketchyPainter.h        src/scene/SketchyPainter.cpp
 
     # Layout – auto-layout algorithms
