@@ -17,6 +17,10 @@ QJsonObject MindMapSerializer::nodeToJson(NodeItem* node) const {
     obj["text"] = node->text();
     obj["x"] = node->pos().x();
     obj["y"] = node->pos().y();
+    // Omit `collapsed` when false to keep v3-shaped files for the common case.
+    // Reader treats a missing field as `false`, so older files stay compatible.
+    if (node->isCollapsed())
+        obj["collapsed"] = true;
 
     QJsonArray children;
     for (auto* child : node->childNodes()) {
@@ -64,6 +68,13 @@ NodeItem* MindMapSerializer::nodeFromJson(const QJsonObject& json, NodeItem* par
     for (const auto& childVal : children) {
         nodeFromJson(childVal.toObject(), node);
     }
+
+    // Apply collapsed state *after* children load so the visibility cascade
+    // sees the full descendant set. Missing field == false (back-compat with
+    // v3 and earlier).
+    if (json.value("collapsed").toBool(false))
+        node->setCollapsed(true);
+
     return node;
 }
 
@@ -89,6 +100,14 @@ QJsonObject migrate_v1_to_v2(QJsonObject json, const StyleProvider* sp) {
         json["templateId"] = sp->builtinTemplateIdForLayoutStyle(json["layoutStyle"].toInt(0));
     }
     json["version"] = 2;
+    return json;
+}
+
+// v3 → v4: per-node `collapsed` field. Older files implicitly have everything
+// expanded; nodeFromJson treats a missing field as false, so this migrator is
+// just a version bump.
+QJsonObject migrate_v3_to_v4(QJsonObject json, const StyleProvider* /*sp*/) {
+    json["version"] = 4;
     return json;
 }
 
@@ -122,6 +141,7 @@ const std::vector<Migrator>& migrators() {
     static const std::vector<Migrator> kMigrators = {
         migrate_v1_to_v2,
         migrate_v2_to_v3,
+        migrate_v3_to_v4,
     };
     return kMigrators;
 }

@@ -12,7 +12,8 @@ public:
 
     // Current on-disk format version. Bump when toJson() changes shape, and
     // add a migrator in MindMapSerializer.cpp's `migrators` table.
-    static constexpr int kCurrentVersion = 3;
+    // v4: added per-node `collapsed` boolean (omitted when false).
+    static constexpr int kCurrentVersion = 4;
 
     QJsonObject toJson() const;
     bool fromJson(const QJsonObject& json);

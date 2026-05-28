@@ -244,6 +244,24 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
     painter->setFont(resolver.fontForLevel(lvl, m_font));
     QRectF textArea = m_rect.adjusted(padding, padding, -padding, -padding);
     painter->drawText(textArea, Qt::AlignCenter | Qt::TextWrapAnywhere, m_text);
+
+    // ----- Collapsed indicator ---------------------------------------------
+    // When this node hides a subtree, paint three small dots inside the right
+    // edge of the body so the user knows there's content folded away. Skip
+    // for nodes without children (toggling has no effect on a leaf, so we
+    // shouldn't promise hidden content).
+    if (m_collapsed && !m_children.isEmpty()) {
+        QColor dotColor = effTextColor;
+        dotColor.setAlpha(170);
+        painter->setBrush(dotColor);
+        painter->setPen(Qt::NoPen);
+        constexpr qreal dotR = 1.5;
+        constexpr qreal dotSpacing = 4.0;
+        const qreal y = m_rect.center().y();
+        const qreal startX = m_rect.right() - 6 - 2 * dotSpacing;
+        for (int i = 0; i < 3; ++i)
+            painter->drawEllipse(QPointF(startX + i * dotSpacing, y), dotR, dotR);
+    }
 }
 
 QString NodeItem::text() const {
@@ -367,6 +385,31 @@ void NodeItem::moveSubtree(const QPointF& delta) {
     moveBy(delta.x(), delta.y());
     for (auto* child : m_children) {
         child->moveSubtree(delta);
+    }
+}
+
+void NodeItem::setCollapsed(bool collapsed) {
+    if (m_collapsed == collapsed)
+        return;
+    m_collapsed = collapsed;
+    applyDescendantVisibility(/*force=*/m_collapsed);
+    update(); // repaint the indicator
+}
+
+void NodeItem::applyDescendantVisibility(bool force) {
+    // Walk children; each child (and its incident edge) is visible only if
+    // neither `force` nor any ancestor's m_collapsed has hidden it.
+    for (auto* child : m_children) {
+        const bool childVisible = !force;
+        child->setVisible(childVisible);
+        // The edge connecting parent->child rides with the child.
+        for (auto* edge : child->m_edges) {
+            if (edge->sourceNode() == this && edge->targetNode() == child)
+                edge->setVisible(childVisible);
+        }
+        // Recurse: if this child is itself collapsed, the next level is
+        // hidden regardless. If `force` is already true, propagate it down.
+        child->applyDescendantVisibility(force || child->m_collapsed);
     }
 }
 

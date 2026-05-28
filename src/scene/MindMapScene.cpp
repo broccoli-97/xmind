@@ -445,6 +445,19 @@ void MindMapScene::keyPressEvent(QKeyEvent* event) {
         }
         event->accept();
         break;
+    case Qt::Key_Space:
+        // Space toggles collapse on the selected non-root node (root has no
+        // siblings or hidden state worth toggling). Leaves with no children
+        // also opt out since the indicator wouldn't make sense.
+        if (auto* node = selectedNode();
+            node && node != m_rootNode && !node->childNodes().isEmpty()) {
+            node->toggleCollapsed();
+            markModified();
+            event->accept();
+            break;
+        }
+        QGraphicsScene::keyPressEvent(event);
+        break;
     case Qt::Key_Up:
     case Qt::Key_Down:
     case Qt::Key_Left:
@@ -487,11 +500,15 @@ void MindMapScene::keyPressEvent(QKeyEvent* event) {
         }
 
         if (auto* target = findNeighbor(current, dir)) {
-            clearSelection();
-            target->setSelected(true);
-            for (auto* view : views()) {
-                if (auto* mv = qobject_cast<MindMapView*>(view))
-                    mv->ensureNodeVisible(target);
+            // Don't try to land on a hidden node — collapsed parents
+            // shouldn't be navigable into via arrow keys.
+            if (target->isVisible()) {
+                clearSelection();
+                target->setSelected(true);
+                for (auto* view : views()) {
+                    if (auto* mv = qobject_cast<MindMapView*>(view))
+                        mv->ensureNodeVisible(target);
+                }
             }
         }
         event->accept();

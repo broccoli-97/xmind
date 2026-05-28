@@ -59,6 +59,14 @@ public:
     // visibly hang while the editor takes focus.
     void cancelAddButton();
 
+    // Collapse / expand state for this node's subtree. Collapsed nodes hide
+    // all descendant nodes and incident edges (recursively respecting nested
+    // collapse states). Persisted in JSON (format v4+).
+    bool isCollapsed() const { return m_collapsed; }
+    void setCollapsed(bool collapsed);
+    // Toggle wrapper for convenience (keyboard shortcut etc).
+    void toggleCollapsed() { setCollapsed(!m_collapsed); }
+
 signals:
     void doubleClicked(NodeItem* node);
 
@@ -82,9 +90,15 @@ private:
     void startAddButtonAnimation(bool fadeIn);
     MindMapScene* mindMapScene() const;
 
+    // Apply this node's visibility to all descendants. If `force` is true, the
+    // subtree is hidden regardless of m_collapsed (used when an ancestor is
+    // collapsed). Edges connecting hidden nodes are also hidden.
+    void applyDescendantVisibility(bool force);
+
     QString m_text;
     QFont m_font;
     QRectF m_rect;
+    bool m_collapsed = false;
     NodeItem* m_parentNode = nullptr;
     QList<NodeItem*> m_children;
     QList<EdgeItem*> m_edges;
