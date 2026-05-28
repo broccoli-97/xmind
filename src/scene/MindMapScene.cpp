@@ -328,9 +328,20 @@ void MindMapScene::keyPressEvent(QKeyEvent* event) {
         event->accept();
         break;
     case Qt::Key_Delete:
-    case Qt::Key_Backspace:
         deleteSelected();
         event->accept();
+        break;
+    case Qt::Key_Backspace:
+        // Bare Backspace is hostile: a user tapping it to correct a typo on a
+        // selected node would lose the whole node. Require Ctrl/Cmd to delete
+        // via Backspace — keeps macOS muscle memory (the physical key labelled
+        // "delete" on a Mac keyboard *is* Backspace) without the footgun.
+        if (event->modifiers() & (Qt::ControlModifier | Qt::MetaModifier)) {
+            deleteSelected();
+            event->accept();
+        } else {
+            QGraphicsScene::keyPressEvent(event);
+        }
         break;
     case Qt::Key_F2:
         if (auto* node = selectedNode()) {
@@ -447,8 +458,7 @@ bool MindMapScene::importFromMarkdown(const QString& text, bool animate) {
     return MindMapExporter(this).importFromMarkdown(text, animate);
 }
 
-bool MindMapScene::importFromMarkdownStrict(const QString& text,
-                                            MarkdownImportReport* report,
+bool MindMapScene::importFromMarkdownStrict(const QString& text, MarkdownImportReport* report,
                                             bool animate) {
     return MindMapExporter(this).importFromMarkdownStrict(text, report, animate);
 }
