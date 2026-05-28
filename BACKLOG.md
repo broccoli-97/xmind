@@ -13,7 +13,7 @@ Effort: **S** <1 day · **M** 1–3 days · **L** >3 days
 ### Editing & navigation
 - [ ] **P0 / M** Subtree collapse/expand. Add fold state to `NodeItem`, hide collapsed descendants and their edges, show a chevron on hover. Persist in JSON (bump format).
 - [ ] **P0 / M** In-map search (`Ctrl+F`). Inline find bar; highlight matches in scene + outline; next/prev nav. No `find` exists in `MindMapScene` today.
-- [ ] **P0 / S** Arrow-key navigation between nodes (Tab/Shift+Tab to siblings, arrows to walk the tree by layout orientation). Currently selection only changes via mouse — accessibility blocker.
+- [x] **P0 / S** Arrow-key navigation between nodes. Done: `MindMapScene::findNeighbor(node, NavDirection)` returns the next node for ←↑↓→/Tab/Shift+Tab, layout-aware (siblings stack on the perpendicular axis; "deeper" direction mirrors per-side for bilateral). `keyPressEvent` wires it up and scrolls the target into view. Tier-3 coverage in `tests/tst_MindMapSceneNav.cpp` (12 cases across all three layouts).
 - [ ] **P0 / M** Cut / copy / paste of nodes and subtrees. JSON serializer already round-trips — reuse it for clipboard MIME `application/x-ymind-subtree`.
 - [ ] **P1 / M** Drag-to-reparent. `NodeItem::mouseMoveEvent` currently moves the subtree by delta but never reparents on drop. Add hit-test + `ReparentNodeCommand`.
 - [ ] **P1 / S** Multi-select (rubber-band + Ctrl-click). Commands must accept lists; today `selectedNode()` returns the first match.

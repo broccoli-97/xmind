@@ -58,6 +58,15 @@ public:
 
     EdgeItem* findEdge(NodeItem* parent, NodeItem* child) const;
 
+    // Keyboard navigation: arrow + Tab semantics. The mapping is layout-aware
+    // because siblings stack vertically in Bilateral/RightTree and horizontally
+    // in TopDown, and the "toward children" direction depends on which side of
+    // the root a node sits on (for Bilateral).
+    //   Up/Down/Left/Right - directional move; semantic depends on layout
+    //   NextSibling/PrevSibling - cyclic, layout-independent (used for Tab)
+    enum class NavDirection { Up, Down, Left, Right, NextSibling, PrevSibling };
+    NodeItem* findNeighbor(NodeItem* node, NavDirection dir) const;
+
     // Serialization
     QJsonObject toJson() const;
     bool fromJson(const QJsonObject& json);

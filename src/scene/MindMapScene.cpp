@@ -258,6 +258,96 @@ EdgeItem* MindMapScene::findEdge(NodeItem* parent, NodeItem* child) const {
     return nullptr;
 }
 
+NodeItem* MindMapScene::findNeighbor(NodeItem* node, NavDirection dir) const {
+    if (!node)
+        return nullptr;
+
+    NodeItem* parent = node->parentNode();
+    QList<NodeItem*> siblings = parent ? parent->childNodes() : QList<NodeItem*>{};
+
+    auto firstChild = [&]() -> NodeItem* {
+        const auto children = node->childNodes();
+        return children.isEmpty() ? nullptr : children.first();
+    };
+    auto prevSibling = [&]() -> NodeItem* {
+        if (siblings.isEmpty())
+            return nullptr;
+        int idx = siblings.indexOf(node);
+        if (idx <= 0)
+            return nullptr;
+        return siblings[idx - 1];
+    };
+    auto nextSibling = [&]() -> NodeItem* {
+        if (siblings.isEmpty())
+            return nullptr;
+        int idx = siblings.indexOf(node);
+        if (idx < 0 || idx == siblings.size() - 1)
+            return nullptr;
+        return siblings[idx + 1];
+    };
+    auto cyclicNext = [&]() -> NodeItem* {
+        if (siblings.size() < 2)
+            return nullptr;
+        int idx = siblings.indexOf(node);
+        if (idx < 0)
+            return nullptr;
+        return siblings[(idx + 1) % siblings.size()];
+    };
+    auto cyclicPrev = [&]() -> NodeItem* {
+        if (siblings.size() < 2)
+            return nullptr;
+        int idx = siblings.indexOf(node);
+        if (idx < 0)
+            return nullptr;
+        return siblings[(idx - 1 + siblings.size()) % siblings.size()];
+    };
+
+    if (dir == NavDirection::NextSibling)
+        return cyclicNext();
+    if (dir == NavDirection::PrevSibling)
+        return cyclicPrev();
+
+    // Layout-aware arrow mapping. "Toward children" axis varies by layout
+    // (and, for bilateral, by which side of the root the node sits on);
+    // siblings stack on the perpendicular axis.
+    enum class TowardChildren { Right, Left, Down };
+    TowardChildren toChildren;
+    const LayoutStyle style = layoutStyle();
+    if (style == LayoutStyle::TopDown) {
+        toChildren = TowardChildren::Down;
+    } else if (style == LayoutStyle::RightTree) {
+        toChildren = TowardChildren::Right;
+    } else {
+        // Bilateral: root has no preferred side, so default to Right; otherwise
+        // mirror by x-position (children grow outward from the root).
+        toChildren =
+            (!parent || node->pos().x() >= 0) ? TowardChildren::Right : TowardChildren::Left;
+    }
+
+    switch (dir) {
+    case NavDirection::Up:
+        return (toChildren == TowardChildren::Down) ? parent : prevSibling();
+    case NavDirection::Down:
+        return (toChildren == TowardChildren::Down) ? firstChild() : nextSibling();
+    case NavDirection::Left:
+        if (toChildren == TowardChildren::Right)
+            return parent;
+        if (toChildren == TowardChildren::Left)
+            return firstChild();
+        return prevSibling(); // TopDown
+    case NavDirection::Right:
+        if (toChildren == TowardChildren::Right)
+            return firstChild();
+        if (toChildren == TowardChildren::Left)
+            return parent;
+        return nextSibling(); // TopDown
+    case NavDirection::NextSibling:
+    case NavDirection::PrevSibling:
+        break; // handled above
+    }
+    return nullptr;
+}
+
 void MindMapScene::addChildToSelected() {
     if (m_editController->isEditing())
         finishEditing();
@@ -355,6 +445,58 @@ void MindMapScene::keyPressEvent(QKeyEvent* event) {
         }
         event->accept();
         break;
+    case Qt::Key_Up:
+    case Qt::Key_Down:
+    case Qt::Key_Left:
+    case Qt::Key_Right:
+    case Qt::Key_Tab:
+    case Qt::Key_Backtab: {
+        // Pick the navigation source: the current selection, or fall back to
+        // the root so a fresh map without any selection still responds.
+        NodeItem* current = selectedNode();
+        if (!current)
+            current = m_rootNode;
+        if (!current) {
+            QGraphicsScene::keyPressEvent(event);
+            return;
+        }
+
+        NavDirection dir;
+        switch (event->key()) {
+        case Qt::Key_Up:
+            dir = NavDirection::Up;
+            break;
+        case Qt::Key_Down:
+            dir = NavDirection::Down;
+            break;
+        case Qt::Key_Left:
+            dir = NavDirection::Left;
+            break;
+        case Qt::Key_Right:
+            dir = NavDirection::Right;
+            break;
+        case Qt::Key_Tab:
+            dir = NavDirection::NextSibling;
+            break;
+        case Qt::Key_Backtab:
+            dir = NavDirection::PrevSibling;
+            break;
+        default:
+            dir = NavDirection::Up;
+            break; // unreachable
+        }
+
+        if (auto* target = findNeighbor(current, dir)) {
+            clearSelection();
+            target->setSelected(true);
+            for (auto* view : views()) {
+                if (auto* mv = qobject_cast<MindMapView*>(view))
+                    mv->ensureNodeVisible(target);
+            }
+        }
+        event->accept();
+        break;
+    }
     default:
         QGraphicsScene::keyPressEvent(event);
     }
