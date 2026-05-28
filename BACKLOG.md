@@ -56,7 +56,7 @@ Effort: **S** <1 day · **M** 1–3 days · **L** >3 days
 - [x] **P1** File-format version drift in docs. Done: the local-only `CLAUDE.md` (which is gitignored) now matches `kCurrentVersion = 3` and points at the migrator table. The original BACKLOG note also blamed `README.md`, but `README.md` never actually mentioned a version — no fix needed there.
 - [x] **P1** Auto-layout always zooms-to-fit on `Ctrl+L`. Done: `autoLayout`'s finish callback now calls the new `MindMapView::zoomToFitIfOffscreen()`, backed by pure predicate `rectFullyVisibleIn` (Tier-1 tested in `tst_ViewGeometry.cpp`). A deliberate zoom-in is preserved when content remains visible.
 - [x] **P1** Auto-save interval capped at **5 minutes**. **WontFix** — user confirmed 5 min is the intended ceiling.
-- [ ] **P1** Outline panel does not appear to sync to scene-selection changes live. `MainWindow.cpp:90-93` only wires the undo stack to `refreshOutline`. Wire `QGraphicsScene::selectionChanged` → outline highlight.
+- [x] **P1** Outline panel does not appear to sync to scene-selection changes live. **Stale note** — `OutlineWidget::refresh` already wires `selectionChanged → syncSelection`, and `MainWindow` calls `refresh` on every tab change. Added Tier-3 regression coverage in `tests/tst_OutlineWidget.cpp` to keep it that way.
 - [ ] **P2** Scene rect is hard-coded `(-5000,-5000,10000,10000)` in `MindMapView.cpp:26`. Large maps will scroll off the world. Make it grow with `itemsBoundingRect()`.
 - [ ] **P2** Hover-add button briefly raises node `zValue` to 50; can flicker over the clicked overlay button (`NodeItem.cpp:640`).
 - [ ] **P2** No visible "press Esc to cancel" affordance during inline edit.
