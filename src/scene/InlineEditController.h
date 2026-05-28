@@ -24,6 +24,12 @@ public:
     // Returns true if the click was outside the editor and editing was committed
     bool handleMousePress(const QPointF& scenePos);
 
+signals:
+    // Fires when an inline editor opens / closes. MindMapScene re-emits these
+    // for cross-module wiring (e.g. MainWindow's status-bar hint swap).
+    void editingStarted(NodeItem* node);
+    void editingFinished();
+
 protected:
     bool eventFilter(QObject* obj, QEvent* event) override;
 

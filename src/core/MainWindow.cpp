@@ -12,6 +12,7 @@
 #include "layout/LayoutAlgorithmRegistry.h"
 #include "scene/MindMapScene.h"
 #include "scene/MindMapView.h"
+#include "scene/NodeItem.h"
 #include "ui/IconFactory.h"
 #include "ui/MindMapToolBar.h"
 #include "ui/OutlineWidget.h"
@@ -102,6 +103,8 @@ MainWindow::MainWindow(const Services& services, QWidget* parent)
         updateWindowTitle();
         refreshOutline();
         updateContentVisibility();
+        connectCurrentSceneToStatusHint();
+        updateStatusHint();
 
         auto* scene = m_tabManager->currentScene();
         if (scene) {
@@ -563,6 +566,8 @@ void MainWindow::updateContentVisibility() {
         m_addChildAct->setEnabled(!onStartPage);
     if (m_addSiblingAct)
         m_addSiblingAct->setEnabled(!onStartPage);
+
+    updateStatusHint();
 }
 
 // ---------------------------------------------------------------------------
@@ -637,17 +642,59 @@ void MainWindow::applyTheme() {
 }
 
 // ---------------------------------------------------------------------------
-// Status bar: help text on the left, update icon + version on the right
+// Status bar: contextual hint on the left, update icon + version on the right
 // ---------------------------------------------------------------------------
 void MainWindow::setupStatusBar() {
-    m_statusHelpLabel =
-        new QLabel(tr("Enter: Add Child  |  Ctrl+Enter: Add Sibling  |  Del: Delete  |  "
-                      "F2/Double-click: Edit  |  Ctrl+L: Auto Layout  |  Scroll: Zoom  |  "
-                      "Middle/Right-drag: Pan"),
-                   this);
+    m_statusHelpLabel = new QLabel(this);
     m_statusHelpLabel->setAlignment(Qt::AlignCenter);
     statusBar()->addWidget(m_statusHelpLabel, 1);
 
     statusBar()->addPermanentWidget(m_updateNotifier->statusButton());
     statusBar()->addPermanentWidget(m_updateNotifier->versionLabel());
+
+    connectCurrentSceneToStatusHint();
+    updateStatusHint();
+}
+
+void MainWindow::connectCurrentSceneToStatusHint() {
+    auto* scene = m_tabManager->currentScene();
+    if (!scene)
+        return;
+    // Drop any prior connection so we don't accumulate one per tab switch.
+    disconnect(scene, &MindMapScene::editingStarted, this, nullptr);
+    disconnect(scene, &MindMapScene::editingFinished, this, nullptr);
+    connect(scene, &MindMapScene::editingStarted, this, [this](NodeItem*) { updateStatusHint(); });
+    connect(scene, &MindMapScene::editingFinished, this, &MainWindow::updateStatusHint);
+}
+
+void MainWindow::updateStatusHint() {
+    if (!m_statusHelpLabel)
+        return;
+
+    // Determine current high-level state: start page > editing > idle.
+    bool onStartPage = false;
+    int idx = m_tabManager ? m_tabManager->currentIndex() : -1;
+    if (idx >= 0 && idx < m_tabManager->tabCount()) {
+        auto& tab = m_tabManager->tab(idx);
+        if (tab.stack) {
+            QWidget* current = tab.stack->currentWidget();
+            onStartPage = current && current->objectName() == "startPage";
+        }
+    }
+
+    if (onStartPage) {
+        m_statusHelpLabel->setText(tr("Pick a template or open an existing map."));
+        return;
+    }
+
+    auto* scene = m_tabManager ? m_tabManager->currentScene() : nullptr;
+    if (scene && scene->isEditing()) {
+        m_statusHelpLabel->setText(tr("Enter: Commit  |  Esc: Cancel"));
+        return;
+    }
+
+    m_statusHelpLabel->setText(
+        tr("Enter: Add Child  |  Ctrl+Enter: Add Sibling  |  Del: Delete  |  "
+           "F2/Double-click: Edit  |  Ctrl+L: Auto Layout  |  Scroll: Zoom  |  "
+           "Middle/Right-drag: Pan"));
 }

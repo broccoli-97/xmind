@@ -50,6 +50,8 @@ void InlineEditController::startEditing(NodeItem* node) {
     m_editLineEdit->setFocus();
 
     m_editLineEdit->installEventFilter(this);
+
+    emit editingStarted(node);
 }
 
 void InlineEditController::finishEditing() {
@@ -77,6 +79,8 @@ void InlineEditController::finishEditing() {
     }
     m_scene->clearSelection();
     node->setSelected(true);
+
+    emit editingFinished();
 }
 
 void InlineEditController::cancelEditing() {
@@ -94,6 +98,8 @@ void InlineEditController::cancelEditing() {
     m_scene->removeItem(m_editProxy);
     m_editProxy->deleteLater();
     m_editProxy = nullptr;
+
+    emit editingFinished();
 }
 
 bool InlineEditController::handleMousePress(const QPointF& scenePos) {

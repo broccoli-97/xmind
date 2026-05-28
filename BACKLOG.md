@@ -59,8 +59,8 @@ Effort: **S** <1 day · **M** 1–3 days · **L** >3 days
 - [x] **P1** Outline panel does not appear to sync to scene-selection changes live. **Stale note** — `OutlineWidget::refresh` already wires `selectionChanged → syncSelection`, and `MainWindow` calls `refresh` on every tab change. Added Tier-3 regression coverage in `tests/tst_OutlineWidget.cpp` to keep it that way.
 - [x] **P2** Scene rect is hard-coded `(-5000,-5000,10000,10000)`. Done: the initial rect stays as a floor (so an empty scene keeps pan headroom), and a new `MindMapView::recomputeSceneRect` unions it with `itemsBoundingRect() + 2000px margin`. Debounced by a 200ms timer connected to `QGraphicsScene::changed`. Verified manually — dragging a node past 5000px now grows scrollbars cleanly.
 - [x] **P2** Hover-add button briefly raises node `zValue` to 50. Done: bumped from 50 down to `kHoverZ = 2.0` (enough to top sibling nodes at z=0; well under the inline editor at z=100). `showAddButton` now guards `m_savedZValue` against a rapid leave/re-enter overwriting the saved baseline. `InlineEditController::startEditing` invokes a new `NodeItem::cancelAddButton()` so the overlay is torn down immediately when an editor opens, rather than visibly hanging during its fade-out.
-- [ ] **P2** No visible "press Esc to cancel" affordance during inline edit.
-- [ ] **P2** Status-bar hint text is static (`MainWindow.cpp:907-911`) — long shortcut soup. Make contextual to selection / edit state.
+- [x] **P2** No visible "press Esc to cancel" affordance during inline edit. Done as part of the contextual-status-bar fix below.
+- [x] **P2** Status-bar hint text is static. Done: new `MainWindow::updateStatusHint` swaps between three messages — start-page text, "Enter: Commit | Esc: Cancel" during inline edit (driven by new `InlineEditController::editingStarted/editingFinished` signals re-emitted from `MindMapScene`), and the existing idle shortcut hint. Tier-3 `tests/tst_InlineEditController.cpp` covers the signal plumbing.
 
 ---
 

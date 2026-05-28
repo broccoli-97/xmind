@@ -46,6 +46,12 @@ MindMapScene::MindMapScene(QObject* parent) : QGraphicsScene(parent) {
             [this](bool clean) { setModified(!clean); });
 
     m_editController = new InlineEditController(this, this);
+    // Re-emit editing signals so MainWindow (or any other observer) doesn't
+    // need to know about the controller.
+    connect(m_editController, &InlineEditController::editingStarted, this,
+            &MindMapScene::editingStarted);
+    connect(m_editController, &InlineEditController::editingFinished, this,
+            &MindMapScene::editingFinished);
 
     m_rootNode = createRootNode(tr("Central Topic"));
 }

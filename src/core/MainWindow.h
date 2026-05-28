@@ -50,6 +50,13 @@ private:
     void applyTheme();
     void refreshOutline();
     void setupStatusBar();
+    // Refresh the status bar's contextual hint based on current state.
+    // Three messages: start page, in-edit, idle.
+    void updateStatusHint();
+    // Connect the current scene's editingStarted/editingFinished signals to
+    // updateStatusHint. Called on every tab change so the wiring follows the
+    // active scene.
+    void connectCurrentSceneToStatusHint();
 
     // Returns true if the user accepted a restore (so MainWindow should skip
     // creating the default Untitled tab). Pops a single Yes/No prompt covering
