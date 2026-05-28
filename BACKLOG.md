@@ -15,21 +15,21 @@ Effort: **S** <1 day · **M** 1–3 days · **L** >3 days
 - [x] **P0 / M** In-map search (`Ctrl+F`). Done: pure `MindMapScene::findMatches(needle, cs)` returns matches in pre-order; new `ui/FindBar` widget (inline bar above the canvas) emits queryChanged/stepNext/stepPrev/closed; `MainWindow` drives highlights via `NodeItem::setSearchMatch/setSearchCurrent` (yellow tint, brighter ring for current) and scrolls each match into view. F3/Shift+F3 step, Esc closes, Ctrl+F (re-)activates. Tier-3 coverage in `tests/tst_SceneFindMatches.cpp` (7 cases: empty/case-sensitivity/pre-order/substring/no-match/clear).
 - [x] **P0 / S** Arrow-key navigation between nodes. Done: `MindMapScene::findNeighbor(node, NavDirection)` returns the next node for ←↑↓→/Tab/Shift+Tab, layout-aware (siblings stack on the perpendicular axis; "deeper" direction mirrors per-side for bilateral). `keyPressEvent` wires it up and scrolls the target into view. Tier-3 coverage in `tests/tst_MindMapSceneNav.cpp` (12 cases across all three layouts).
 - [ ] **P0 / M** Cut / copy / paste of nodes and subtrees. _Deferred per user direction during the bug-fix pass._
-- [ ] **P1 / M** Drag-to-reparent. `NodeItem::mouseMoveEvent` currently moves the subtree by delta but never reparents on drop. Add hit-test + `ReparentNodeCommand`.
-- [ ] **P1 / S** Multi-select (rubber-band + Ctrl-click). Commands must accept lists; today `selectedNode()` returns the first match.
-- [ ] **P1 / S** Insert-parent (wrap selection in a new parent).
-- [ ] **P1 / S** Keyboard sibling reorder (Alt+↑/↓).
+- [ ] **P1 / M** Drag-to-reparent. _Deferred per user direction during this pass._
+- [ ] **P1 / S** Multi-select (rubber-band + Ctrl-click). _Deferred per user direction during this pass._
+- [ ] **P1 / S** Insert-parent (wrap selection in a new parent). _Deferred per user direction during this pass._
+- [ ] **P1 / S** Keyboard sibling reorder (Alt+↑/↓). _Deferred per user direction during this pass._
 - [ ] **P2 / S** Per-node context menu (right-click): rename, duplicate, copy-as-image, move-to-tab, color override.
 - [ ] **P2 / M** Focus / zen mode — dim everything outside the selected subtree; `Ctrl+.` fit-to-subtree.
 - [ ] **P2 / L** Presentation mode (walk nodes one branch at a time).
 
 ### Node content
-- [ ] **P1 / L** Rich node content: notes, images, hyperlinks, attachments, code blocks, icons, priority/progress markers, tags. `NodeItem` carries only `QString m_text` today.
+- [ ] **P1 / L** Rich node content: notes, images, hyperlinks, attachments, code blocks, icons, priority/progress markers, tags. `NodeItem` carries only `QString m_text` today. _Deferred per user direction during this pass (too large for one session)._
 - [ ] **P2 / S** Per-node color override (currently colors derive only from level/branch palette).
 - [ ] **P3 / L** Cross-link / relationship edges (non-tree edges).
 
 ### Import / export
-- [ ] **P1 / S** OPML import — common interop format, cheap to add next to the Markdown importer.
+- [ ] **P1 / S** OPML import — common interop format, cheap to add next to the Markdown importer. _Deferred per user direction during this pass._
 - [ ] **P2 / M** FreeMind `.mm` import.
 - [ ] **P2 / L** XMind `.xmind` import.
 - [ ] **P2 / S** Paste-clipboard-text → new map.
