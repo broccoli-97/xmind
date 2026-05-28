@@ -40,6 +40,7 @@ add_library(ymind_lib OBJECT
     src/core/FileManager.h        src/core/FileManager.cpp
     src/core/Identifiers.h
     src/core/MainWindow.h         src/core/MainWindow.cpp
+    src/core/RecoveryManager.h    src/core/RecoveryManager.cpp
     src/core/RegistryStyleProvider.h src/core/RegistryStyleProvider.cpp
     src/core/Services.h           src/core/Services.cpp
     src/core/UpdateNotifier.h     src/core/UpdateNotifier.cpp

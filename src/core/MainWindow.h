@@ -11,6 +11,7 @@ class QLabel;
 class QMenu;
 class QSplitter;
 class QToolButton;
+class RecoveryManager;
 class TabManager;
 class TemplateMenuController;
 class ThemeMenuController;
@@ -36,10 +37,8 @@ private:
     // Run `f(scene)` / `f(view)` on the active tab's scene/view if one exists.
     // Kills the swarm of `[this](){ if (auto* s = ...->currentScene()) s->...; }`
     // lambdas that menu wiring would otherwise need.
-    template <typename F>
-    void withCurrentScene(F&& f);
-    template <typename F>
-    void withCurrentView(F&& f);
+    template <typename F> void withCurrentScene(F&& f);
+    template <typename F> void withCurrentView(F&& f);
 
     void updateWindowTitle();
     void updateContentVisibility();
@@ -52,11 +51,17 @@ private:
     void refreshOutline();
     void setupStatusBar();
 
+    // Returns true if the user accepted a restore (so MainWindow should skip
+    // creating the default Untitled tab). Pops a single Yes/No prompt covering
+    // all orphan snapshots; either restores them all or discards them all.
+    bool maybeRestoreOrphanSessions();
+
     // Managers
     const Services* m_services = nullptr;
     TabManager* m_tabManager = nullptr;
     FileManager* m_fileManager = nullptr;
     AutoSaveManager* m_autoSave = nullptr;
+    RecoveryManager* m_recovery = nullptr;
     UpdateNotifier* m_updateNotifier = nullptr;
     TemplateMenuController* m_templateMenuController = nullptr;
     ThemeMenuController* m_themeMenuController = nullptr;

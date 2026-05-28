@@ -50,7 +50,7 @@ Effort: **S** <1 day · **M** 1–3 days · **L** >3 days
 
 ## Bugs
 
-- [ ] **P0** Untitled tabs have **no auto-save / crash recovery**. `MainWindow::onAutoSaveTimeout` (`src/core/MainWindow.cpp:851`) requires `!tab.filePath.isEmpty()` and skips. Need a scratch in `$XDG_DATA_HOME/YMind/recovery/`.
+- [x] **P0** Untitled tabs have **no auto-save / crash recovery**. Done: new `RecoveryManager` (per-launch UUID dirs under `AppLocalDataLocation/recovery/<uuid>`) writes atomic snapshots via `QSaveFile` on every auto-save tick for untitled-modified tabs. `MainWindow` detects orphan sessions on startup and prompts the user to restore; graceful exit clears the current session dir. Tier-2 coverage in `tests/tst_RecoveryManager.cpp`.
 - [x] **P0** `Backspace` deletes the selected node outside of edit mode. Done: bare Backspace now passes through; only `Delete` and `Ctrl/Cmd+Backspace` delete (`MindMapScene.cpp::keyPressEvent`). Covered by `tests/tst_MindMapSceneKeys.cpp`.
 - [ ] **P0** Right-click drag is repurposed for panning (`src/scene/MindMapView.cpp:50`), silently consuming what should be the context-menu gesture. There is no per-node context menu at all. Replace with space-drag or middle-only.
 - [x] **P1** File-format version drift in docs. Done: the local-only `CLAUDE.md` (which is gitignored) now matches `kCurrentVersion = 3` and points at the migrator table. The original BACKLOG note also blamed `README.md`, but `README.md` never actually mentioned a version — no fix needed there.

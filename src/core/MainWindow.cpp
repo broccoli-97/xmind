@@ -3,6 +3,7 @@
 #include "core/AppSettings.h"
 #include "core/AutoSaveManager.h"
 #include "core/FileManager.h"
+#include "core/RecoveryManager.h"
 #include "core/Services.h"
 #include "core/SettingsDialog.h"
 #include "core/TemplateRegistry.h"
@@ -24,6 +25,7 @@
 #include <QCloseEvent>
 #include <QFileInfo>
 #include <QHBoxLayout>
+#include <QJsonObject>
 #include <QKeySequence>
 #include <QLabel>
 #include <QMenu>
@@ -40,14 +42,12 @@
 #include <QUndoStack>
 #include <QVBoxLayout>
 
-template <typename F>
-void MainWindow::withCurrentScene(F&& f) {
+template <typename F> void MainWindow::withCurrentScene(F&& f) {
     if (auto* s = m_tabManager->currentScene())
         f(s);
 }
 
-template <typename F>
-void MainWindow::withCurrentView(F&& f) {
+template <typename F> void MainWindow::withCurrentView(F&& f) {
     if (auto* v = m_tabManager->currentView())
         f(v);
 }
@@ -113,9 +113,17 @@ MainWindow::MainWindow(const Services& services, QWidget* parent)
 
     connect(m_tabManager, &TabManager::saveRequested, m_fileManager, &FileManager::saveFile);
 
-    m_tabManager->addNewTab();
+    // Recovery before any default tab is created so orphan-session restore can
+    // skip the "create empty Untitled tab" step when it has real tabs to load.
+    const QString recoveryRoot =
+        QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/recovery";
+    m_recovery = new RecoveryManager(recoveryRoot, this);
+    m_recovery->initialize();
 
-    m_autoSave = new AutoSaveManager(m_tabManager, this);
+    if (!maybeRestoreOrphanSessions())
+        m_tabManager->addNewTab();
+
+    m_autoSave = new AutoSaveManager(m_tabManager, m_recovery, this);
     connect(m_autoSave, &AutoSaveManager::autoSaved, this, [this]() {
         updateWindowTitle();
         statusBar()->showMessage(tr("Auto-saved"), 3000);
@@ -322,15 +330,13 @@ void MainWindow::setupMenuBar() {
 
     m_addChildAct = editMenu->addAction(tr("Add &Child"));
     m_addChildAct->setToolTip(tr("Add a child node (Enter)"));
-    connect(m_addChildAct, &QAction::triggered, this, [this]() {
-        withCurrentScene([](MindMapScene* s) { s->addChildToSelected(); });
-    });
+    connect(m_addChildAct, &QAction::triggered, this,
+            [this]() { withCurrentScene([](MindMapScene* s) { s->addChildToSelected(); }); });
 
     m_addSiblingAct = editMenu->addAction(tr("Add &Sibling"));
     m_addSiblingAct->setToolTip(tr("Add a sibling node (Ctrl+Enter)"));
-    connect(m_addSiblingAct, &QAction::triggered, this, [this]() {
-        withCurrentScene([](MindMapScene* s) { s->addSiblingToSelected(); });
-    });
+    connect(m_addSiblingAct, &QAction::triggered, this,
+            [this]() { withCurrentScene([](MindMapScene* s) { s->addSiblingToSelected(); }); });
 
     auto* deleteAct = editMenu->addAction(tr("&Delete"));
     deleteAct->setToolTip(tr("Delete selected node (Del)"));
@@ -429,11 +435,83 @@ void MainWindow::setupMenuBar() {
 }
 
 // ---------------------------------------------------------------------------
+// Orphan-session restore (untitled tabs recovered from a prior crash)
+// ---------------------------------------------------------------------------
+bool MainWindow::maybeRestoreOrphanSessions() {
+    if (!m_recovery)
+        return false;
+
+    const auto orphans = m_recovery->findOrphanSessions();
+    if (orphans.isEmpty())
+        return false;
+
+    // Collect snapshots up front so we know whether the prompt is worth
+    // showing — an empty orphan dir is just leftover cruft.
+    QList<QJsonObject> allSnapshots;
+    for (const auto& o : orphans) {
+        const auto snaps = m_recovery->loadSnapshots(o.dirPath);
+        allSnapshots.append(snaps);
+    }
+
+    if (allSnapshots.isEmpty()) {
+        for (const auto& o : orphans)
+            m_recovery->discardSession(o.dirPath);
+        return false;
+    }
+
+    const auto reply =
+        QMessageBox::question(this, tr("Restore unsaved tabs"),
+                              tr("YMind found %1 unsaved tab(s) from a previous session.\n"
+                                 "Restore them now?")
+                                  .arg(allSnapshots.size()),
+                              QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
+
+    if (reply != QMessageBox::Yes) {
+        for (const auto& o : orphans)
+            m_recovery->discardSession(o.dirPath);
+        return false;
+    }
+
+    // Restore each snapshot as a fresh untitled tab. The scene starts
+    // `modified=true` so the user is reminded they still need to Save As.
+    bool restoredAny = false;
+    for (const auto& json : allSnapshots) {
+        auto* scene = new MindMapScene(this);
+        if (!scene->fromJson(json)) {
+            delete scene;
+            continue;
+        }
+        scene->setModified(true);
+
+        auto* view = new MindMapView(this);
+        view->setScene(scene);
+
+        auto* stack = new QStackedWidget(this);
+        stack->addWidget(view);
+        stack->setCurrentIndex(0);
+
+        m_tabManager->addTab(scene, view, stack, QString());
+        restoredAny = true;
+    }
+
+    // Discard the orphan dirs now that we've absorbed their content; the
+    // current session will start writing fresh snapshots on its own ticks.
+    for (const auto& o : orphans)
+        m_recovery->discardSession(o.dirPath);
+
+    return restoredAny;
+}
+
+// ---------------------------------------------------------------------------
 // Close event
 // ---------------------------------------------------------------------------
 void MainWindow::closeEvent(QCloseEvent* event) {
     if (m_tabManager->maybeSave()) {
         saveWindowState();
+        // Graceful exit: blow away our own recovery dir so the next launch
+        // doesn't see it as an orphan and offer to restore stale tabs.
+        if (m_recovery)
+            m_recovery->clearCurrentSession();
         event->accept();
     } else {
         event->ignore();
@@ -562,11 +640,11 @@ void MainWindow::applyTheme() {
 // Status bar: help text on the left, update icon + version on the right
 // ---------------------------------------------------------------------------
 void MainWindow::setupStatusBar() {
-    m_statusHelpLabel = new QLabel(
-        tr("Enter: Add Child  |  Ctrl+Enter: Add Sibling  |  Del: Delete  |  "
-           "F2/Double-click: Edit  |  Ctrl+L: Auto Layout  |  Scroll: Zoom  |  "
-           "Middle/Right-drag: Pan"),
-        this);
+    m_statusHelpLabel =
+        new QLabel(tr("Enter: Add Child  |  Ctrl+Enter: Add Sibling  |  Del: Delete  |  "
+                      "F2/Double-click: Edit  |  Ctrl+L: Auto Layout  |  Scroll: Zoom  |  "
+                      "Middle/Right-drag: Pan"),
+                   this);
     m_statusHelpLabel->setAlignment(Qt::AlignCenter);
     statusBar()->addWidget(m_statusHelpLabel, 1);
 
