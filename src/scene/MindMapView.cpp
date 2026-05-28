@@ -23,7 +23,7 @@ MindMapView::MindMapView(QWidget* parent) : QGraphicsView(parent) {
     setResizeAnchor(AnchorViewCenter);
     setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    setSceneRect(-5000, -5000, 10000, 10000);
+    setSceneRect(kInitialSceneX, kInitialSceneY, kInitialSceneW, kInitialSceneH);
     setAttribute(Qt::WA_InputMethodEnabled, true);
 
     // Coalesce the bursts of resizeEvents during a window drag into a single
@@ -32,6 +32,43 @@ MindMapView::MindMapView(QWidget* parent) : QGraphicsView(parent) {
     m_resizeFitTimer->setSingleShot(true);
     m_resizeFitTimer->setInterval(120);
     connect(m_resizeFitTimer, &QTimer::timeout, this, &MindMapView::zoomToFit);
+
+    // QGraphicsScene::changed fires for every item-rect change (potentially
+    // many per frame), so debounce sceneRect recalculation to once per
+    // 200ms. Single-shot timer restarted on each change.
+    m_sceneRectGrowTimer = new QTimer(this);
+    m_sceneRectGrowTimer->setSingleShot(true);
+    m_sceneRectGrowTimer->setInterval(200);
+    connect(m_sceneRectGrowTimer, &QTimer::timeout, this, &MindMapView::recomputeSceneRect);
+}
+
+void MindMapView::setScene(QGraphicsScene* newScene) {
+    if (auto* old = scene()) {
+        disconnect(old, &QGraphicsScene::changed, this, nullptr);
+    }
+    QGraphicsView::setScene(newScene);
+    if (newScene) {
+        connect(newScene, &QGraphicsScene::changed, this, [this]() {
+            if (m_sceneRectGrowTimer)
+                m_sceneRectGrowTimer->start();
+        });
+        recomputeSceneRect();
+    }
+}
+
+void MindMapView::recomputeSceneRect() {
+    if (!scene())
+        return;
+    const QRectF items = scene()->itemsBoundingRect();
+    QRectF target(kInitialSceneX, kInitialSceneY, kInitialSceneW, kInitialSceneH);
+    if (!items.isEmpty()) {
+        // Union the initial floor with the items rect plus a margin, so a
+        // dragged-out node never immediately hits the scroll wall.
+        target = target.united(items.adjusted(-kSceneGrowMargin, -kSceneGrowMargin,
+                                              kSceneGrowMargin, kSceneGrowMargin));
+    }
+    if (target != sceneRect())
+        setSceneRect(target);
 }
 
 void MindMapView::wheelEvent(QWheelEvent* event) {
