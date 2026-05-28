@@ -13,6 +13,7 @@
 #include "scene/MindMapScene.h"
 #include "scene/MindMapView.h"
 #include "scene/NodeItem.h"
+#include "ui/FindBar.h"
 #include "ui/IconFactory.h"
 #include "ui/MindMapToolBar.h"
 #include "ui/OutlineWidget.h"
@@ -105,6 +106,9 @@ MainWindow::MainWindow(const Services& services, QWidget* parent)
         updateContentVisibility();
         connectCurrentSceneToStatusHint();
         updateStatusHint();
+        // Search state is per-scene; switching tabs invalidates it.
+        if (m_findBar && m_findBar->isVisible())
+            closeFindBar();
 
         auto* scene = m_tabManager->currentScene();
         if (scene) {
@@ -229,6 +233,17 @@ void MainWindow::setupCentralLayout() {
     rightLayout->setContentsMargins(0, 0, 0, 0);
     rightLayout->setSpacing(0);
     rightLayout->addWidget(m_toolbar);
+
+    // Find bar sits just above the canvas, hidden by default; toggled by
+    // Ctrl+F. Wired to the active scene's findMatches / highlight calls.
+    m_findBar = new FindBar(m_rightPanel);
+    m_findBar->hide();
+    rightLayout->addWidget(m_findBar);
+    connect(m_findBar, &FindBar::queryChanged, this, &MainWindow::onFindQueryChanged);
+    connect(m_findBar, &FindBar::stepNext, this, [this]() { stepFindMatch(+1); });
+    connect(m_findBar, &FindBar::stepPrev, this, [this]() { stepFindMatch(-1); });
+    connect(m_findBar, &FindBar::closed, this, &MainWindow::closeFindBar);
+
     rightLayout->addWidget(m_tabManager->contentStack(), 1);
 
     m_contentSplitter->addWidget(m_rightPanel);
@@ -355,6 +370,12 @@ void MainWindow::setupMenuBar() {
 
     editMenu->addSeparator();
 
+    auto* findAct = editMenu->addAction(tr("&Find..."));
+    findAct->setShortcut(QKeySequence::Find);
+    connect(findAct, &QAction::triggered, this, &MainWindow::openFindBar);
+
+    editMenu->addSeparator();
+
     auto* settingsAct = editMenu->addAction(tr("&Preferences..."));
     settingsAct->setShortcut(QKeySequence("Ctrl+,"));
     settingsAct->setMenuRole(QAction::PreferencesRole);
@@ -435,6 +456,70 @@ void MainWindow::setupMenuBar() {
 
     auto* aboutQtAct = helpMenu->addAction(tr("About &Qt..."));
     connect(aboutQtAct, &QAction::triggered, qApp, &QApplication::aboutQt);
+}
+
+// ---------------------------------------------------------------------------
+// Find bar
+// ---------------------------------------------------------------------------
+void MainWindow::openFindBar() {
+    if (!m_findBar)
+        return;
+    m_findBar->activate();
+    // Re-apply highlights from the existing query (or empty state) so the bar
+    // opens consistently after a tab switch.
+    onFindQueryChanged(m_findBar->query());
+}
+
+void MainWindow::closeFindBar() {
+    if (!m_findBar)
+        return;
+    m_findBar->hide();
+    withCurrentScene([](MindMapScene* s) { s->clearSearchHighlights(); });
+    m_findMatches.clear();
+    m_findCurrentIdx = -1;
+}
+
+void MainWindow::onFindQueryChanged(const QString& query) {
+    // Drop prior highlights regardless of query (so deletion of the last char
+    // clears the previous match set).
+    withCurrentScene([](MindMapScene* s) { s->clearSearchHighlights(); });
+    m_findMatches.clear();
+    m_findCurrentIdx = -1;
+
+    auto* scene = m_tabManager ? m_tabManager->currentScene() : nullptr;
+    if (!scene || query.isEmpty()) {
+        if (m_findBar)
+            m_findBar->setMatchStatus(0, 0);
+        return;
+    }
+
+    m_findMatches = scene->findMatches(query);
+    for (auto* n : m_findMatches)
+        n->setSearchMatch(true);
+
+    if (!m_findMatches.isEmpty()) {
+        m_findCurrentIdx = 0;
+        m_findMatches[0]->setSearchCurrent(true);
+        withCurrentView([n = m_findMatches[0]](MindMapView* v) { v->ensureNodeVisible(n); });
+    }
+    if (m_findBar)
+        m_findBar->setMatchStatus(m_findMatches.isEmpty() ? 0 : 1, m_findMatches.size());
+}
+
+void MainWindow::stepFindMatch(int delta) {
+    if (m_findMatches.isEmpty())
+        return;
+    // Clear "current" ring on the old match (the match-tint stays).
+    if (m_findCurrentIdx >= 0 && m_findCurrentIdx < m_findMatches.size())
+        m_findMatches[m_findCurrentIdx]->setSearchCurrent(false);
+
+    const int n = m_findMatches.size();
+    m_findCurrentIdx = ((m_findCurrentIdx + delta) % n + n) % n; // wrap both ways
+    auto* target = m_findMatches[m_findCurrentIdx];
+    target->setSearchCurrent(true);
+    withCurrentView([target](MindMapView* v) { v->ensureNodeVisible(target); });
+    if (m_findBar)
+        m_findBar->setMatchStatus(m_findCurrentIdx + 1, n);
 }
 
 // ---------------------------------------------------------------------------

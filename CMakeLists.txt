@@ -75,6 +75,7 @@ add_library(ymind_lib OBJECT
     src/layout/LayoutStyle.h
 
     # UI – widgets and theming
+    src/ui/FindBar.h                src/ui/FindBar.cpp
     src/ui/IconFactory.h            src/ui/IconFactory.cpp
     src/ui/MindMapToolBar.h         src/ui/MindMapToolBar.cpp
     src/ui/OutlineItemDelegate.h    src/ui/OutlineItemDelegate.cpp

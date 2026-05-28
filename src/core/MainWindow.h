@@ -4,7 +4,9 @@
 
 class AutoSaveManager;
 class FileManager;
+class FindBar;
 class MindMapToolBar;
+class NodeItem;
 class OutlineWidget;
 class QFrame;
 class QLabel;
@@ -58,6 +60,14 @@ private:
     // active scene.
     void connectCurrentSceneToStatusHint();
 
+    // Find-bar plumbing. m_findMatches holds the current result set; the bar
+    // emits queryChanged/stepNext/stepPrev/closed and MainWindow drives the
+    // visible highlight + scroll.
+    void openFindBar();
+    void closeFindBar();
+    void onFindQueryChanged(const QString& query);
+    void stepFindMatch(int delta); // +1 = next, -1 = prev
+
     // Returns true if the user accepted a restore (so MainWindow should skip
     // creating the default Untitled tab). Pops a single Yes/No prompt covering
     // all orphan snapshots; either restores them all or discards them all.
@@ -72,6 +82,11 @@ private:
     UpdateNotifier* m_updateNotifier = nullptr;
     TemplateMenuController* m_templateMenuController = nullptr;
     ThemeMenuController* m_themeMenuController = nullptr;
+
+    // Find-bar state
+    FindBar* m_findBar = nullptr;
+    QList<NodeItem*> m_findMatches;
+    int m_findCurrentIdx = -1;
 
     // Widgets
     OutlineWidget* m_outlineWidget = nullptr;

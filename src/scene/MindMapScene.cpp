@@ -258,6 +258,29 @@ EdgeItem* MindMapScene::findEdge(NodeItem* parent, NodeItem* child) const {
     return nullptr;
 }
 
+QList<NodeItem*> MindMapScene::findMatches(const QString& needle, Qt::CaseSensitivity cs) const {
+    QList<NodeItem*> result;
+    if (needle.isEmpty() || !m_rootNode)
+        return result;
+    std::function<void(NodeItem*)> walk = [&](NodeItem* n) {
+        if (n->text().contains(needle, cs))
+            result.append(n);
+        for (auto* c : n->childNodes())
+            walk(c);
+    };
+    walk(m_rootNode);
+    return result;
+}
+
+void MindMapScene::clearSearchHighlights() {
+    for (auto* it : items()) {
+        if (auto* n = dynamic_cast<NodeItem*>(it)) {
+            n->setSearchMatch(false);
+            n->setSearchCurrent(false);
+        }
+    }
+}
+
 NodeItem* MindMapScene::findNeighbor(NodeItem* node, NavDirection dir) const {
     if (!node)
         return nullptr;

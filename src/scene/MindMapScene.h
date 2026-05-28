@@ -67,6 +67,17 @@ public:
     enum class NavDirection { Up, Down, Left, Right, NextSibling, PrevSibling };
     NodeItem* findNeighbor(NodeItem* node, NavDirection dir) const;
 
+    // Walk the tree pre-order and collect every node whose text contains the
+    // needle. Pure function; the in-map find bar uses this for match
+    // navigation. Returns an empty list when needle is empty or the scene
+    // has no root.
+    QList<NodeItem*> findMatches(const QString& needle,
+                                 Qt::CaseSensitivity cs = Qt::CaseInsensitive) const;
+
+    // Clear the search highlight on every node (no-op for nodes that weren't
+    // highlighted). The find bar calls this when it closes.
+    void clearSearchHighlights();
+
     // Serialization
     QJsonObject toJson() const;
     bool fromJson(const QJsonObject& json);

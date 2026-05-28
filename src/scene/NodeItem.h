@@ -67,6 +67,13 @@ public:
     // Toggle wrapper for convenience (keyboard shortcut etc).
     void toggleCollapsed() { setCollapsed(!m_collapsed); }
 
+    // Search highlight state (driven by the in-map find bar). Only paints a
+    // visible overlay; doesn't touch selection. `setSearchCurrent` raises one
+    // match as the currently-focused one (brighter ring).
+    void setSearchMatch(bool match);
+    void setSearchCurrent(bool current);
+    bool isSearchMatch() const { return m_searchMatch; }
+
 signals:
     void doubleClicked(NodeItem* node);
 
@@ -99,6 +106,8 @@ private:
     QFont m_font;
     QRectF m_rect;
     bool m_collapsed = false;
+    bool m_searchMatch = false;
+    bool m_searchCurrent = false;
     NodeItem* m_parentNode = nullptr;
     QList<NodeItem*> m_children;
     QList<EdgeItem*> m_edges;

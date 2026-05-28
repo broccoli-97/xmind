@@ -225,6 +225,20 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
         }
     }
 
+    // ----- Search highlight --------------------------------------------------
+    // Paint a yellow tinted overlay around the body so a search match stays
+    // visible even when the node is also selected. Match = soft tint; current
+    // = brighter ring.
+    if (m_searchMatch) {
+        QColor matchColor = m_searchCurrent ? QColor(255, 196, 0, 220) // amber
+                                            : QColor(255, 230, 130, 160);
+        const qreal w = m_searchCurrent ? 3.0 : 2.0;
+        painter->setPen(QPen(matchColor, w));
+        painter->setBrush(Qt::NoBrush);
+        const qreal r = (style.shape == QLatin1String("roundedRect") ? radius : 4);
+        painter->drawRoundedRect(m_rect.adjusted(-3, -3, 3, 3), r + 3, r + 3);
+    }
+
     // ----- Text --------------------------------------------------------------
     // When the node has no colored slab behind the text (underline / none
     // shapes, or outlined / tinted roundedRect fills), default white text
@@ -386,6 +400,20 @@ void NodeItem::moveSubtree(const QPointF& delta) {
     for (auto* child : m_children) {
         child->moveSubtree(delta);
     }
+}
+
+void NodeItem::setSearchMatch(bool match) {
+    if (m_searchMatch == match)
+        return;
+    m_searchMatch = match;
+    update();
+}
+
+void NodeItem::setSearchCurrent(bool current) {
+    if (m_searchCurrent == current)
+        return;
+    m_searchCurrent = current;
+    update();
 }
 
 void NodeItem::setCollapsed(bool collapsed) {
