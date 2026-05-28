@@ -126,8 +126,7 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
             QColor sc = shadowColor;
             sc.setAlpha(layerAlpha);
             painter->setBrush(sc);
-            QRectF sr = m_rect.adjusted(-expand, -expand, expand, expand)
-                            .translated(0, offsetY);
+            QRectF sr = m_rect.adjusted(-expand, -expand, expand, expand).translated(0, offsetY);
             painter->drawRoundedRect(sr, radius + expand, radius + expand);
         }
     }
@@ -165,11 +164,9 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
         QPen underline(nodeCol, lineW, Qt::SolidLine, Qt::RoundCap);
         painter->setPen(underline);
         painter->setBrush(Qt::NoBrush);
-        const qreal y = baselineAnchor ? m_rect.bottom()
-                                       : m_rect.bottom() - lineW * 0.5;
+        const qreal y = baselineAnchor ? m_rect.bottom() : m_rect.bottom() - lineW * 0.5;
         const qreal margin = baselineAnchor ? 0.0 : qMin<qreal>(padding, 4.0);
-        painter->drawLine(QPointF(m_rect.left() + margin, y),
-                          QPointF(m_rect.right() - margin, y));
+        painter->drawLine(QPointF(m_rect.left() + margin, y), QPointF(m_rect.right() - margin, y));
 
         if (selected) {
             QColor sel = selectionBorder;
@@ -188,7 +185,8 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
         if (selected) {
             pen = QPen(selectionBorder, style.selectionWidth);
         } else if (style.borderWidth > 0.0) {
-            QColor borderC = NodeStyleResolver::resolveBorderColor(style, nodeCol, fixedBorderColor);
+            QColor borderC =
+                NodeStyleResolver::resolveBorderColor(style, nodeCol, fixedBorderColor);
             pen = QPen(borderC, style.borderWidth);
         }
         painter->setPen(pen);
@@ -218,10 +216,9 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
             if (pen.style() != Qt::NoPen) {
                 painter->setPen(pen);
                 painter->setBrush(Qt::NoBrush);
-                SketchyPainter::drawRoughRoundedRect(
-                    painter, m_rect, radius, style.roughness,
-                    qMax(1, style.strokePasses),
-                    quint32(reinterpret_cast<quintptr>(this)));
+                SketchyPainter::drawRoughRoundedRect(painter, m_rect, radius, style.roughness,
+                                                     qMax(1, style.strokePasses),
+                                                     quint32(reinterpret_cast<quintptr>(this)));
             }
         } else {
             painter->drawRoundedRect(m_rect, radius, radius);
@@ -237,13 +234,11 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
     // node's hue.
     const bool textOnCanvas =
         shape == QLatin1String("underline") || shape == QLatin1String("none") ||
-        (shape == QLatin1String("roundedRect") &&
-         (style.fillMode == QLatin1String("outlined") ||
-          style.fillMode == QLatin1String("tinted")));
+        (shape == QLatin1String("roundedRect") && (style.fillMode == QLatin1String("outlined") ||
+                                                   style.fillMode == QLatin1String("tinted")));
     QColor effTextColor = textColor;
     if (textOnCanvas) {
-        effTextColor = ThemeManager::isDark() ? nodeCol.lighter(140)
-                                              : nodeCol.darker(120);
+        effTextColor = ThemeManager::isDark() ? nodeCol.lighter(140) : nodeCol.darker(120);
     }
     painter->setPen(effTextColor);
     painter->setFont(resolver.fontForLevel(lvl, m_font));
@@ -310,8 +305,7 @@ QColor NodeItem::nodeColor() const {
     const auto* th = nodeTheme(m_mindMapScene);
     const auto* td = nodeTemplate(m_mindMapScene);
 
-    QString paletteSource = th ? th->nodeStyle.paletteSource
-                               : QStringLiteral("level");
+    QString paletteSource = th ? th->nodeStyle.paletteSource : QStringLiteral("level");
     if (td && !td->paletteSourceOverride.isEmpty())
         paletteSource = td->paletteSourceOverride;
 
@@ -395,15 +389,41 @@ void NodeItem::showAddButton() {
         m_hovered = true;
         m_addButtonDir = addButtonDirection();
 
-        // Raise above sibling nodes so the button is not occluded
-        m_savedZValue = zValue();
-        setZValue(50);
+        // Raise just enough to top sibling nodes (all at z=0 by default). A
+        // big jump (we used to set z=50) made for a visible flicker against
+        // adjacent items; z=2 is sufficient and leaves plenty of headroom
+        // under the inline editor at z=100. The guard avoids overwriting an
+        // already-saved baseline during a rapid leave/re-enter cycle.
+        if (zValue() < kHoverZ)
+            m_savedZValue = zValue();
+        setZValue(kHoverZ);
 
         if (!m_addButtonOverlay)
             m_addButtonOverlay = new AddButtonOverlay(this);
 
         startAddButtonAnimation(true);
     }
+}
+
+void NodeItem::cancelAddButton() {
+    // Stop any in-flight fade animation so it can't fire a delayed setZValue
+    // / setVisible after we've torn down state below.
+    if (m_addButtonAnimation) {
+        m_addButtonAnimation->stop();
+        m_addButtonAnimation->deleteLater();
+        m_addButtonAnimation = nullptr;
+    }
+    if (m_hoverLeaveTimer) {
+        m_hoverLeaveTimer->stop();
+        delete m_hoverLeaveTimer;
+        m_hoverLeaveTimer = nullptr;
+    }
+    if (m_addButtonOverlay) {
+        m_addButtonOverlay->setButtonOpacity(0.0);
+        m_addButtonOverlay->setVisible(false);
+    }
+    m_hovered = false;
+    setZValue(m_savedZValue);
 }
 
 void NodeItem::hideAddButton() {

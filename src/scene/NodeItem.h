@@ -54,6 +54,10 @@ public:
 
     void showAddButton();
     void hideAddButton();
+    // Tear down the add-button overlay immediately (without the fade-out
+    // animation). Called when inline editing begins so the overlay doesn't
+    // visibly hang while the editor takes focus.
+    void cancelAddButton();
 
 signals:
     void doubleClicked(NodeItem* node);
@@ -98,6 +102,9 @@ private:
     static constexpr qreal kAddButtonRadius = 12.0;
     static constexpr qreal kAddButtonOffset = 6.0;
     static constexpr qreal kHoverZoneMargin = 10.0;
+    // Raised z while hovered. Just enough to top sibling nodes at z=0 without
+    // a big visual jump; well under the inline editor at z=100.
+    static constexpr qreal kHoverZ = 2.0;
 
 public:
     // Defaults applied when the active template doesn't override them.

@@ -58,7 +58,7 @@ Effort: **S** <1 day · **M** 1–3 days · **L** >3 days
 - [x] **P1** Auto-save interval capped at **5 minutes**. **WontFix** — user confirmed 5 min is the intended ceiling.
 - [x] **P1** Outline panel does not appear to sync to scene-selection changes live. **Stale note** — `OutlineWidget::refresh` already wires `selectionChanged → syncSelection`, and `MainWindow` calls `refresh` on every tab change. Added Tier-3 regression coverage in `tests/tst_OutlineWidget.cpp` to keep it that way.
 - [ ] **P2** Scene rect is hard-coded `(-5000,-5000,10000,10000)` in `MindMapView.cpp:26`. Large maps will scroll off the world. Make it grow with `itemsBoundingRect()`.
-- [ ] **P2** Hover-add button briefly raises node `zValue` to 50; can flicker over the clicked overlay button (`NodeItem.cpp:640`).
+- [x] **P2** Hover-add button briefly raises node `zValue` to 50. Done: bumped from 50 down to `kHoverZ = 2.0` (enough to top sibling nodes at z=0; well under the inline editor at z=100). `showAddButton` now guards `m_savedZValue` against a rapid leave/re-enter overwriting the saved baseline. `InlineEditController::startEditing` invokes a new `NodeItem::cancelAddButton()` so the overlay is torn down immediately when an editor opens, rather than visibly hanging during its fade-out.
 - [ ] **P2** No visible "press Esc to cancel" affordance during inline edit.
 - [ ] **P2** Status-bar hint text is static (`MainWindow.cpp:907-911`) — long shortcut soup. Make contextual to selection / edit state.
 

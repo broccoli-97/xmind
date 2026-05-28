@@ -23,6 +23,10 @@ void InlineEditController::startEditing(NodeItem* node) {
     if (m_editingNode)
         finishEditing();
 
+    // Tear down the hover-add button overlay immediately so it can't visibly
+    // hang or animate while the editor takes focus.
+    node->cancelAddButton();
+
     m_editingNode = node;
     m_editLineEdit = new QLineEdit(node->text());
     m_editLineEdit->setAlignment(Qt::AlignCenter);
