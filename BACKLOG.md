@@ -51,9 +51,9 @@ Effort: **S** <1 day · **M** 1–3 days · **L** >3 days
 ## Bugs
 
 - [ ] **P0** Untitled tabs have **no auto-save / crash recovery**. `MainWindow::onAutoSaveTimeout` (`src/core/MainWindow.cpp:851`) requires `!tab.filePath.isEmpty()` and skips. Need a scratch in `$XDG_DATA_HOME/YMind/recovery/`.
-- [ ] **P0** `Backspace` deletes the selected node outside of edit mode (`src/scene/MindMapScene.cpp:287`). Hostile when users tap it expecting to correct a typo. Limit to `Delete` (or require `Ctrl/Cmd+Backspace`).
+- [x] **P0** `Backspace` deletes the selected node outside of edit mode. Done: bare Backspace now passes through; only `Delete` and `Ctrl/Cmd+Backspace` delete (`MindMapScene.cpp::keyPressEvent`). Covered by `tests/tst_MindMapSceneKeys.cpp`.
 - [ ] **P0** Right-click drag is repurposed for panning (`src/scene/MindMapView.cpp:50`), silently consuming what should be the context-menu gesture. There is no per-node context menu at all. Replace with space-drag or middle-only.
-- [ ] **P1** File-format version drift: `MindMapSerializer.cpp:31` writes `version = 3`, but `README.md` and `CLAUDE.md` both say version 2. No documented migrator either.
+- [x] **P1** File-format version drift in docs. Done: the local-only `CLAUDE.md` (which is gitignored) now matches `kCurrentVersion = 3` and points at the migrator table. The original BACKLOG note also blamed `README.md`, but `README.md` never actually mentioned a version — no fix needed there.
 - [ ] **P1** Auto-layout always zooms-to-fit on `Ctrl+L` (`MindMapScene.cpp:459`), yanking the user out of any deliberate zoom. Only fit if content is currently off-screen.
 - [ ] **P1** Auto-save interval capped at **5 minutes** (`SettingsDialog.cpp:56`, `setRange(1, 5)`) — arbitrary low ceiling.
 - [ ] **P1** Outline panel does not appear to sync to scene-selection changes live. `MainWindow.cpp:90-93` only wires the undo stack to `refreshOutline`. Wire `QGraphicsScene::selectionChanged` → outline highlight.
