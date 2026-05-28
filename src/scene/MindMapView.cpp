@@ -105,6 +105,29 @@ bool MindMapView::canZoomOut() const {
     return transform().m11() > kMinScale;
 }
 
+bool MindMapView::rectFullyVisibleIn(const QRectF& items, const QRectF& viewport, qreal inset) {
+    if (items.isEmpty())
+        return true;
+    // Shrinking the items rect by `inset` makes the predicate tolerant of
+    // tiny overflows along the viewport edge — matching zoomToFit's 80px
+    // margin so we don't fire on essentially-on-screen layouts.
+    const QRectF tightened = items.adjusted(inset, inset, -inset, -inset);
+    return viewport.contains(tightened);
+}
+
+void MindMapView::zoomToFitIfOffscreen() {
+    if (!scene())
+        return;
+    const QRectF items = scene()->itemsBoundingRect();
+    const QRectF viewportInScene = mapToScene(viewport()->rect()).boundingRect();
+    // Positive inset shrinks `items` before the containment check — i.e. a
+    // sliver of overflow up to 10px is tolerated as "still on-screen". Without
+    // it, a one-pixel rounding mismatch would yank the user's zoom away.
+    if (rectFullyVisibleIn(items, viewportInScene, /*inset=*/10.0))
+        return;
+    zoomToFit();
+}
+
 void MindMapView::zoomToFit() {
     if (!scene())
         return;
@@ -137,8 +160,7 @@ void MindMapView::zoomToFit() {
     qreal newScale = newTransform.m11();
 
     // Already at target — nothing to animate
-    if (qFuzzyCompare(oldScale, newScale) &&
-        (oldCenter - newCenter).manhattanLength() < 0.5) {
+    if (qFuzzyCompare(oldScale, newScale) && (oldCenter - newCenter).manhattanLength() < 0.5) {
         return;
     }
 

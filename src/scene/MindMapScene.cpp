@@ -509,8 +509,10 @@ void MindMapScene::autoLayout() {
     connect(group, &QAbstractAnimation::finished, this, [this, group]() {
         group->deleteLater();
         for (auto* view : views()) {
+            // Use the conditional variant so a deliberate user zoom isn't
+            // yanked away when auto-layout doesn't move content off-screen.
             if (auto* mv = qobject_cast<MindMapView*>(view))
-                mv->zoomToFit();
+                mv->zoomToFitIfOffscreen();
         }
     });
     group->start();

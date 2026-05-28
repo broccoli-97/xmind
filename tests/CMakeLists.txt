@@ -18,6 +18,7 @@ add_ymind_test(tst_TemplateDescriptor)
 add_ymind_test(tst_ThemeDescriptor)
 add_ymind_test(tst_LayoutStyle)
 add_ymind_test(tst_TranslationCoverage)
+add_ymind_test(tst_ViewGeometry)
 
 # Tier 2 -- singleton registries
 add_ymind_test(tst_TemplateRegistry)

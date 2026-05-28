@@ -54,8 +54,8 @@ Effort: **S** <1 day · **M** 1–3 days · **L** >3 days
 - [x] **P0** `Backspace` deletes the selected node outside of edit mode. Done: bare Backspace now passes through; only `Delete` and `Ctrl/Cmd+Backspace` delete (`MindMapScene.cpp::keyPressEvent`). Covered by `tests/tst_MindMapSceneKeys.cpp`.
 - [ ] **P0** Right-click drag is repurposed for panning (`src/scene/MindMapView.cpp:50`), silently consuming what should be the context-menu gesture. There is no per-node context menu at all. Replace with space-drag or middle-only.
 - [x] **P1** File-format version drift in docs. Done: the local-only `CLAUDE.md` (which is gitignored) now matches `kCurrentVersion = 3` and points at the migrator table. The original BACKLOG note also blamed `README.md`, but `README.md` never actually mentioned a version — no fix needed there.
-- [ ] **P1** Auto-layout always zooms-to-fit on `Ctrl+L` (`MindMapScene.cpp:459`), yanking the user out of any deliberate zoom. Only fit if content is currently off-screen.
-- [ ] **P1** Auto-save interval capped at **5 minutes** (`SettingsDialog.cpp:56`, `setRange(1, 5)`) — arbitrary low ceiling.
+- [x] **P1** Auto-layout always zooms-to-fit on `Ctrl+L`. Done: `autoLayout`'s finish callback now calls the new `MindMapView::zoomToFitIfOffscreen()`, backed by pure predicate `rectFullyVisibleIn` (Tier-1 tested in `tst_ViewGeometry.cpp`). A deliberate zoom-in is preserved when content remains visible.
+- [x] **P1** Auto-save interval capped at **5 minutes**. **WontFix** — user confirmed 5 min is the intended ceiling.
 - [ ] **P1** Outline panel does not appear to sync to scene-selection changes live. `MainWindow.cpp:90-93` only wires the undo stack to `refreshOutline`. Wire `QGraphicsScene::selectionChanged` → outline highlight.
 - [ ] **P2** Scene rect is hard-coded `(-5000,-5000,10000,10000)` in `MindMapView.cpp:26`. Large maps will scroll off the world. Make it grow with `itemsBoundingRect()`.
 - [ ] **P2** Hover-add button briefly raises node `zValue` to 50; can flicker over the clicked overlay button (`NodeItem.cpp:640`).

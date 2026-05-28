@@ -16,7 +16,18 @@ public slots:
     void zoomIn();
     void zoomOut();
     void zoomToFit();
+    // Fits the view to the scene only when content currently runs off-screen
+    // (i.e. some part of `itemsBoundingRect()` lies outside the viewport).
+    // No-op otherwise so a deliberate zoom-in isn't yanked away by Ctrl+L.
+    void zoomToFitIfOffscreen();
     void ensureNodeVisible(QGraphicsItem* item);
+
+public:
+    // Pure geometry predicate, lifted out so it can be unit-tested without a
+    // live QGraphicsView. Returns true iff `items` (shrunk by `inset` on every
+    // side, so the predicate is forgiving at edges) is fully contained in
+    // `viewport`. The inset matches the 80px breathing room used by zoomToFit.
+    static bool rectFullyVisibleIn(const QRectF& items, const QRectF& viewport, qreal inset);
 
 protected:
     void wheelEvent(QWheelEvent* event) override;
