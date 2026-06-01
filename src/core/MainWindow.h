@@ -5,6 +5,7 @@
 class AutoSaveManager;
 class FileManager;
 class FindBar;
+class FloatingSearchButton;
 class MindMapToolBar;
 class NodeItem;
 class OutlineWidget;
@@ -30,6 +31,9 @@ public:
 
 protected:
     void closeEvent(QCloseEvent* event) override;
+    // Keeps the floating search button pinned to the canvas's top-right corner
+    // as the content stack resizes (window resize, splitter drag, panel toggle).
+    bool eventFilter(QObject* obj, QEvent* event) override;
 
 private:
     void setupCentralLayout();
@@ -67,6 +71,8 @@ private:
     void closeFindBar();
     void onFindQueryChanged(const QString& query);
     void stepFindMatch(int delta); // +1 = next, -1 = prev
+    // Pin the floating search button to the canvas's top-right corner.
+    void positionFloatingSearchBtn();
 
     // Returns true if the user accepted a restore (so MainWindow should skip
     // creating the default Untitled tab). Pops a single Yes/No prompt covering
@@ -87,6 +93,10 @@ private:
     FindBar* m_findBar = nullptr;
     QList<NodeItem*> m_findMatches;
     int m_findCurrentIdx = -1;
+
+    // Floating "search" affordance overlaid on the canvas (top-right). A visible
+    // second entry point to the same Ctrl+F find bar.
+    FloatingSearchButton* m_floatingSearchBtn = nullptr;
 
     // Widgets
     OutlineWidget* m_outlineWidget = nullptr;

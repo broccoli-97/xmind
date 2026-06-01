@@ -14,6 +14,7 @@
 #include "scene/MindMapView.h"
 #include "scene/NodeItem.h"
 #include "ui/FindBar.h"
+#include "ui/FloatingSearchButton.h"
 #include "ui/IconFactory.h"
 #include "ui/MindMapToolBar.h"
 #include "ui/OutlineWidget.h"
@@ -25,6 +26,7 @@
 #include <QAction>
 #include <QApplication>
 #include <QCloseEvent>
+#include <QEvent>
 #include <QFileInfo>
 #include <QHBoxLayout>
 #include <QJsonObject>
@@ -245,6 +247,16 @@ void MainWindow::setupCentralLayout() {
     connect(m_findBar, &FindBar::closed, this, &MainWindow::closeFindBar);
 
     rightLayout->addWidget(m_tabManager->contentStack(), 1);
+
+    // Floating search affordance, overlaid on the canvas (top-right corner).
+    // Parented to the content stack so it floats over whichever tab/page is
+    // shown; repositioned by eventFilter() on resize and shown/hidden by
+    // updateContentVisibility(). Clicking it opens the same find bar as Ctrl+F.
+    m_floatingSearchBtn = new FloatingSearchButton(m_tabManager->contentStack());
+    m_floatingSearchBtn->setToolTip(tr("Find (Ctrl+F)"));
+    m_floatingSearchBtn->hide();
+    connect(m_floatingSearchBtn, &QAbstractButton::clicked, this, &MainWindow::openFindBar);
+    m_tabManager->contentStack()->installEventFilter(this);
 
     m_contentSplitter->addWidget(m_rightPanel);
 
@@ -468,6 +480,8 @@ void MainWindow::openFindBar() {
     // Re-apply highlights from the existing query (or empty state) so the bar
     // opens consistently after a tab switch.
     onFindQueryChanged(m_findBar->query());
+    // The find bar now owns the search affordance; hide the floating button.
+    updateContentVisibility();
 }
 
 void MainWindow::closeFindBar() {
@@ -477,6 +491,25 @@ void MainWindow::closeFindBar() {
     withCurrentScene([](MindMapScene* s) { s->clearSearchHighlights(); });
     m_findMatches.clear();
     m_findCurrentIdx = -1;
+    // Restore the floating search button (unless we're on the start page).
+    updateContentVisibility();
+}
+
+bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
+    if (m_tabManager && obj == m_tabManager->contentStack() && event->type() == QEvent::Resize)
+        positionFloatingSearchBtn();
+    return QMainWindow::eventFilter(obj, event);
+}
+
+void MainWindow::positionFloatingSearchBtn() {
+    if (!m_floatingSearchBtn || !m_tabManager)
+        return;
+    auto* stack = m_tabManager->contentStack();
+    if (!stack)
+        return;
+    const int margin = 8; // the widget box carries its own padding for the shadow
+    m_floatingSearchBtn->move(stack->width() - m_floatingSearchBtn->width() - margin, margin);
+    m_floatingSearchBtn->raise();
 }
 
 void MainWindow::onFindQueryChanged(const QString& query) {
@@ -652,6 +685,15 @@ void MainWindow::updateContentVisibility() {
     if (m_addSiblingAct)
         m_addSiblingAct->setEnabled(!onStartPage);
 
+    // Floating search button: shown only over a real map, and hidden while the
+    // find bar itself is open (the bar carries its own controls then).
+    if (m_floatingSearchBtn) {
+        const bool showSearch = !onStartPage && !(m_findBar && m_findBar->isVisible());
+        m_floatingSearchBtn->setVisible(showSearch);
+        if (showSearch)
+            positionFloatingSearchBtn();
+    }
+
     updateStatusHint();
 }
 
@@ -697,6 +739,9 @@ void MainWindow::restoreWindowState() {
 // ---------------------------------------------------------------------------
 void MainWindow::applyTheme() {
     ThemeManager::applyTheme(m_tabManager->tabs());
+
+    if (m_floatingSearchBtn)
+        m_floatingSearchBtn->refreshTheme();
 
     if (m_toggleOutlineBtn)
         m_toggleOutlineBtn->setIcon(IconFactory::makeToolIcon("sidebar"));
