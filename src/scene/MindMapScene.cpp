@@ -476,6 +476,7 @@ void MindMapScene::keyPressEvent(QKeyEvent* event) {
             node && node != m_rootNode && !node->childNodes().isEmpty()) {
             node->toggleCollapsed();
             markModified();
+            emit nodeCollapseChanged(node);
             event->accept();
             break;
         }

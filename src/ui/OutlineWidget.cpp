@@ -52,37 +52,54 @@ OutlineWidget::OutlineWidget(QWidget* parent) : QWidget(parent) {
     m_tree->setMouseTracking(true); // enable hover state for the rounded hover pill
     m_tree->setItemDelegate(new OutlineItemDelegate(m_tree));
     connect(m_tree, &QTreeWidget::itemClicked, this, &OutlineWidget::onItemClicked);
+    connect(m_tree, &QTreeWidget::itemCollapsed, this, &OutlineWidget::onItemCollapsed);
+    connect(m_tree, &QTreeWidget::itemExpanded, this, &OutlineWidget::onItemExpanded);
     layout->addWidget(m_tree, 1);
 }
 
 void OutlineWidget::refresh(MindMapScene* scene) {
     // Disconnect old scene
-    if (m_scene)
+    if (m_scene) {
         disconnect(m_scene, &QGraphicsScene::selectionChanged, this, &OutlineWidget::syncSelection);
+        disconnect(m_scene, &MindMapScene::nodeCollapseChanged, this,
+                   &OutlineWidget::syncCollapseState);
+    }
 
     m_scene = scene;
 
     if (!m_tree)
         return;
 
+    // The whole rebuild sets item fold state programmatically; suppress the
+    // resulting itemCollapsed/itemExpanded signals so they don't echo back into
+    // the scene.
+    m_syncing = true;
     m_tree->clear();
 
-    if (!m_scene)
+    if (!m_scene) {
+        m_syncing = false;
         return;
+    }
 
-    // Connect selection changes so outline tracks clicks/edits on the canvas
+    // Connect selection changes so outline tracks clicks/edits on the canvas,
+    // and collapse changes so a Space-key fold on the canvas mirrors here.
     connect(m_scene, &QGraphicsScene::selectionChanged, this, &OutlineWidget::syncSelection);
+    connect(m_scene, &MindMapScene::nodeCollapseChanged, this, &OutlineWidget::syncCollapseState);
 
     auto* root = m_scene->rootNode();
-    if (!root)
+    if (!root) {
+        m_syncing = false;
         return;
+    }
 
     auto* rootItem = new QTreeWidgetItem(m_tree);
     rootItem->setText(0, root->text());
     rootItem->setData(0, Qt::UserRole, QVariant::fromValue(reinterpret_cast<quintptr>(root)));
-    rootItem->setExpanded(true);
+    rootItem->setExpanded(!root->isCollapsed());
 
     buildSubtree(root, rootItem);
+
+    m_syncing = false;
 
     syncSelection();
 }
@@ -96,33 +113,75 @@ void OutlineWidget::buildSubtree(NodeItem* node, QTreeWidgetItem* parentItem) {
         auto* childItem = new QTreeWidgetItem(parentItem);
         childItem->setText(0, child->text());
         childItem->setData(0, Qt::UserRole, QVariant::fromValue(reinterpret_cast<quintptr>(child)));
-        childItem->setExpanded(true);
+        childItem->setExpanded(!child->isCollapsed());
         buildSubtree(child, childItem);
     }
 }
 
-void OutlineWidget::onItemClicked(QTreeWidgetItem* item, int /*column*/) {
+NodeItem* OutlineWidget::nodeForItem(QTreeWidgetItem* item) const {
+    if (!item || !m_scene)
+        return nullptr;
+
     quintptr ptr = item->data(0, Qt::UserRole).value<quintptr>();
     auto* node = reinterpret_cast<NodeItem*>(ptr);
-    if (!node || !m_scene)
-        return;
+    if (!node)
+        return nullptr;
 
     // Validate the pointer against existing scene nodes to avoid dangling references
-    bool found = false;
     const auto sceneItems = m_scene->items();
     for (auto* sceneItem : sceneItems) {
-        if (sceneItem == node) {
-            found = true;
-            break;
-        }
+        if (sceneItem == node)
+            return node;
     }
-    if (!found)
+    return nullptr;
+}
+
+void OutlineWidget::onItemClicked(QTreeWidgetItem* item, int /*column*/) {
+    auto* node = nodeForItem(item);
+    if (!node)
         return;
 
     m_scene->clearSelection();
     node->setSelected(true);
     if (m_view)
         m_view->centerOn(node);
+}
+
+void OutlineWidget::onItemCollapsed(QTreeWidgetItem* item) {
+    if (m_syncing)
+        return;
+    if (auto* node = nodeForItem(item); node && !node->isCollapsed()) {
+        node->setCollapsed(true);
+        m_scene->setModified(true);
+    }
+}
+
+void OutlineWidget::onItemExpanded(QTreeWidgetItem* item) {
+    if (m_syncing)
+        return;
+    if (auto* node = nodeForItem(item); node && node->isCollapsed()) {
+        node->setCollapsed(false);
+        m_scene->setModified(true);
+    }
+}
+
+void OutlineWidget::syncCollapseState(NodeItem* node) {
+    if (!node || !m_tree)
+        return;
+
+    quintptr target = reinterpret_cast<quintptr>(node);
+    QTreeWidgetItemIterator it(m_tree);
+    while (*it) {
+        if ((*it)->data(0, Qt::UserRole).value<quintptr>() == target) {
+            // Mirror the canvas fold onto this item without letting the
+            // resulting signal loop back into the scene.
+            m_syncing = true;
+            (*it)->setExpanded(!node->isCollapsed());
+            m_syncing = false;
+            break;
+        }
+        ++it;
+    }
 }
 
 void OutlineWidget::syncSelection() {

@@ -121,6 +121,10 @@ signals:
     // MainWindow's status bar) don't have to peer inside the controller.
     void editingStarted(NodeItem* node);
     void editingFinished();
+    // Emitted when a node's collapse state is toggled from the canvas (the
+    // Space shortcut) so other views — the outline panel in particular — can
+    // mirror the fold state without polling.
+    void nodeCollapseChanged(NodeItem* node);
 
 public slots:
     void addChildToSelected();

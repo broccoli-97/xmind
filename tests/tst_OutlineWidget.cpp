@@ -6,6 +6,7 @@
 #include "scene/NodeItem.h"
 #include "ui/OutlineWidget.h"
 
+#include <QKeyEvent>
 #include <QTest>
 #include <QTreeWidget>
 
@@ -21,6 +22,11 @@ private slots:
 
     void selectingNodeInSceneUpdatesOutlineCurrentItem();
     void clearingSceneSelectionClearsOutlineCurrentItem();
+
+    void foldingOutlineItemCollapsesSceneSubtree();
+    void unfoldingOutlineItemExpandsSceneSubtree();
+    void canvasCollapseFoldsMatchingOutlineItem();
+    void rebuildReflectsCollapsedNodeAsFolded();
 
 private:
     QTreeWidgetItem* findOutlineItemForNode(QTreeWidget* tree, NodeItem* target);
@@ -76,6 +82,92 @@ void tst_OutlineWidget::clearingSceneSelectionClearsOutlineCurrentItem() {
 
     scene.clearSelection();
     QCOMPARE(tree->currentItem(), static_cast<QTreeWidgetItem*>(nullptr));
+}
+
+void tst_OutlineWidget::foldingOutlineItemCollapsesSceneSubtree() {
+    MindMapScene scene;
+    auto* a = scene.addNode("A", scene.rootNode());
+    auto* a1 = scene.addNode("A1", a);
+
+    OutlineWidget outline;
+    outline.refresh(&scene);
+    auto* tree = outline.findChild<QTreeWidget*>();
+    QVERIFY(tree);
+
+    auto* itemA = findOutlineItemForNode(tree, a);
+    QVERIFY(itemA);
+    QVERIFY(!a->isCollapsed());
+    QVERIFY(a1->isVisible());
+
+    // Fold the branch in the outline; the canvas node must collapse and hide
+    // its descendant.
+    itemA->setExpanded(false);
+    QVERIFY(a->isCollapsed());
+    QVERIFY(!a1->isVisible());
+}
+
+void tst_OutlineWidget::unfoldingOutlineItemExpandsSceneSubtree() {
+    MindMapScene scene;
+    auto* a = scene.addNode("A", scene.rootNode());
+    auto* a1 = scene.addNode("A1", a);
+    a->setCollapsed(true);
+
+    OutlineWidget outline;
+    outline.refresh(&scene);
+    auto* tree = outline.findChild<QTreeWidget*>();
+    QVERIFY(tree);
+
+    auto* itemA = findOutlineItemForNode(tree, a);
+    QVERIFY(itemA);
+    // A built-from-collapsed node shows up folded.
+    QVERIFY(!itemA->isExpanded());
+    QVERIFY(!a1->isVisible());
+
+    itemA->setExpanded(true);
+    QVERIFY(!a->isCollapsed());
+    QVERIFY(a1->isVisible());
+}
+
+void tst_OutlineWidget::canvasCollapseFoldsMatchingOutlineItem() {
+    MindMapScene scene;
+    auto* a = scene.addNode("A", scene.rootNode());
+    scene.addNode("A1", a);
+
+    OutlineWidget outline;
+    outline.refresh(&scene);
+    auto* tree = outline.findChild<QTreeWidget*>();
+    QVERIFY(tree);
+
+    auto* itemA = findOutlineItemForNode(tree, a);
+    QVERIFY(itemA && itemA->isExpanded());
+
+    // Collapse on the canvas via the Space shortcut; the outline must mirror it.
+    scene.clearSelection();
+    a->setSelected(true);
+    QKeyEvent space(QEvent::KeyPress, Qt::Key_Space, Qt::NoModifier);
+    QCoreApplication::sendEvent(&scene, &space);
+
+    QVERIFY(a->isCollapsed());
+    QVERIFY(!itemA->isExpanded());
+}
+
+void tst_OutlineWidget::rebuildReflectsCollapsedNodeAsFolded() {
+    MindMapScene scene;
+    auto* a = scene.addNode("A", scene.rootNode());
+    scene.addNode("A1", a);
+
+    OutlineWidget outline;
+    outline.refresh(&scene);
+
+    a->setCollapsed(true);
+    // A fresh rebuild (e.g. after an undo-stack change) should keep the fold.
+    outline.refresh(&scene);
+
+    auto* tree = outline.findChild<QTreeWidget*>();
+    QVERIFY(tree);
+    auto* itemA = findOutlineItemForNode(tree, a);
+    QVERIFY(itemA);
+    QVERIFY(!itemA->isExpanded());
 }
 
 QTEST_MAIN(tst_OutlineWidget)
