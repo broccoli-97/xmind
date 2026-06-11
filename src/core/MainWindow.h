@@ -72,7 +72,7 @@ private:
     void onFindQueryChanged(const QString& query);
     void stepFindMatch(int delta); // +1 = next, -1 = prev
     // Pin the floating search button to the canvas's top-right corner.
-    void positionFloatingSearchBtn();
+    void positionCanvasOverlays();
 
     // Returns true if the user accepted a restore (so MainWindow should skip
     // creating the default Untitled tab). Pops a single Yes/No prompt covering

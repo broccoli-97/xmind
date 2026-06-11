@@ -236,17 +236,18 @@ void MainWindow::setupCentralLayout() {
     rightLayout->setSpacing(0);
     rightLayout->addWidget(m_toolbar);
 
-    // Find bar sits just above the canvas, hidden by default; toggled by
-    // Ctrl+F. Wired to the active scene's findMatches / highlight calls.
-    m_findBar = new FindBar(m_rightPanel);
+    rightLayout->addWidget(m_tabManager->contentStack(), 1);
+
+    // Find panel floats over the canvas (top-right corner, macOS-style),
+    // hidden by default; toggled by Ctrl+F. Parented to the content stack so
+    // it overlays whichever tab/page is shown; repositioned by eventFilter()
+    // on resize. Wired to the active scene's findMatches / highlight calls.
+    m_findBar = new FindBar(m_tabManager->contentStack());
     m_findBar->hide();
-    rightLayout->addWidget(m_findBar);
     connect(m_findBar, &FindBar::queryChanged, this, &MainWindow::onFindQueryChanged);
     connect(m_findBar, &FindBar::stepNext, this, [this]() { stepFindMatch(+1); });
     connect(m_findBar, &FindBar::stepPrev, this, [this]() { stepFindMatch(-1); });
     connect(m_findBar, &FindBar::closed, this, &MainWindow::closeFindBar);
-
-    rightLayout->addWidget(m_tabManager->contentStack(), 1);
 
     // Floating search affordance, overlaid on the canvas (top-right corner).
     // Parented to the content stack so it floats over whichever tab/page is
@@ -476,6 +477,7 @@ void MainWindow::setupMenuBar() {
 void MainWindow::openFindBar() {
     if (!m_findBar)
         return;
+    positionCanvasOverlays(); // settle geometry before the slide-in animation
     m_findBar->activate();
     // Re-apply highlights from the existing query (or empty state) so the bar
     // opens consistently after a tab switch.
@@ -497,19 +499,25 @@ void MainWindow::closeFindBar() {
 
 bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
     if (m_tabManager && obj == m_tabManager->contentStack() && event->type() == QEvent::Resize)
-        positionFloatingSearchBtn();
+        positionCanvasOverlays();
     return QMainWindow::eventFilter(obj, event);
 }
 
-void MainWindow::positionFloatingSearchBtn() {
-    if (!m_floatingSearchBtn || !m_tabManager)
+void MainWindow::positionCanvasOverlays() {
+    if (!m_tabManager)
         return;
     auto* stack = m_tabManager->contentStack();
     if (!stack)
         return;
-    const int margin = 8; // the widget box carries its own padding for the shadow
-    m_floatingSearchBtn->move(stack->width() - m_floatingSearchBtn->width() - margin, margin);
-    m_floatingSearchBtn->raise();
+    if (m_floatingSearchBtn) {
+        const int margin = 8; // the widget box carries its own padding for the shadow
+        m_floatingSearchBtn->move(stack->width() - m_floatingSearchBtn->width() - margin, margin);
+        m_floatingSearchBtn->raise();
+    }
+    if (m_findBar) {
+        m_findBar->reposition(stack->size());
+        m_findBar->raise();
+    }
 }
 
 void MainWindow::onFindQueryChanged(const QString& query) {
@@ -540,8 +548,12 @@ void MainWindow::onFindQueryChanged(const QString& query) {
 }
 
 void MainWindow::stepFindMatch(int delta) {
-    if (m_findMatches.isEmpty())
+    if (m_findMatches.isEmpty()) {
+        // macOS-style "not found" gesture instead of silently doing nothing.
+        if (m_findBar && m_findBar->isVisible() && !m_findBar->query().isEmpty())
+            m_findBar->indicateNoMatch();
         return;
+    }
     // Clear "current" ring on the old match (the match-tint stays).
     if (m_findCurrentIdx >= 0 && m_findCurrentIdx < m_findMatches.size())
         m_findMatches[m_findCurrentIdx]->setSearchCurrent(false);
@@ -691,7 +703,7 @@ void MainWindow::updateContentVisibility() {
         const bool showSearch = !onStartPage && !(m_findBar && m_findBar->isVisible());
         m_floatingSearchBtn->setVisible(showSearch);
         if (showSearch)
-            positionFloatingSearchBtn();
+            positionCanvasOverlays();
     }
 
     updateStatusHint();
@@ -742,6 +754,9 @@ void MainWindow::applyTheme() {
 
     if (m_floatingSearchBtn)
         m_floatingSearchBtn->refreshTheme();
+
+    if (m_findBar)
+        m_findBar->refreshTheme();
 
     if (m_toggleOutlineBtn)
         m_toggleOutlineBtn->setIcon(IconFactory::makeToolIcon("sidebar"));

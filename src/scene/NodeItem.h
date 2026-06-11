@@ -108,6 +108,9 @@ private:
     bool m_collapsed = false;
     bool m_searchMatch = false;
     bool m_searchCurrent = false;
+    // 1 → 0 while the "settle" pulse of the current-match glow plays.
+    qreal m_searchPulse = 0.0;
+    QVariantAnimation* m_searchPulseAnim = nullptr;
     NodeItem* m_parentNode = nullptr;
     QList<NodeItem*> m_children;
     QList<EdgeItem*> m_edges;

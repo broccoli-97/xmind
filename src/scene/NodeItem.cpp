@@ -57,16 +57,17 @@ QRectF NodeItem::boundingRect() const {
     // Sketch outlines wobble outside m_rect by up to ~5px — match the cap in
     // SketchyPainter::drawRoughRoundedRect so the AA strokes aren't clipped.
     const qreal sketchPad = s.roughness > 0.0 ? 6.0 : 0.0;
+    // Search glow halo (current match, mid-pulse) reaches ~21px past the body.
+    const qreal searchPad = m_searchMatch ? 24.0 : 0.0;
     if (!withShadow) {
         // No shadow → the rect itself plus a tiny anti-alias margin is enough.
-        const qreal m = 2.0 + sketchPad;
+        const qreal m = 2.0 + sketchPad + searchPad;
         return m_rect.adjusted(-m, -m, m, m);
     }
     constexpr qreal kMargin = 2.0;
-    return m_rect.adjusted(-s.shadowSpread - kMargin - sketchPad,
-                           -s.shadowSpread - kMargin - sketchPad,
-                           s.shadowSpread + kMargin + sketchPad,
-                           s.shadowSpread + s.shadowOffsetY + kMargin + sketchPad);
+    const qreal pad = kMargin + sketchPad + searchPad;
+    return m_rect.adjusted(-s.shadowSpread - pad, -s.shadowSpread - pad, s.shadowSpread + pad,
+                           s.shadowSpread + s.shadowOffsetY + pad);
 }
 
 QPainterPath NodeItem::shape() const {
@@ -226,17 +227,43 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
     }
 
     // ----- Search highlight --------------------------------------------------
-    // Paint a yellow tinted overlay around the body so a search match stays
-    // visible even when the node is also selected. Match = soft tint; current
-    // = brighter ring.
+    // Two-tier highlight driven by the find bar. Every match gets a soft
+    // amber wash over its body plus a thin ring so the match set reads at a
+    // glance even zoomed out. The *current* match steps up to a vivid ring
+    // wrapped in a glow halo; arriving on it plays a one-shot "settle" pulse
+    // (halo starts wide and bright, then contracts onto the node) so the eye
+    // lands on it without hunting. Amber sits outside every theme's palette
+    // and stays legible on both light and dark canvases.
     if (m_searchMatch) {
-        QColor matchColor = m_searchCurrent ? QColor(255, 196, 0, 220) // amber
-                                            : QColor(255, 230, 130, 160);
-        const qreal w = m_searchCurrent ? 3.0 : 2.0;
-        painter->setPen(QPen(matchColor, w));
+        const bool darkUi = ThemeManager::isDark();
+        const QColor accent = darkUi ? QColor(255, 200, 64) : QColor(255, 159, 10);
+        const qreal rr = (style.shape == QLatin1String("roundedRect") ? radius : 6.0);
+
+        QColor wash = accent;
+        wash.setAlpha(m_searchCurrent ? (darkUi ? 78 : 60) : (darkUi ? 48 : 36));
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(wash);
+        painter->drawRoundedRect(m_rect, rr, rr);
         painter->setBrush(Qt::NoBrush);
-        const qreal r = (style.shape == QLatin1String("roundedRect") ? radius : 4);
-        painter->drawRoundedRect(m_rect.adjusted(-3, -3, 3, 3), r + 3, r + 3);
+
+        if (!m_searchCurrent) {
+            QColor ring = accent;
+            ring.setAlpha(150);
+            painter->setPen(QPen(ring, 2.0));
+            painter->drawRoundedRect(m_rect.adjusted(-2, -2, 2, 2), rr + 2, rr + 2);
+        } else {
+            // Glow: concentric strokes fading outward; the pulse pushes them
+            // further out and brightens them before they settle.
+            for (int i = 1; i <= 3; ++i) {
+                const qreal off = 1.5 + i * 3.0 + m_searchPulse * 8.0;
+                QColor glow = accent;
+                glow.setAlphaF(qMin(1.0, (darkUi ? 0.30 : 0.26) / i * (1.0 + m_searchPulse)));
+                painter->setPen(QPen(glow, 2.0 + i));
+                painter->drawRoundedRect(m_rect.adjusted(-off, -off, off, off), rr + off, rr + off);
+            }
+            painter->setPen(QPen(accent, 2.5));
+            painter->drawRoundedRect(m_rect.adjusted(-2.5, -2.5, 2.5, 2.5), rr + 2.5, rr + 2.5);
+        }
     }
 
     // ----- Text --------------------------------------------------------------
@@ -405,7 +432,14 @@ void NodeItem::moveSubtree(const QPointF& delta) {
 void NodeItem::setSearchMatch(bool match) {
     if (m_searchMatch == match)
         return;
+    prepareGeometryChange(); // the ring/glow extends past the body
     m_searchMatch = match;
+    if (!match) {
+        if (m_searchPulseAnim)
+            m_searchPulseAnim->stop();
+        m_searchCurrent = false;
+        m_searchPulse = 0.0;
+    }
     update();
 }
 
@@ -413,6 +447,28 @@ void NodeItem::setSearchCurrent(bool current) {
     if (m_searchCurrent == current)
         return;
     m_searchCurrent = current;
+    if (current) {
+        // One-shot settle pulse: the glow halo starts wide and bright, then
+        // contracts onto the node, pulling the eye to the new current match.
+        if (!m_searchPulseAnim) {
+            m_searchPulseAnim = new QVariantAnimation(this);
+            m_searchPulseAnim->setDuration(420);
+            m_searchPulseAnim->setEasingCurve(QEasingCurve::OutCubic);
+            m_searchPulseAnim->setStartValue(1.0);
+            m_searchPulseAnim->setEndValue(0.0);
+            connect(m_searchPulseAnim, &QVariantAnimation::valueChanged, this,
+                    [this](const QVariant& v) {
+                        m_searchPulse = v.toDouble();
+                        update();
+                    });
+        }
+        m_searchPulseAnim->stop();
+        m_searchPulseAnim->start();
+    } else {
+        if (m_searchPulseAnim)
+            m_searchPulseAnim->stop();
+        m_searchPulse = 0.0;
+    }
     update();
 }
 

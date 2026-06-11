@@ -185,32 +185,32 @@
 <context>
     <name>FindBar</name>
     <message>
-        <location filename="../src/ui/FindBar.cpp" line="17"/>
+        <location filename="../src/ui/FindBar.cpp" line="123"/>
         <source>Find in map...</source>
         <translation>在思维导图中查找...</translation>
     </message>
     <message>
-        <location filename="../src/ui/FindBar.cpp" line="27"/>
+        <location filename="../src/ui/FindBar.cpp" line="134"/>
         <source>Previous match (Shift+F3)</source>
         <translation>上一个匹配 (Shift+F3)</translation>
     </message>
     <message>
-        <location filename="../src/ui/FindBar.cpp" line="33"/>
+        <location filename="../src/ui/FindBar.cpp" line="139"/>
         <source>Next match (F3)</source>
         <translation>下一个匹配 (F3)</translation>
     </message>
     <message>
-        <location filename="../src/ui/FindBar.cpp" line="39"/>
+        <location filename="../src/ui/FindBar.cpp" line="146"/>
         <source>Close find bar (Esc)</source>
         <translation>关闭查找栏 (Esc)</translation>
     </message>
     <message>
-        <location filename="../src/ui/FindBar.cpp" line="65"/>
+        <location filename="../src/ui/FindBar.cpp" line="191"/>
         <source>No matches</source>
         <translation>无匹配项</translation>
     </message>
     <message>
-        <location filename="../src/ui/FindBar.cpp" line="68"/>
+        <location filename="../src/ui/FindBar.cpp" line="194"/>
         <source>%1 of %2</source>
         <translation>第 %1 个，共 %2 个</translation>
     </message>
@@ -218,27 +218,27 @@
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="451"/>
+        <location filename="../src/core/MainWindow.cpp" line="452"/>
         <source>Te&amp;mplate</source>
         <translation>模板(&amp;M)</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="455"/>
+        <location filename="../src/core/MainWindow.cpp" line="456"/>
         <source>&amp;Theme</source>
         <translation>主题(&amp;T)</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="816"/>
+        <location filename="../src/core/MainWindow.cpp" line="831"/>
         <source>Pick a template or open an existing map.</source>
         <translation>选择模板或打开已有思维导图。</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="822"/>
+        <location filename="../src/core/MainWindow.cpp" line="837"/>
         <source>Enter: Commit  |  Esc: Cancel</source>
         <translation>Enter：确认  |  Esc：取消</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="827"/>
+        <location filename="../src/core/MainWindow.cpp" line="842"/>
         <source>Enter: Add Child  |  Ctrl+Enter: Add Sibling  |  Del: Delete  |  F2/Double-click: Edit  |  Ctrl+L: Auto Layout  |  Scroll: Zoom  |  Middle/Right-drag: Pan</source>
         <translation>Enter：添加子节点  |  Ctrl+Enter：添加同级节点  |  Del：删除  |  F2/双击：编辑  |  Ctrl+L：自动布局  |  滚轮：缩放  |  中键/右键拖动：平移</translation>
     </message>
@@ -253,209 +253,209 @@
         <translation>切换工具栏</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="278"/>
+        <location filename="../src/core/MainWindow.cpp" line="279"/>
         <source>&amp;Undo</source>
         <translation>撤销(&amp;U)</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="288"/>
+        <location filename="../src/core/MainWindow.cpp" line="289"/>
         <source>&amp;Redo</source>
         <translation>重做(&amp;R)</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="362"/>
+        <location filename="../src/core/MainWindow.cpp" line="363"/>
         <source>Add a child node (Enter)</source>
         <translation>添加子节点 (Enter)</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="367"/>
+        <location filename="../src/core/MainWindow.cpp" line="368"/>
         <source>Add a sibling node (Ctrl+Enter)</source>
         <translation>添加同级节点 (Ctrl+Enter)</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="372"/>
+        <location filename="../src/core/MainWindow.cpp" line="373"/>
         <source>Delete selected node (Del)</source>
         <translation>删除选中节点 (Del)</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="304"/>
+        <location filename="../src/core/MainWindow.cpp" line="305"/>
         <source>&amp;File</source>
         <translation>文件(&amp;F)</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="256"/>
+        <location filename="../src/core/MainWindow.cpp" line="257"/>
         <source>Find (Ctrl+F)</source>
         <translation>查找 (Ctrl+F)</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="306"/>
+        <location filename="../src/core/MainWindow.cpp" line="307"/>
         <source>&amp;New</source>
         <translation>新建(&amp;N)</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="310"/>
+        <location filename="../src/core/MainWindow.cpp" line="311"/>
         <source>New &amp;Tab</source>
         <translation>新建标签页(&amp;T)</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="314"/>
+        <location filename="../src/core/MainWindow.cpp" line="315"/>
         <source>&amp;Open...</source>
         <translation>打开(&amp;O)...</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="320"/>
+        <location filename="../src/core/MainWindow.cpp" line="321"/>
         <source>&amp;Save</source>
         <translation>保存(&amp;S)</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="324"/>
+        <location filename="../src/core/MainWindow.cpp" line="325"/>
         <source>Save &amp;As...</source>
         <translation>另存为(&amp;A)...</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="330"/>
+        <location filename="../src/core/MainWindow.cpp" line="331"/>
         <source>&amp;Close Tab</source>
         <translation>关闭标签页(&amp;C)</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="337"/>
+        <location filename="../src/core/MainWindow.cpp" line="338"/>
         <source>&amp;Import from Markdown...</source>
         <translation>从 Markdown 导入(&amp;I)...</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="340"/>
+        <location filename="../src/core/MainWindow.cpp" line="341"/>
         <source>&amp;Export</source>
         <translation>导出(&amp;E)</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="341"/>
+        <location filename="../src/core/MainWindow.cpp" line="342"/>
         <source>As &amp;Text...</source>
         <translation>导出为文本(&amp;T)...</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="342"/>
+        <location filename="../src/core/MainWindow.cpp" line="343"/>
         <source>As &amp;Markdown...</source>
         <translation>导出为 Markdown(&amp;M)...</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="344"/>
+        <location filename="../src/core/MainWindow.cpp" line="345"/>
         <source>As &amp;PNG...</source>
         <translation>导出为 PNG(&amp;P)...</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="345"/>
+        <location filename="../src/core/MainWindow.cpp" line="346"/>
         <source>As &amp;SVG...</source>
         <translation>导出为 SVG(&amp;S)...</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="346"/>
+        <location filename="../src/core/MainWindow.cpp" line="347"/>
         <source>As P&amp;DF...</source>
         <translation>导出为 PDF(&amp;D)...</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="350"/>
+        <location filename="../src/core/MainWindow.cpp" line="351"/>
         <source>E&amp;xit</source>
         <translation>退出(&amp;x)</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="355"/>
+        <location filename="../src/core/MainWindow.cpp" line="356"/>
         <source>&amp;Edit</source>
         <translation>编辑(&amp;E)</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="371"/>
+        <location filename="../src/core/MainWindow.cpp" line="372"/>
         <source>&amp;Delete</source>
         <translation>删除(&amp;D)</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="385"/>
+        <location filename="../src/core/MainWindow.cpp" line="386"/>
         <source>&amp;Find...</source>
         <translation>查找(&amp;F)...</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="391"/>
+        <location filename="../src/core/MainWindow.cpp" line="392"/>
         <source>&amp;Preferences...</source>
         <translation>首选项(&amp;P)...</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="397"/>
+        <location filename="../src/core/MainWindow.cpp" line="398"/>
         <source>&amp;View</source>
         <translation>视图(&amp;V)</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="399"/>
+        <location filename="../src/core/MainWindow.cpp" line="400"/>
         <source>Zoom &amp;In</source>
         <translation>放大(&amp;I)</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="404"/>
+        <location filename="../src/core/MainWindow.cpp" line="405"/>
         <source>Zoom &amp;Out</source>
         <translation>缩小(&amp;O)</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="409"/>
+        <location filename="../src/core/MainWindow.cpp" line="410"/>
         <source>&amp;Fit to View</source>
         <translation>适合视图(&amp;F)</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="416"/>
+        <location filename="../src/core/MainWindow.cpp" line="417"/>
         <source>&amp;Toolbar</source>
         <translation>工具栏(&amp;T)</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="427"/>
+        <location filename="../src/core/MainWindow.cpp" line="428"/>
         <source>&amp;Outline</source>
         <translation>大纲(&amp;O)</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="378"/>
+        <location filename="../src/core/MainWindow.cpp" line="379"/>
         <source>&amp;Auto Layout</source>
         <translation>自动布局(&amp;A)</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="361"/>
+        <location filename="../src/core/MainWindow.cpp" line="362"/>
         <source>Add &amp;Child</source>
         <translation>添加子节点(&amp;C)</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="366"/>
+        <location filename="../src/core/MainWindow.cpp" line="367"/>
         <source>Add &amp;Sibling</source>
         <translation>添加同级节点(&amp;S)</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="459"/>
+        <location filename="../src/core/MainWindow.cpp" line="460"/>
         <source>&amp;Help</source>
         <translation>帮助(&amp;H)</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="461"/>
+        <location filename="../src/core/MainWindow.cpp" line="462"/>
         <source>Check for &amp;Updates...</source>
         <translation>检查更新(&amp;U)...</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="466"/>
+        <location filename="../src/core/MainWindow.cpp" line="467"/>
         <source>About &amp;YMind...</source>
         <translation>关于 YMind(&amp;Y)...</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="469"/>
+        <location filename="../src/core/MainWindow.cpp" line="470"/>
         <source>About &amp;Qt...</source>
         <translation>关于 Qt(&amp;Q)...</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="584"/>
+        <location filename="../src/core/MainWindow.cpp" line="596"/>
         <source>Restore unsaved tabs</source>
         <translation>恢复未保存的标签页</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="585"/>
+        <location filename="../src/core/MainWindow.cpp" line="597"/>
         <source>YMind found %1 unsaved tab(s) from a previous session.
 Restore them now?</source>
         <translation>YMind 发现上次会话中有 %1 个未保存的标签页。
 现在恢复吗？</translation>
     </message>
     <message>
-        <location filename="../src/core/MainWindow.cpp" line="646"/>
+        <location filename="../src/core/MainWindow.cpp" line="658"/>
         <source>YMind - Mind Map Editor</source>
         <translation>YMind - 思维导图编辑器</translation>
     </message>
