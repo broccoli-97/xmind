@@ -75,7 +75,7 @@ void InlineEditController::finishEditing() {
     m_editProxy = nullptr;
 
     if (!newText.isEmpty() && newText != oldText) {
-        m_scene->undoStack()->push(new EditTextCommand(m_scene, node, oldText, newText));
+        m_scene->undoStack()->push(new EditTextCommand(node, oldText, newText));
     }
     m_scene->clearSelection();
     node->setSelected(true);

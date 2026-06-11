@@ -1,6 +1,6 @@
 #include "core/Commands.h"
-#include "scene/EdgeItem.h"
 #include "layout/LayoutEngine.h"
+#include "scene/EdgeItem.h"
 #include "scene/MindMapScene.h"
 #include "scene/NodeItem.h"
 
@@ -12,8 +12,8 @@
 
 AddNodeCommand::AddNodeCommand(MindMapScene* scene, NodeItem* parent, const QString& text,
                                QUndoCommand* parentCmd)
-    : QUndoCommand(QCoreApplication::translate("Commands", "Add Node"), parentCmd),
-      m_scene(scene), m_parent(parent), m_text(text) {}
+    : QUndoCommand(QCoreApplication::translate("Commands", "Add Node"), parentCmd), m_scene(scene),
+      m_parent(parent), m_text(text) {}
 
 AddNodeCommand::~AddNodeCommand() {
     if (m_ownsObjects) {
@@ -181,22 +181,22 @@ void RemoveNodeCommand::undo() {
 // EditTextCommand
 // ===========================================================================
 
-EditTextCommand::EditTextCommand(MindMapScene* scene, NodeItem* node, const QString& oldText,
-                                 const QString& newText, QUndoCommand* parentCmd)
-    : QUndoCommand(QCoreApplication::translate("Commands", "Edit Text"), parentCmd),
-      m_scene(scene),
-      m_node(node),
-      m_oldText(oldText),
-      m_newText(newText) {}
+EditTextCommand::EditTextCommand(NodeItem* node, const QString& oldText, const QString& newText,
+                                 QUndoCommand* parentCmd)
+    : QUndoCommand(QCoreApplication::translate("Commands", "Edit Text"), parentCmd), m_node(node),
+      m_oldText(oldText), m_newText(newText) {}
 
 void EditTextCommand::undo() {
     m_node->setText(m_oldText);
-    m_scene->autoLayout();
 }
 
 void EditTextCommand::redo() {
+    // Deliberately no autoLayout(): confirming a text edit must not reflow
+    // the whole map (nor yank the viewport) — on a large map the user is
+    // often zoomed into one branch and wants everything else to stay put.
+    // setText() re-measures the node and updates its edges; if the resize
+    // crowds a neighbor, re-layout stays an explicit gesture (Ctrl+L).
     m_node->setText(m_newText);
-    m_scene->autoLayout();
 }
 
 // ===========================================================================
@@ -205,8 +205,8 @@ void EditTextCommand::redo() {
 
 MoveNodeCommand::MoveNodeCommand(NodeItem* node, const QPointF& oldPos, const QPointF& newPos,
                                  QUndoCommand* parentCmd)
-    : QUndoCommand(QCoreApplication::translate("Commands", "Move Node"), parentCmd),
-      m_node(node), m_oldPos(oldPos), m_newPos(newPos) {}
+    : QUndoCommand(QCoreApplication::translate("Commands", "Move Node"), parentCmd), m_node(node),
+      m_oldPos(oldPos), m_newPos(newPos) {}
 
 void MoveNodeCommand::undo() {
     QPointF delta = m_oldPos - m_node->pos();
@@ -222,4 +222,3 @@ void MoveNodeCommand::redo() {
     QPointF delta = m_newPos - m_node->pos();
     m_node->moveSubtree(delta);
 }
-

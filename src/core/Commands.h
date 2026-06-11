@@ -67,14 +67,13 @@ private:
 // ---------------------------------------------------------------------------
 class EditTextCommand : public QUndoCommand {
 public:
-    EditTextCommand(MindMapScene* scene, NodeItem* node, const QString& oldText,
-                    const QString& newText, QUndoCommand* parentCmd = nullptr);
+    EditTextCommand(NodeItem* node, const QString& oldText, const QString& newText,
+                    QUndoCommand* parentCmd = nullptr);
 
     void undo() override;
     void redo() override;
 
 private:
-    MindMapScene* m_scene;
     NodeItem* m_node;
     QString m_oldText;
     QString m_newText;
@@ -97,4 +96,3 @@ private:
     QPointF m_newPos;
     bool m_firstRedo = true;
 };
-

@@ -192,6 +192,11 @@ void MindMapScene::setTemplateId(const TemplateId& id) {
     if (layoutStyle() != oldEffective)
         emit layoutStyleChanged();
     invalidateStyle();
+    // The template is persisted in the .ymind file, so switching it must dirty
+    // the document or the change is silently lost on close (no save prompt).
+    // Load paths are unaffected: the serializer writes the field directly and
+    // resets the modified flag when done.
+    markModified();
 }
 
 const TemplateDescriptor* MindMapScene::templateDescriptor() const {
@@ -206,8 +211,12 @@ ThemeId MindMapScene::themeId() const {
 }
 
 void MindMapScene::setThemeId(const ThemeId& id) {
+    if (m_themeId == id)
+        return;
     m_themeId = id;
     invalidateStyle();
+    // Persisted field — same reasoning as setTemplateId.
+    markModified();
 }
 
 void MindMapScene::invalidateStyle() {
@@ -671,7 +680,7 @@ void MindMapScene::layoutWithoutAnimation() {
 
 // --- Auto-layout ---
 
-void MindMapScene::autoLayout() {
+void MindMapScene::autoLayout(PostLayoutFit fit) {
     if (!m_rootNode)
         return;
     if (m_editController->isEditing())
@@ -695,12 +704,17 @@ void MindMapScene::autoLayout() {
         anim->setEasingCurve(QEasingCurve::OutCubic);
         group->addAnimation(anim);
     }
-    connect(group, &QAbstractAnimation::finished, this, [this, group]() {
+    connect(group, &QAbstractAnimation::finished, this, [this, group, fit]() {
         group->deleteLater();
         for (auto* view : views()) {
-            // Use the conditional variant so a deliberate user zoom isn't
-            // yanked away when auto-layout doesn't move content off-screen.
-            if (auto* mv = qobject_cast<MindMapView*>(view))
+            auto* mv = qobject_cast<MindMapView*>(view);
+            if (!mv)
+                continue;
+            if (fit == PostLayoutFit::Always)
+                mv->zoomToFit();
+            else
+                // Conditional variant so a deliberate user zoom isn't yanked
+                // away when auto-layout doesn't move content off-screen.
                 mv->zoomToFitIfOffscreen();
         }
     });

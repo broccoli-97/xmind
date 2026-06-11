@@ -35,8 +35,18 @@ public:
     // Pure geometry predicate, lifted out so it can be unit-tested without a
     // live QGraphicsView. Returns true iff `items` (shrunk by `inset` on every
     // side, so the predicate is forgiving at edges) is fully contained in
-    // `viewport`. The inset matches the 80px breathing room used by zoomToFit.
+    // `viewport`. The inset is a small tolerance for rounding jitter, far
+    // below the fit margin, so essentially-on-screen layouts don't refit.
     static bool rectFullyVisibleIn(const QRectF& items, const QRectF& viewport, qreal inset);
+
+    // Breathing room zoomToFit keeps around the content, in scene units.
+    // Sized from the map's reference node so the fitted view retains a gap
+    // of about one node's width between content and window edge (margins
+    // scale with content under fitInView, so "one node wide" holds at any
+    // zoom). Clamped: kMinFitMargin when the width is unknown/tiny (empty
+    // scene, fresh root), kMaxFitMargin so a single very long topic doesn't
+    // push the map into a corner of whitespace. Pure for unit-testing.
+    static qreal fitMarginForNodeWidth(qreal nodeWidth);
 
 protected:
     void wheelEvent(QWheelEvent* event) override;
@@ -50,6 +60,8 @@ private:
     void stopAnimations();
     bool canZoomIn() const;
     bool canZoomOut() const;
+    // Resolves fitMarginForNodeWidth() against the current scene's root node.
+    qreal fitMargin() const;
 
     static constexpr qreal kMinScale = 0.1;
     static constexpr qreal kMaxScale = 10.0;
@@ -57,6 +69,9 @@ private:
     // creating a new map) doesn't get scaled up to fill the viewport. The
     // user can still zoom in manually past this with the wheel.
     static constexpr qreal kFitMaxScale = 1.0;
+    // Clamp range for fitMarginForNodeWidth (scene units).
+    static constexpr qreal kMinFitMargin = 80.0;
+    static constexpr qreal kMaxFitMargin = 400.0;
 
     bool m_panning = false;
     QPoint m_lastPanPoint;

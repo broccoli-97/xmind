@@ -41,8 +41,10 @@ void TemplateMenuController::apply(const TemplateId& id) {
     if (scene->templateId() == id)
         return;
 
-    // Setter owns cache invalidation + re-measure; re-layout because the new
-    // algorithm and spacing change positions.
+    // Setter owns cache invalidation + re-measure + modified flag; re-layout
+    // because the new algorithm and spacing change positions. Fit
+    // unconditionally: the switch rearranges the whole map, so whatever the
+    // user had zoomed/panned to no longer frames anything meaningful.
     scene->setTemplateId(id);
-    scene->autoLayout();
+    scene->autoLayout(MindMapScene::PostLayoutFit::Always);
 }

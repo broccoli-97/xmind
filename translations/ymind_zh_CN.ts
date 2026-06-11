@@ -573,8 +573,8 @@ Restore them now?</source>
         <translation>中心主题</translation>
     </message>
     <message>
-        <location filename="../src/scene/MindMapScene.cpp" line="381"/>
-        <location filename="../src/scene/MindMapScene.cpp" line="401"/>
+        <location filename="../src/scene/MindMapScene.cpp" line="390"/>
+        <location filename="../src/scene/MindMapScene.cpp" line="410"/>
         <source>New Topic</source>
         <translation>新主题</translation>
     </message>

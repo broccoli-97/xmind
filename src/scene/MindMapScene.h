@@ -36,7 +36,28 @@ public:
     NodeItem* rootNode() const;
     NodeItem* addNode(const QString& text, NodeItem* parent);
     void removeNode(NodeItem* node);
-    void autoLayout();
+
+    // What the view does once the auto-layout animation lands.
+    //   IfOffscreen — refit only when content runs off-screen, so a
+    //                 deliberate user zoom survives a layout that stays
+    //                 within the viewport (the Ctrl+L contract).
+    //   Always      — unconditional refit; for template switches, where the
+    //                 algorithm/spacing change rearranges the whole map and
+    //                 the previous zoom/pan no longer frames anything useful.
+    enum class PostLayoutFit { IfOffscreen, Always };
+
+    // Recompute every node position with the active layout algorithm and
+    // animate nodes there. This is the ONLY full re-layout entry point, and
+    // it runs exclusively on explicit gestures:
+    //   - the user invokes Auto Layout (Ctrl+L / toolbar / Edit menu),
+    //   - the user switches template (algorithm or spacing changed),
+    //   - initial arrangement of fresh content (new-from-template, imports).
+    // Editing must never trigger it: confirming a node's text, adding a node
+    // (placed via LayoutEngine::initialChildPosition), or undo/redo keep all
+    // other nodes where they are, so a user zoomed into a large map is not
+    // disturbed. Window resize refits the *view* (MindMapView::zoomToFit)
+    // but never moves nodes.
+    void autoLayout(PostLayoutFit fit = PostLayoutFit::IfOffscreen);
 
     NodeItem* selectedNode() const;
 

@@ -1,6 +1,7 @@
 #include "scene/MindMapView.h"
 #include "core/ThemeDescriptor.h"
 #include "scene/MindMapScene.h"
+#include "scene/NodeItem.h"
 #include "ui/ThemeManager.h"
 
 #include <QMouseEvent>
@@ -146,8 +147,8 @@ bool MindMapView::rectFullyVisibleIn(const QRectF& items, const QRectF& viewport
     if (items.isEmpty())
         return true;
     // Shrinking the items rect by `inset` makes the predicate tolerant of
-    // tiny overflows along the viewport edge — matching zoomToFit's 80px
-    // margin so we don't fire on essentially-on-screen layouts.
+    // tiny overflows along the viewport edge, so we don't fire on
+    // essentially-on-screen layouts.
     const QRectF tightened = items.adjusted(inset, inset, -inset, -inset);
     return viewport.contains(tightened);
 }
@@ -165,13 +166,27 @@ void MindMapView::zoomToFitIfOffscreen() {
     zoomToFit();
 }
 
+qreal MindMapView::fitMarginForNodeWidth(qreal nodeWidth) {
+    return qBound(kMinFitMargin, nodeWidth, kMaxFitMargin);
+}
+
+qreal MindMapView::fitMargin() const {
+    qreal nodeWidth = 0.0;
+    if (auto* mindMapScene = dynamic_cast<MindMapScene*>(scene())) {
+        if (auto* root = mindMapScene->rootNode())
+            nodeWidth = root->nodeRect().width();
+    }
+    return fitMarginForNodeWidth(nodeWidth);
+}
+
 void MindMapView::zoomToFit() {
     if (!scene())
         return;
 
     stopAnimations();
 
-    QRectF bounds = scene()->itemsBoundingRect().adjusted(-80, -80, 80, 80);
+    const qreal margin = fitMargin();
+    QRectF bounds = scene()->itemsBoundingRect().adjusted(-margin, -margin, margin, margin);
 
     // Snapshot current state
     QTransform oldTransform = transform();

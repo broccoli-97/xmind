@@ -12,6 +12,9 @@ private slots:
     void itemsLargerThanViewportIsNotVisible();
     void smallOverflowIsTolerated();
     void itemsExactlyAtViewportEdgeIsVisible();
+    void fitMarginTracksNodeWidth();
+    void fitMarginFloorsAtMinimum();
+    void fitMarginCapsAtMaximum();
 };
 
 void tst_ViewGeometry::emptyItemsRectAlwaysVisible() {
@@ -45,6 +48,28 @@ void tst_ViewGeometry::itemsExactlyAtViewportEdgeIsVisible() {
     QRectF items(0, 0, 800, 600);
     QRectF viewport(0, 0, 800, 600);
     QCOMPARE(MindMapView::rectFullyVisibleIn(items, viewport, 0.0), true);
+}
+
+void tst_ViewGeometry::fitMarginTracksNodeWidth() {
+    // Within the clamp range the fit margin IS the node width, so the fitted
+    // view keeps one node's width of breathing room around the content.
+    QCOMPARE(MindMapView::fitMarginForNodeWidth(150.0), 150.0);
+    QCOMPARE(MindMapView::fitMarginForNodeWidth(80.0), 80.0);
+    QCOMPARE(MindMapView::fitMarginForNodeWidth(400.0), 400.0);
+}
+
+void tst_ViewGeometry::fitMarginFloorsAtMinimum() {
+    // No scene / no root yet (width 0), or a degenerate tiny node, still
+    // gets the legacy 80px of breathing room.
+    QCOMPARE(MindMapView::fitMarginForNodeWidth(0.0), 80.0);
+    QCOMPARE(MindMapView::fitMarginForNodeWidth(12.0), 80.0);
+    QCOMPARE(MindMapView::fitMarginForNodeWidth(-5.0), 80.0);
+}
+
+void tst_ViewGeometry::fitMarginCapsAtMaximum() {
+    // A single very long root topic must not surround the map with a huge
+    // whitespace frame.
+    QCOMPARE(MindMapView::fitMarginForNodeWidth(1200.0), 400.0);
 }
 
 QTEST_APPLESS_MAIN(tst_ViewGeometry)
