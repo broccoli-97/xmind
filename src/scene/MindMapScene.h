@@ -51,6 +51,9 @@ public:
     // it runs exclusively on explicit gestures:
     //   - the user invokes Auto Layout (Ctrl+L / toolbar / Edit menu),
     //   - the user switches template (algorithm or spacing changed),
+    //   - the user collapses/expands a subtree (visible structure changed:
+    //     collapsing reclaims the folded branch's space, expanding makes
+    //     room for it) — see toggleNodeCollapsed(),
     //   - initial arrangement of fresh content (new-from-template, imports).
     // Editing must never trigger it: confirming a node's text, adding a node
     // (placed via LayoutEngine::initialChildPosition), or undo/redo keep all
@@ -58,6 +61,15 @@ public:
     // disturbed. Window resize refits the *view* (MindMapView::zoomToFit)
     // but never moves nodes.
     void autoLayout(PostLayoutFit fit = PostLayoutFit::IfOffscreen);
+
+    // Fold/unfold `node`'s subtree from an explicit user gesture (the Space
+    // shortcut, the collapse badge/chevron on the canvas, an outline fold).
+    // Owns the full dance: flips the state, dirties the document, notifies
+    // observers (nodeCollapseChanged), and re-layouts so the map tightens
+    // around a folded branch / makes room for an unfolded one. No-op for
+    // null or childless nodes. NodeItem::setCollapsed remains the raw state
+    // setter for deserialization and tests (no layout side effects).
+    void toggleNodeCollapsed(NodeItem* node);
 
     NodeItem* selectedNode() const;
 
@@ -142,9 +154,10 @@ signals:
     // MainWindow's status bar) don't have to peer inside the controller.
     void editingStarted(NodeItem* node);
     void editingFinished();
-    // Emitted when a node's collapse state is toggled from the canvas (the
-    // Space shortcut) so other views — the outline panel in particular — can
-    // mirror the fold state without polling.
+    // Emitted when a node's collapse state is toggled from any user gesture
+    // (Space shortcut, collapse badge/chevron, outline fold — all routed
+    // through toggleNodeCollapsed) so other views — the outline panel in
+    // particular — can mirror the fold state without polling.
     void nodeCollapseChanged(NodeItem* node);
 
 public slots:

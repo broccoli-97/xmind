@@ -23,11 +23,20 @@ void AddButtonOverlay::setButtonOpacity(qreal opacity) {
     update();
 }
 
+bool AddButtonOverlay::chevronVisible() const {
+    // The fold chevron appears at the junction of any expanded branch. The
+    // root is excluded: in bilateral layouts its children grow both ways, so
+    // a single junction side would be arbitrary (Space also skips the root).
+    return m_node->parentNode() && !m_node->childNodes().isEmpty() && !m_node->isCollapsed();
+}
+
 QRectF AddButtonOverlay::boundingRect() const {
     QRectF btn = m_node->addButtonRect();
     constexpr qreal m = NodeItem::kHoverZoneMargin;
-    QRectF area = btn.adjusted(-m, -m, m, m);
-    return area.united(bridgeRect());
+    QRectF area = btn.adjusted(-m, -m, m, m).united(bridgeRect());
+    if (chevronVisible())
+        area = area.united(m_node->collapseControlRect().adjusted(-m, -m, m, m));
+    return area;
 }
 
 QPainterPath AddButtonOverlay::shape() const {
@@ -36,6 +45,8 @@ QPainterPath AddButtonOverlay::shape() const {
     constexpr qreal m = NodeItem::kHoverZoneMargin;
     path.addEllipse(btn.adjusted(-m, -m, m, m));
     path.addRect(bridgeRect());
+    if (chevronVisible())
+        path.addEllipse(m_node->collapseControlRect().adjusted(-m, -m, m, m));
     return path;
 }
 
@@ -62,39 +73,90 @@ void AddButtonOverlay::paint(QPainter* painter, const QStyleOptionGraphicsItem*,
             selectionBorder = th->activeColors().nodeSelectionBorder;
     }
 
-    QColor btnBg;
-    if (m_hovered) {
-        btnBg = selectionBorder;
-    } else {
-        btnBg = ThemeManager::isDark() ? QColor(255, 255, 255, 60) : QColor(0, 0, 0, 60);
-    }
+    const QColor idleBg = ThemeManager::isDark() ? QColor(255, 255, 255, 60) : QColor(0, 0, 0, 60);
+    const QColor idleGlyph =
+        ThemeManager::isDark() ? QColor(255, 255, 255, 200) : QColor(0, 0, 0, 180);
+
+    // ----- Add button ("+") --------------------------------------------------
+    const bool addHovered = (m_hoverPart == Part::Add);
     painter->setPen(Qt::NoPen);
-    painter->setBrush(btnBg);
+    painter->setBrush(addHovered ? selectionBorder : idleBg);
     painter->drawEllipse(btnRect);
 
-    QColor plusColor = m_hovered           ? Qt::white
-                       : ThemeManager::isDark() ? QColor(255, 255, 255, 200)
-                                                : QColor(0, 0, 0, 180);
-    QPen plusPen(plusColor, 2, Qt::SolidLine, Qt::RoundCap);
+    QPen plusPen(addHovered ? QColor(Qt::white) : idleGlyph, 2, Qt::SolidLine, Qt::RoundCap);
     painter->setPen(plusPen);
     QPointF center = btnRect.center();
     constexpr qreal arm = NodeItem::kAddButtonRadius * 0.45;
-    painter->drawLine(QPointF(center.x() - arm, center.y()),
-                      QPointF(center.x() + arm, center.y()));
-    painter->drawLine(QPointF(center.x(), center.y() - arm),
-                      QPointF(center.x(), center.y() + arm));
+    painter->drawLine(QPointF(center.x() - arm, center.y()), QPointF(center.x() + arm, center.y()));
+    painter->drawLine(QPointF(center.x(), center.y() - arm), QPointF(center.x(), center.y() + arm));
+
+    // ----- Collapse chevron --------------------------------------------------
+    // A smaller circle at the branch junction; the chevron points back toward
+    // the node — "fold the branch into it" — mirroring how a macOS disclosure
+    // chevron signals the direction content will tuck away.
+    if (chevronVisible()) {
+        const QRectF foldRect = m_node->collapseControlRect();
+        const bool foldHovered = (m_hoverPart == Part::Collapse);
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(foldHovered ? selectionBorder : idleBg);
+        painter->drawEllipse(foldRect);
+
+        QPen chevPen(foldHovered ? QColor(Qt::white) : idleGlyph, 1.8, Qt::SolidLine, Qt::RoundCap,
+                     Qt::RoundJoin);
+        painter->setPen(chevPen);
+        painter->setBrush(Qt::NoBrush);
+        const QPointF c = foldRect.center();
+        constexpr qreal a = 3.2;
+        QPainterPath chev;
+        switch (m_node->m_addButtonDir) {
+        case NodeItem::ButtonDirection::Left: // children grow left → fold right
+            chev.moveTo(c.x() - a * 0.5, c.y() - a);
+            chev.lineTo(c.x() + a * 0.5, c.y());
+            chev.lineTo(c.x() - a * 0.5, c.y() + a);
+            break;
+        case NodeItem::ButtonDirection::Bottom: // children grow down → fold up
+            chev.moveTo(c.x() - a, c.y() + a * 0.5);
+            chev.lineTo(c.x(), c.y() - a * 0.5);
+            chev.lineTo(c.x() + a, c.y() + a * 0.5);
+            break;
+        case NodeItem::ButtonDirection::Right: // children grow right → fold left
+        default:
+            chev.moveTo(c.x() + a * 0.5, c.y() - a);
+            chev.lineTo(c.x() - a * 0.5, c.y());
+            chev.lineTo(c.x() + a * 0.5, c.y() + a);
+            break;
+        }
+        painter->drawPath(chev);
+    }
 
     painter->restore();
 }
 
-void AddButtonOverlay::hoverEnterEvent(QGraphicsSceneHoverEvent*) {
+AddButtonOverlay::Part AddButtonOverlay::partAt(const QPointF& pos) const {
+    if (chevronVisible() && m_node->collapseControlRect().adjusted(-2, -2, 2, 2).contains(pos))
+        return Part::Collapse;
+    if (m_node->addButtonRect().adjusted(-4, -4, 4, 4).contains(pos))
+        return Part::Add;
+    return Part::None;
+}
+
+void AddButtonOverlay::setHoverPart(Part part) {
+    if (m_hoverPart == part)
+        return;
+    m_hoverPart = part;
+    if (part != Part::None)
+        setCursor(Qt::PointingHandCursor);
+    else
+        unsetCursor();
+    update();
+}
+
+void AddButtonOverlay::hoverEnterEvent(QGraphicsSceneHoverEvent* event) {
     auto* mindMapScene = m_node->mindMapScene();
     if (mindMapScene && mindMapScene->isEditing())
         return;
 
-    m_hovered = true;
-    setCursor(Qt::PointingHandCursor);
-    update();
+    setHoverPart(partAt(event->pos()));
     // Cancel the parent node's pending leave timer
     if (m_node->m_hoverLeaveTimer) {
         m_node->m_hoverLeaveTimer->stop();
@@ -103,10 +165,12 @@ void AddButtonOverlay::hoverEnterEvent(QGraphicsSceneHoverEvent*) {
     }
 }
 
+void AddButtonOverlay::hoverMoveEvent(QGraphicsSceneHoverEvent* event) {
+    setHoverPart(partAt(event->pos()));
+}
+
 void AddButtonOverlay::hoverLeaveEvent(QGraphicsSceneHoverEvent*) {
-    m_hovered = false;
-    unsetCursor();
-    update();
+    setHoverPart(Part::None);
     // Trigger fade-out on the parent node
     m_node->m_hovered = false;
     m_node->startAddButtonAnimation(false);
@@ -119,15 +183,34 @@ void AddButtonOverlay::mousePressEvent(QGraphicsSceneMouseEvent* event) {
             event->ignore();
             return;
         }
-        event->accept();
-        if (mindMapScene) {
-            mindMapScene->clearSelection();
-            m_node->setSelected(true);
-            QMetaObject::invokeMethod(
-                mindMapScene, [mindMapScene]() { mindMapScene->addChildToSelected(); },
-                Qt::QueuedConnection);
+        switch (partAt(event->pos())) {
+        case Part::Collapse:
+            event->accept();
+            if (mindMapScene) {
+                // Queued like the add path: the toggle hides this overlay
+                // (NodeItem::setCollapsed → cancelAddButton), so don't tear
+                // ourselves down while still handling our own press.
+                QMetaObject::invokeMethod(
+                    mindMapScene,
+                    [mindMapScene, node = m_node]() { mindMapScene->toggleNodeCollapsed(node); },
+                    Qt::QueuedConnection);
+            }
+            return;
+        case Part::Add:
+            event->accept();
+            if (mindMapScene) {
+                mindMapScene->clearSelection();
+                m_node->setSelected(true);
+                QMetaObject::invokeMethod(
+                    mindMapScene, [mindMapScene]() { mindMapScene->addChildToSelected(); },
+                    Qt::QueuedConnection);
+            }
+            return;
+        case Part::None:
+            // The bridge strip between the controls is hover keep-alive only;
+            // let the press fall through to whatever is underneath.
+            break;
         }
-        return;
     }
     QGraphicsItem::mousePressEvent(event);
 }

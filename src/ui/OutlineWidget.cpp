@@ -1,9 +1,9 @@
 #include "ui/OutlineWidget.h"
-#include "ui/IconFactory.h"
-#include "ui/OutlineItemDelegate.h"
 #include "scene/MindMapScene.h"
 #include "scene/MindMapView.h"
 #include "scene/NodeItem.h"
+#include "ui/IconFactory.h"
+#include "ui/OutlineItemDelegate.h"
 
 #include <QHBoxLayout>
 #include <QLabel>
@@ -150,19 +150,17 @@ void OutlineWidget::onItemClicked(QTreeWidgetItem* item, int /*column*/) {
 void OutlineWidget::onItemCollapsed(QTreeWidgetItem* item) {
     if (m_syncing)
         return;
-    if (auto* node = nodeForItem(item); node && !node->isCollapsed()) {
-        node->setCollapsed(true);
-        m_scene->setModified(true);
-    }
+    // toggleNodeCollapsed owns the modified flag, the change signal, and the
+    // re-layout that tightens the canvas around the folded branch.
+    if (auto* node = nodeForItem(item); node && !node->isCollapsed())
+        m_scene->toggleNodeCollapsed(node);
 }
 
 void OutlineWidget::onItemExpanded(QTreeWidgetItem* item) {
     if (m_syncing)
         return;
-    if (auto* node = nodeForItem(item); node && node->isCollapsed()) {
-        node->setCollapsed(false);
-        m_scene->setModified(true);
-    }
+    if (auto* node = nodeForItem(item); node && node->isCollapsed())
+        m_scene->toggleNodeCollapsed(node);
 }
 
 void OutlineWidget::syncCollapseState(NodeItem* node) {

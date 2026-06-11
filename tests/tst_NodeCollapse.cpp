@@ -6,9 +6,11 @@
 #include "scene/MindMapScene.h"
 #include "scene/NodeItem.h"
 
+#include <QGraphicsSceneMouseEvent>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QKeyEvent>
+#include <QSignalSpy>
 #include <QTest>
 
 class tst_NodeCollapse : public QObject {
@@ -24,6 +26,18 @@ private slots:
     void v3FileLoadsAsAllExpanded();
     void spaceKeyTogglesSelectedNodeCollapse();
     void arrowDoesNotEnterCollapsedSubtree();
+
+    // Collapse-aware layout + the scene-level toggle gesture.
+    void collapsedSubtreeTakesLeafFootprint();
+    void hiddenChildrenStackOntoCollapsedParent();
+    void expandRestoresSpreadLayout();
+    void toggleNodeCollapsedRelayoutsAndDirtiesScene();
+    void toggleNodeCollapsedIgnoresLeaves();
+    void addChildToCollapsedNodeAutoExpands();
+
+    // The macOS-style count badge.
+    void collapseBadgeGeometry();
+    void badgeClickExpandsWithoutSelecting();
 };
 
 void tst_NodeCollapse::initTestCase() {
@@ -162,6 +176,187 @@ void tst_NodeCollapse::arrowDoesNotEnterCollapsedSubtree() {
 
     // Selection should not have moved into the hidden child.
     QCOMPARE(scene.selectedNode(), a);
+}
+
+namespace {
+
+// Root with two branches in a RightTree layout (spread axis = y): "A" carries
+// a fat subtree, "B" is a leaf sibling. The vertical gap between A and B is
+// the footprint A's subtree claims.
+struct FootprintFixture {
+    NodeItem* a = nullptr;
+    NodeItem* b = nullptr;
+
+    explicit FootprintFixture(MindMapScene& scene) {
+        scene.setLayoutStyle(LayoutStyle::RightTree);
+        a = scene.addNode("A", scene.rootNode());
+        b = scene.addNode("B", scene.rootNode());
+        for (int i = 0; i < 4; ++i)
+            scene.addNode(QStringLiteral("A child %1").arg(i), a);
+    }
+
+    qreal gap() const { return qAbs(a->pos().y() - b->pos().y()); }
+};
+
+} // namespace
+
+void tst_NodeCollapse::collapsedSubtreeTakesLeafFootprint() {
+    MindMapScene scene;
+    FootprintFixture f(scene);
+
+    scene.layoutWithoutAnimation();
+    const qreal expandedGap = f.gap();
+
+    f.a->setCollapsed(true);
+    scene.layoutWithoutAnimation();
+
+    // The folded branch must stop reserving its children's spread: siblings
+    // pack around A as if it were a leaf, instead of leaving a hole.
+    QVERIFY2(f.gap() < expandedGap,
+             qPrintable(QStringLiteral("collapsed gap %1 not tighter than expanded gap %2")
+                            .arg(f.gap())
+                            .arg(expandedGap)));
+}
+
+void tst_NodeCollapse::hiddenChildrenStackOntoCollapsedParent() {
+    MindMapScene scene;
+    FootprintFixture f(scene);
+
+    f.a->setCollapsed(true);
+    scene.layoutWithoutAnimation();
+
+    // Hidden descendants ride on their folded ancestor so invisible strays
+    // can't inflate itemsBoundingRect (zoom-to-fit, exports), and expanding
+    // later unfolds them outward from the parent.
+    for (auto* child : f.a->childNodes())
+        QCOMPARE(child->pos(), f.a->pos());
+}
+
+void tst_NodeCollapse::expandRestoresSpreadLayout() {
+    MindMapScene scene;
+    FootprintFixture f(scene);
+
+    f.a->setCollapsed(true);
+    scene.layoutWithoutAnimation();
+    f.a->setCollapsed(false);
+    scene.layoutWithoutAnimation();
+
+    // Children spread back out: all visible, distinct spread positions, none
+    // left sitting on the parent.
+    QSet<qreal> spreads;
+    for (auto* child : f.a->childNodes()) {
+        QVERIFY(child->isVisible());
+        QVERIFY(child->pos() != f.a->pos());
+        spreads.insert(child->pos().y());
+    }
+    QCOMPARE(spreads.size(), f.a->childNodes().size());
+}
+
+void tst_NodeCollapse::toggleNodeCollapsedRelayoutsAndDirtiesScene() {
+    MindMapScene scene;
+    FootprintFixture f(scene);
+    scene.layoutWithoutAnimation();
+    const qreal expandedGap = f.gap();
+    scene.setModified(false);
+
+    QSignalSpy spy(&scene, &MindMapScene::nodeCollapseChanged);
+    scene.toggleNodeCollapsed(f.a);
+
+    QVERIFY(f.a->isCollapsed());
+    QVERIFY(scene.isModified());
+    QCOMPARE(spy.count(), 1);
+
+    // The toggle re-layouts (animated, 400ms): wait for the map to tighten.
+    QTRY_VERIFY_WITH_TIMEOUT(f.gap() < expandedGap - 1.0, 2000);
+}
+
+void tst_NodeCollapse::toggleNodeCollapsedIgnoresLeaves() {
+    MindMapScene scene;
+    auto* leaf = scene.addNode("Leaf", scene.rootNode());
+    scene.setModified(false);
+
+    QSignalSpy spy(&scene, &MindMapScene::nodeCollapseChanged);
+    scene.toggleNodeCollapsed(leaf);
+
+    QVERIFY(!leaf->isCollapsed());
+    QVERIFY(!scene.isModified());
+    QCOMPARE(spy.count(), 0);
+}
+
+void tst_NodeCollapse::addChildToCollapsedNodeAutoExpands() {
+    MindMapScene scene;
+    auto* a = scene.addNode("A", scene.rootNode());
+    scene.addNode("A1", a);
+    a->setCollapsed(true);
+
+    scene.clearSelection();
+    a->setSelected(true);
+    scene.addChildToSelected();
+
+    // The fold must open first — otherwise the new child would be born
+    // visible among hidden siblings.
+    QVERIFY(!a->isCollapsed());
+    QCOMPARE(a->childNodes().size(), 2);
+    for (auto* child : a->childNodes())
+        QVERIFY(child->isVisible());
+
+    scene.cancelEditing(); // tear down the inline edit addChild started
+}
+
+void tst_NodeCollapse::collapseBadgeGeometry() {
+    MindMapScene scene;
+    scene.setLayoutStyle(LayoutStyle::RightTree);
+    auto* a = scene.addNode("A", scene.rootNode());
+    scene.addNode("A1", a);
+    scene.addNode("A2", a);
+    scene.layoutWithoutAnimation();
+
+    // Expanded: no badge, and the node's hit shape stays the body.
+    QVERIFY(!a->collapseBadgeVisible());
+
+    a->setCollapsed(true);
+    QVERIFY(a->collapseBadgeVisible());
+    QCOMPARE(a->descendantCount(), 2);
+
+    const QRectF badge = a->collapseControlRect();
+    // RightTree children grow rightward, so the badge sits just past the
+    // right edge — the junction where the folded branch would continue.
+    QVERIFY(badge.left() >= a->nodeRect().right());
+    QVERIFY(a->boundingRect().contains(badge));
+    // Clickable: the badge is part of the node's hit-test shape (and wasn't
+    // before folding — the same point must not hit the node when expanded).
+    QVERIFY(a->shape().contains(badge.center()));
+    a->setCollapsed(false);
+    QVERIFY(!a->shape().contains(badge.center()));
+}
+
+void tst_NodeCollapse::badgeClickExpandsWithoutSelecting() {
+    MindMapScene scene;
+    scene.setLayoutStyle(LayoutStyle::RightTree);
+    auto* a = scene.addNode("A", scene.rootNode());
+    scene.addNode("A1", a);
+    scene.layoutWithoutAnimation();
+    a->setCollapsed(true);
+    scene.clearSelection();
+
+    const QPointF scenePos = a->mapToScene(a->collapseControlRect().center());
+
+    QGraphicsSceneMouseEvent press(QEvent::GraphicsSceneMousePress);
+    press.setScenePos(scenePos);
+    press.setButton(Qt::LeftButton);
+    press.setButtons(Qt::LeftButton);
+    QCoreApplication::sendEvent(&scene, &press);
+
+    QGraphicsSceneMouseEvent release(QEvent::GraphicsSceneMouseRelease);
+    release.setScenePos(scenePos);
+    release.setButton(Qt::LeftButton);
+    release.setButtons(Qt::NoButton);
+    QCoreApplication::sendEvent(&scene, &release);
+
+    // The click-on-release toggles the fold open...
+    QVERIFY(!a->isCollapsed());
+    // ...and, Finder-disclosure-like, does not change the selection.
+    QCOMPARE(scene.selectedNode(), static_cast<NodeItem*>(nullptr));
 }
 
 QTEST_MAIN(tst_NodeCollapse)

@@ -45,14 +45,17 @@ void LayoutAlgorithmBase::collectAllNodes(NodeItem* node, QList<NodeItem*>& node
     if (!node)
         return;
     nodes.append(node);
+    // Don't descend into collapsed subtrees: hidden nodes shouldn't repel
+    // overlap-avoidance placement of new visible nodes.
+    if (node->isCollapsed())
+        return;
     for (auto* child : node->childNodes())
         collectAllNodes(child, nodes);
 }
 
 qreal LayoutAlgorithmBase::findAvailableSpread(qreal candidateSpread, qreal depth,
-                                                NodeItem* newNode,
-                                                const QList<NodeItem*>& allNodes,
-                                                const LayoutAxis& axis) {
+                                               NodeItem* newNode, const QList<NodeItem*>& allNodes,
+                                               const LayoutAxis& axis) {
     QRectF newRect = newNode->nodeRect();
 
     for (int attempt = 0; attempt < 50; ++attempt) {
@@ -60,11 +63,10 @@ qreal LayoutAlgorithmBase::findAvailableSpread(qreal candidateSpread, qreal dept
         axis.setSpread(candidatePos, candidateSpread);
         axis.setDepth(candidatePos, depth);
 
-        QRectF candidateWorld(candidatePos.x() + newRect.left(),
-                              candidatePos.y() + newRect.top(),
+        QRectF candidateWorld(candidatePos.x() + newRect.left(), candidatePos.y() + newRect.top(),
                               newRect.width(), newRect.height());
         candidateWorld.adjust(-axis.spreadSpacing / 2, -axis.spreadSpacing / 2,
-                               axis.spreadSpacing / 2,  axis.spreadSpacing / 2);
+                              axis.spreadSpacing / 2, axis.spreadSpacing / 2);
 
         bool hasOverlap = false;
         qreal maxShift = 0;
@@ -72,8 +74,7 @@ qreal LayoutAlgorithmBase::findAvailableSpread(qreal candidateSpread, qreal dept
         for (auto* node : allNodes) {
             QRectF nodeRect = node->nodeRect();
             QPointF nodePos = node->pos();
-            QRectF nodeWorld(nodePos.x() + nodeRect.left(),
-                             nodePos.y() + nodeRect.top(),
+            QRectF nodeWorld(nodePos.x() + nodeRect.left(), nodePos.y() + nodeRect.top(),
                              nodeRect.width(), nodeRect.height());
 
             if (!candidateWorld.intersects(nodeWorld))
@@ -106,12 +107,16 @@ qreal LayoutAlgorithmBase::findAvailableSpread(qreal candidateSpread, qreal dept
 qreal LayoutAlgorithmBase::measureSubtree(NodeItem* node, const LayoutAxis& axis) {
     auto children = node->childNodes();
     qreal selfSpan = axis.nodeSpan(node);
-    if (children.isEmpty())
+    // A collapsed node's subtree is hidden — it occupies only its own span,
+    // so siblings pack tightly around it instead of leaving a gap the size
+    // of the folded branch.
+    if (children.isEmpty() || node->isCollapsed())
         return selfSpan;
 
     qreal total = 0;
     for (int i = 0; i < children.size(); ++i) {
-        if (i > 0) total += axis.spreadSpacing;
+        if (i > 0)
+            total += axis.spreadSpacing;
         total += measureSubtree(children[i], axis);
     }
 
@@ -122,17 +127,20 @@ qreal LayoutAlgorithmBase::measureSubtree(NodeItem* node, const LayoutAxis& axis
 // Phase 2: Place (top-down)
 // ===========================================================================
 
-void LayoutAlgorithmBase::placeSubtree(NodeItem* node, QPointF position,
-                                        const LayoutAxis& axis,
-                                        QMap<NodeItem*, QPointF>& positions) {
+void LayoutAlgorithmBase::placeSubtree(NodeItem* node, QPointF position, const LayoutAxis& axis,
+                                       QMap<NodeItem*, QPointF>& positions) {
     positions[node] = position;
+    // Hidden descendants get no layout positions here; LayoutEngine stacks
+    // them onto their collapsed ancestor after the algorithm finishes (see
+    // LayoutEngine::computeLayout), once refinement has settled the anchor.
+    if (node->isCollapsed())
+        return;
     placeChildGroup(node, node->childNodes(), axis, positions);
 }
 
-void LayoutAlgorithmBase::placeChildGroup(NodeItem* parent,
-                                           const QList<NodeItem*>& children,
-                                           const LayoutAxis& axis,
-                                           QMap<NodeItem*, QPointF>& positions) {
+void LayoutAlgorithmBase::placeChildGroup(NodeItem* parent, const QList<NodeItem*>& children,
+                                          const LayoutAxis& axis,
+                                          QMap<NodeItem*, QPointF>& positions) {
     if (children.isEmpty())
         return;
 
@@ -141,7 +149,8 @@ void LayoutAlgorithmBase::placeChildGroup(NodeItem* parent,
     for (int i = 0; i < children.size(); ++i) {
         qreal m = measureSubtree(children[i], axis);
         measures.append(m);
-        if (i > 0) totalSpan += axis.spreadSpacing;
+        if (i > 0)
+            totalSpan += axis.spreadSpacing;
         totalSpan += m;
     }
 
@@ -154,8 +163,8 @@ void LayoutAlgorithmBase::placeChildGroup(NodeItem* parent,
         QPointF pos;
         qreal spread = cursor + measures[i] / 2;
         qreal childHalfDepth = axis.nodeDepthSpan(children[i]) / 2;
-        qreal childDepth = parentDepth
-            + axis.depthDirection * (parentHalfDepth + axis.depthSpacing + childHalfDepth);
+        qreal childDepth = parentDepth + axis.depthDirection *
+                                             (parentHalfDepth + axis.depthSpacing + childHalfDepth);
         axis.setSpread(pos, spread);
         axis.setDepth(pos, childDepth);
         placeSubtree(children[i], pos, axis, positions);
@@ -168,7 +177,7 @@ void LayoutAlgorithmBase::placeChildGroup(NodeItem* parent,
 // ===========================================================================
 
 void LayoutAlgorithmBase::collectSubtreeNodes(NodeItem* node, QList<NodeItem*>& nodes,
-                                               const QMap<NodeItem*, QPointF>& positions) {
+                                              const QMap<NodeItem*, QPointF>& positions) {
     if (!positions.contains(node))
         return;
     nodes.append(node);
@@ -180,12 +189,10 @@ void LayoutAlgorithmBase::collectSubtreeNodes(NodeItem* node, QList<NodeItem*>& 
 // Phase 3: Force-directed refinement
 // ===========================================================================
 
-void LayoutAlgorithmBase::forceDirectedRefinement(
-    NodeItem* root,
-    const QList<NodeItem*>& subtreeRoots,
-    const LayoutAxis& axis,
-    QMap<NodeItem*, QPointF>& positions)
-{
+void LayoutAlgorithmBase::forceDirectedRefinement(NodeItem* root,
+                                                  const QList<NodeItem*>& subtreeRoots,
+                                                  const LayoutAxis& axis,
+                                                  QMap<NodeItem*, QPointF>& positions) {
     QList<NodeItem*> allNodes;
     allNodes.append(root);
     for (auto* sr : subtreeRoots)
@@ -236,13 +243,13 @@ void LayoutAlgorithmBase::forceDirectedRefinement(
                 if (spreadGap > halfSpanA + halfSpanB + axis.spreadSpacing)
                     break;
 
-                QRectF worldA(posA.x() + rectA.left(), posA.y() + rectA.top(),
-                              rectA.width(), rectA.height());
-                QRectF worldB(posB.x() + rectB.left(), posB.y() + rectB.top(),
-                              rectB.width(), rectB.height());
+                QRectF worldA(posA.x() + rectA.left(), posA.y() + rectA.top(), rectA.width(),
+                              rectA.height());
+                QRectF worldB(posB.x() + rectB.left(), posB.y() + rectB.top(), rectB.width(),
+                              rectB.height());
 
                 worldA.adjust(-axis.spreadSpacing / 2, -axis.spreadSpacing / 2,
-                               axis.spreadSpacing / 2,  axis.spreadSpacing / 2);
+                              axis.spreadSpacing / 2, axis.spreadSpacing / 2);
 
                 if (!worldA.intersects(worldB))
                     continue;
@@ -288,7 +295,8 @@ void LayoutAlgorithmBase::forceDirectedRefinement(
             displacement[node] = 0.0;
 
         for (auto* node : allNodes) {
-            if (pinnedNodes.contains(node)) continue;
+            if (pinnedNodes.contains(node))
+                continue;
             qreal d = displacement[node];
             if (std::abs(d) > temperature)
                 displacement[node] = (d > 0) ? temperature : -temperature;
@@ -347,8 +355,8 @@ void LayoutAlgorithmBase::forceDirectedRefinement(
 
                 qreal prevSpread = axis.spread(positions[prev]);
                 qreal currSpread = axis.spread(positions[curr]);
-                qreal minGap = axis.nodeSpan(prev) / 2 + axis.nodeSpan(curr) / 2
-                               + axis.spreadSpacing;
+                qreal minGap =
+                    axis.nodeSpan(prev) / 2 + axis.nodeSpan(curr) / 2 + axis.spreadSpacing;
 
                 if (currSpread - prevSpread < minGap) {
                     qreal mid = (prevSpread + currSpread) / 2;
@@ -374,8 +382,8 @@ void LayoutAlgorithmBase::forceDirectedRefinement(
 // ===========================================================================
 
 QPointF LayoutAlgorithmBase::initialChildPositionForAxis(NodeItem* newNode, NodeItem* parent,
-                                                          NodeItem* root, const LayoutParams& p,
-                                                          const LayoutAxis& axis) {
+                                                         NodeItem* root, const LayoutParams& p,
+                                                         const LayoutAxis& axis) {
     QPointF parentPos = parent->pos();
     auto allChildren = parent->childNodes();
 
@@ -391,8 +399,8 @@ QPointF LayoutAlgorithmBase::initialChildPositionForAxis(NodeItem* newNode, Node
 
     qreal parentHalfDepth = axis.nodeDepthSpan(parent) / 2;
     qreal newNodeHalfDepth = axis.nodeDepthSpan(newNode) / 2;
-    qreal depth = axis.depth(parentPos)
-        + axis.depthDirection * (parentHalfDepth + axis.depthSpacing + newNodeHalfDepth);
+    qreal depth = axis.depth(parentPos) +
+                  axis.depthDirection * (parentHalfDepth + axis.depthSpacing + newNodeHalfDepth);
 
     qreal spread = axis.spread(parentPos);
 

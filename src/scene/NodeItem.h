@@ -61,11 +61,25 @@ public:
 
     // Collapse / expand state for this node's subtree. Collapsed nodes hide
     // all descendant nodes and incident edges (recursively respecting nested
-    // collapse states). Persisted in JSON (format v4+).
+    // collapse states). Persisted in JSON (format v4+). This is the raw state
+    // setter (used by deserialization and tests); interactive toggles go
+    // through MindMapScene::toggleNodeCollapsed, which also re-layouts.
     bool isCollapsed() const { return m_collapsed; }
     void setCollapsed(bool collapsed);
     // Toggle wrapper for convenience (keyboard shortcut etc).
     void toggleCollapsed() { setCollapsed(!m_collapsed); }
+
+    // Total number of nodes in this node's subtree (excluding itself) — the
+    // figure shown on the collapse badge while folded.
+    int descendantCount() const;
+
+    // The fold control at this node's child-side junction (local coords):
+    // while collapsed it is the always-visible count badge (a pill that
+    // widens for multi-digit counts, painted by this item); while expanded
+    // it is the circle the hover overlay paints its collapse chevron in.
+    QRectF collapseControlRect() const;
+    // True when the count badge is showing (collapsed with hidden children).
+    bool collapseBadgeVisible() const { return m_collapsed && !m_children.isEmpty(); }
 
     // Search highlight state (driven by the in-map find bar). Only paints a
     // visible overlay; doesn't touch selection. `setSearchCurrent` raises one
@@ -84,6 +98,7 @@ protected:
     void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override;
     void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
     void hoverEnterEvent(QGraphicsSceneHoverEvent* event) override;
+    void hoverMoveEvent(QGraphicsSceneHoverEvent* event) override;
     void hoverLeaveEvent(QGraphicsSceneHoverEvent* event) override;
 
 private:
@@ -96,6 +111,8 @@ private:
     QRectF addButtonRect() const;
     void startAddButtonAnimation(bool fadeIn);
     MindMapScene* mindMapScene() const;
+    QString collapseBadgeLabel() const;
+    QFont collapseBadgeFont() const;
 
     // Apply this node's visibility to all descendants. If `force` is true, the
     // subtree is hidden regardless of m_collapsed (used when an ancestor is
@@ -118,6 +135,8 @@ private:
     QPointF m_dragOrigPos;
     bool m_dragging = false;
     bool m_hovered = false;
+    bool m_badgeHovered = false;
+    bool m_badgePressed = false;
     MindMapScene* m_mindMapScene = nullptr;
     qreal m_savedZValue = 0.0;
     ButtonDirection m_addButtonDir = ButtonDirection::Right;
@@ -128,6 +147,11 @@ private:
     static constexpr qreal kAddButtonRadius = 12.0;
     static constexpr qreal kAddButtonOffset = 6.0;
     static constexpr qreal kHoverZoneMargin = 10.0;
+    // Fold control (count badge / collapse chevron) at the child-side
+    // junction: a touch smaller than the add button so the pair reads as
+    // [node][fold][add] with the add action as the primary affordance.
+    static constexpr qreal kCollapseControlRadius = 9.0;
+    static constexpr qreal kCollapseControlGap = 2.0;
     // Raised z while hovered. Just enough to top sibling nodes at z=0 without
     // a big visual jump; well under the inline editor at z=100.
     static constexpr qreal kHoverZ = 2.0;

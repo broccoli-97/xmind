@@ -59,15 +59,21 @@ QRectF NodeItem::boundingRect() const {
     const qreal sketchPad = s.roughness > 0.0 ? 6.0 : 0.0;
     // Search glow halo (current match, mid-pulse) reaches ~21px past the body.
     const qreal searchPad = m_searchMatch ? 24.0 : 0.0;
+    QRectF rect;
     if (!withShadow) {
         // No shadow → the rect itself plus a tiny anti-alias margin is enough.
         const qreal m = 2.0 + sketchPad + searchPad;
-        return m_rect.adjusted(-m, -m, m, m);
+        rect = m_rect.adjusted(-m, -m, m, m);
+    } else {
+        constexpr qreal kMargin = 2.0;
+        const qreal pad = kMargin + sketchPad + searchPad;
+        rect = m_rect.adjusted(-s.shadowSpread - pad, -s.shadowSpread - pad, s.shadowSpread + pad,
+                               s.shadowSpread + s.shadowOffsetY + pad);
     }
-    constexpr qreal kMargin = 2.0;
-    const qreal pad = kMargin + sketchPad + searchPad;
-    return m_rect.adjusted(-s.shadowSpread - pad, -s.shadowSpread - pad, s.shadowSpread + pad,
-                           s.shadowSpread + s.shadowOffsetY + pad);
+    // The count badge sits just outside the body at the child-side junction.
+    if (collapseBadgeVisible())
+        rect = rect.united(collapseControlRect().adjusted(-2, -2, 2, 2));
+    return rect;
 }
 
 QPainterPath NodeItem::shape() const {
@@ -80,6 +86,11 @@ QPainterPath NodeItem::shape() const {
         path.addRect(m_rect.adjusted(-2, -2, 2, 2));
     } else {
         path.addRoundedRect(m_rect, style.borderRadius, style.borderRadius);
+    }
+    // The count badge must be clickable, so it joins the hit-test region.
+    if (collapseBadgeVisible()) {
+        const QRectF badge = collapseControlRect();
+        path.addRoundedRect(badge, badge.height() / 2, badge.height() / 2);
     }
     return path;
 }
@@ -286,22 +297,28 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
     QRectF textArea = m_rect.adjusted(padding, padding, -padding, -padding);
     painter->drawText(textArea, Qt::AlignCenter | Qt::TextWrapAnywhere, m_text);
 
-    // ----- Collapsed indicator ---------------------------------------------
-    // When this node hides a subtree, paint three small dots inside the right
-    // edge of the body so the user knows there's content folded away. Skip
-    // for nodes without children (toggling has no effect on a leaf, so we
-    // shouldn't promise hidden content).
-    if (m_collapsed && !m_children.isEmpty()) {
-        QColor dotColor = effTextColor;
-        dotColor.setAlpha(170);
-        painter->setBrush(dotColor);
+    // ----- Collapsed badge ---------------------------------------------------
+    // While a subtree is folded, a count badge sits at the child-side
+    // junction — where the branch visually "continues" — showing how many
+    // topics are tucked away. Filled with the node's branch color so it
+    // reads as part of the branch, macOS-notification style; clicking it
+    // unfolds (handled in mousePressEvent/mouseReleaseEvent).
+    if (collapseBadgeVisible()) {
+        const QRectF badge = collapseControlRect();
+        QColor fill = nodeCol;
+        if (m_badgeHovered)
+            fill = fill.lighter(115); // hover affordance, macOS-subtle
         painter->setPen(Qt::NoPen);
-        constexpr qreal dotR = 1.5;
-        constexpr qreal dotSpacing = 4.0;
-        const qreal y = m_rect.center().y();
-        const qreal startX = m_rect.right() - 6 - 2 * dotSpacing;
-        for (int i = 0; i < 3; ++i)
-            painter->drawEllipse(QPointF(startX + i * dotSpacing, y), dotR, dotR);
+        painter->setBrush(fill);
+        const qreal r = badge.height() / 2;
+        painter->drawRoundedRect(badge, r, r);
+
+        // Ink color by fill luminance so the count stays legible on both
+        // pastel (sakura) and saturated palettes.
+        const int luma = qRound(0.299 * fill.red() + 0.587 * fill.green() + 0.114 * fill.blue());
+        painter->setPen(luma > 186 ? QColor(50, 50, 56) : QColor(Qt::white));
+        painter->setFont(collapseBadgeFont());
+        painter->drawText(badge, Qt::AlignCenter, collapseBadgeLabel());
     }
 }
 
@@ -475,9 +492,54 @@ void NodeItem::setSearchCurrent(bool current) {
 void NodeItem::setCollapsed(bool collapsed) {
     if (m_collapsed == collapsed)
         return;
+    prepareGeometryChange(); // the count badge lives outside m_rect
     m_collapsed = collapsed;
     applyDescendantVisibility(/*force=*/m_collapsed);
-    update(); // repaint the indicator
+    // The junction belongs to the badge while folded — tear down any hover
+    // add-button immediately so the two don't stack.
+    if (m_collapsed)
+        cancelAddButton();
+    m_badgeHovered = false;
+    update();
+}
+
+int NodeItem::descendantCount() const {
+    int n = m_children.size();
+    for (auto* child : m_children)
+        n += child->descendantCount();
+    return n;
+}
+
+QString NodeItem::collapseBadgeLabel() const {
+    const int n = descendantCount();
+    return n > 99 ? QStringLiteral("99+") : QString::number(n);
+}
+
+QFont NodeItem::collapseBadgeFont() const {
+    QFont f = m_font;
+    f.setPointSizeF(9.0);
+    f.setBold(true);
+    return f;
+}
+
+QRectF NodeItem::collapseControlRect() const {
+    const qreal d = kCollapseControlRadius * 2;
+    qreal w = d;
+    if (collapseBadgeVisible()) {
+        // Pill widens for multi-digit counts; single digits stay a circle.
+        const qreal textW =
+            QFontMetricsF(collapseBadgeFont()).horizontalAdvance(collapseBadgeLabel());
+        w = qMax(d, textW + 10.0);
+    }
+    switch (addButtonDirection()) {
+    case ButtonDirection::Left:
+        return QRectF(m_rect.left() - kCollapseControlGap - w, -kCollapseControlRadius, w, d);
+    case ButtonDirection::Bottom:
+        return QRectF(-w / 2, m_rect.bottom() + kCollapseControlGap, w, d);
+    case ButtonDirection::Right:
+    default:
+        return QRectF(m_rect.right() + kCollapseControlGap, -kCollapseControlRadius, w, d);
+    }
 }
 
 void NodeItem::applyDescendantVisibility(bool force) {
@@ -503,6 +565,11 @@ MindMapScene* NodeItem::mindMapScene() const {
 
 void NodeItem::showAddButton() {
     if (m_mindMapScene && m_mindMapScene->isEditing())
+        return;
+    // While folded, the junction belongs to the count badge — stacking the
+    // hover "+" on top of it would be ambiguous, and adding into a hidden
+    // branch is confusing anyway (Enter still works: it unfolds first).
+    if (collapseBadgeVisible())
         return;
 
     // Cancel any pending fade-out from a previous brief leave
@@ -584,11 +651,26 @@ QVariant NodeItem::itemChange(GraphicsItemChange change, const QVariant& value) 
 }
 
 void NodeItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event) {
-    Q_UNUSED(event);
+    // Eat double-clicks on the badge so a fast click pair can't fall through
+    // into text editing.
+    if (collapseBadgeVisible() && collapseControlRect().contains(event->pos())) {
+        event->accept();
+        return;
+    }
     emit doubleClicked(this);
 }
 
 void NodeItem::mousePressEvent(QGraphicsSceneMouseEvent* event) {
+    // Press on the count badge arms a click; the toggle fires on release
+    // (macOS button semantics — dragging off the badge cancels). Skip the
+    // base handler so the press neither starts a drag nor alters selection,
+    // matching how a Finder disclosure click leaves the row untouched.
+    if (event->button() == Qt::LeftButton && collapseBadgeVisible() &&
+        collapseControlRect().contains(event->pos())) {
+        m_badgePressed = true;
+        event->accept();
+        return;
+    }
     if (event->button() == Qt::LeftButton) {
         m_dragStartPos = pos();
         m_dragOrigPos = pos();
@@ -598,6 +680,12 @@ void NodeItem::mousePressEvent(QGraphicsSceneMouseEvent* event) {
 }
 
 void NodeItem::mouseMoveEvent(QGraphicsSceneMouseEvent* event) {
+    // A press that started on the badge never drags the node.
+    if (m_badgePressed) {
+        event->accept();
+        return;
+    }
+
     // Close any open editing widget when a drag starts — mouseMoveEvent is
     // only delivered while a button is held, so any call here means the user
     // is dragging rather than editing.
@@ -617,6 +705,15 @@ void NodeItem::mouseMoveEvent(QGraphicsSceneMouseEvent* event) {
 }
 
 void NodeItem::mouseReleaseEvent(QGraphicsSceneMouseEvent* event) {
+    if (m_badgePressed) {
+        m_badgePressed = false;
+        if (event->button() == Qt::LeftButton && collapseBadgeVisible() &&
+            collapseControlRect().contains(event->pos()) && m_mindMapScene) {
+            m_mindMapScene->toggleNodeCollapsed(this);
+        }
+        event->accept();
+        return;
+    }
     if (m_dragging && pos() != m_dragOrigPos) {
         if (m_mindMapScene) {
             m_mindMapScene->undoStack()->push(new MoveNodeCommand(this, m_dragOrigPos, pos()));
@@ -693,15 +790,19 @@ NodeItem::ButtonDirection NodeItem::addButtonDirection() const {
 
 QRectF NodeItem::addButtonRect() const {
     qreal diameter = kAddButtonRadius * 2;
+    // When this node has children, the collapse chevron occupies the
+    // junction and the "+" slides outward so the pair reads [node][fold][add].
+    const qreal offset =
+        kAddButtonOffset +
+        (m_children.isEmpty() ? 0.0 : kCollapseControlGap + kCollapseControlRadius * 2 + 4.0);
     switch (m_addButtonDir) {
     case ButtonDirection::Left:
-        return QRectF(m_rect.left() - kAddButtonOffset - diameter, -kAddButtonRadius, diameter,
-                      diameter);
+        return QRectF(m_rect.left() - offset - diameter, -kAddButtonRadius, diameter, diameter);
     case ButtonDirection::Bottom:
-        return QRectF(-kAddButtonRadius, m_rect.bottom() + kAddButtonOffset, diameter, diameter);
+        return QRectF(-kAddButtonRadius, m_rect.bottom() + offset, diameter, diameter);
     case ButtonDirection::Right:
     default:
-        return QRectF(m_rect.right() + kAddButtonOffset, -kAddButtonRadius, diameter, diameter);
+        return QRectF(m_rect.right() + offset, -kAddButtonRadius, diameter, diameter);
     }
 }
 
@@ -745,7 +846,27 @@ void NodeItem::hoverEnterEvent(QGraphicsSceneHoverEvent* event) {
     showAddButton();
 }
 
+void NodeItem::hoverMoveEvent(QGraphicsSceneHoverEvent* event) {
+    // Track the count badge under the cursor for its hover highlight and a
+    // pointing-hand cursor — only over the badge itself, not the whole node.
+    const bool over = collapseBadgeVisible() && collapseControlRect().contains(event->pos());
+    if (over != m_badgeHovered) {
+        m_badgeHovered = over;
+        if (over)
+            setCursor(Qt::PointingHandCursor);
+        else
+            unsetCursor();
+        update();
+    }
+    QGraphicsObject::hoverMoveEvent(event);
+}
+
 void NodeItem::hoverLeaveEvent(QGraphicsSceneHoverEvent* event) {
     Q_UNUSED(event);
+    if (m_badgeHovered) {
+        m_badgeHovered = false;
+        unsetCursor();
+        update();
+    }
     hideAddButton();
 }

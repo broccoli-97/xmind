@@ -387,6 +387,17 @@ void MindMapScene::addChildToSelected() {
     if (!node)
         node = m_rootNode;
 
+    // Adding into a folded branch: unfold first, or the new child would be
+    // born visible among hidden siblings. Synchronous layout (not the
+    // animated path) so initialChildPosition measures settled geometry
+    // instead of mid-animation positions.
+    if (node->isCollapsed()) {
+        node->setCollapsed(false);
+        markModified();
+        emit nodeCollapseChanged(node);
+        layoutWithoutAnimation();
+    }
+
     auto* cmd = new AddNodeCommand(this, node, tr("New Topic"));
     m_undoStack->push(cmd);
 
@@ -483,9 +494,7 @@ void MindMapScene::keyPressEvent(QKeyEvent* event) {
         // also opt out since the indicator wouldn't make sense.
         if (auto* node = selectedNode();
             node && node != m_rootNode && !node->childNodes().isEmpty()) {
-            node->toggleCollapsed();
-            markModified();
-            emit nodeCollapseChanged(node);
+            toggleNodeCollapsed(node);
             event->accept();
             break;
         }
@@ -679,6 +688,18 @@ void MindMapScene::layoutWithoutAnimation() {
 }
 
 // --- Auto-layout ---
+
+void MindMapScene::toggleNodeCollapsed(NodeItem* node) {
+    if (!node || node->childNodes().isEmpty())
+        return;
+    node->toggleCollapsed();
+    markModified(); // collapse state is persisted (format v4+)
+    emit nodeCollapseChanged(node);
+    // Re-layout: an explicit structural gesture (see autoLayout's contract).
+    // Folding tightens the map around the reclaimed space; unfolding spreads
+    // the children back out from the parent they were stacked on.
+    autoLayout();
+}
 
 void MindMapScene::autoLayout(PostLayoutFit fit) {
     if (!m_rootNode)
