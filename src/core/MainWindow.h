@@ -71,6 +71,11 @@ private:
     void closeFindBar();
     void onFindQueryChanged(const QString& query);
     void stepFindMatch(int delta); // +1 = next, -1 = prev
+    // Bring `target` on screen as the current find match. If it sits inside
+    // a folded branch, unfold it first and defer the scroll until the reveal
+    // re-layout lands — nodes animate, so scrolling immediately would aim at
+    // the stale stacked-on-ancestor position.
+    void focusFindMatch(NodeItem* target);
     // Pin the floating search button to the canvas's top-right corner.
     void positionCanvasOverlays();
 

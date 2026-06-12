@@ -727,17 +727,38 @@ void MindMapScene::autoLayout(PostLayoutFit fit) {
     }
     connect(group, &QAbstractAnimation::finished, this, [this, group, fit]() {
         group->deleteLater();
-        for (auto* view : views()) {
-            auto* mv = qobject_cast<MindMapView*>(view);
-            if (!mv)
-                continue;
-            if (fit == PostLayoutFit::Always)
-                mv->zoomToFit();
-            else
-                // Conditional variant so a deliberate user zoom isn't yanked
-                // away when auto-layout doesn't move content off-screen.
-                mv->zoomToFitIfOffscreen();
+        if (fit != PostLayoutFit::None) {
+            for (auto* view : views()) {
+                auto* mv = qobject_cast<MindMapView*>(view);
+                if (!mv)
+                    continue;
+                if (fit == PostLayoutFit::Always)
+                    mv->zoomToFit();
+                else
+                    // Conditional variant so a deliberate user zoom isn't yanked
+                    // away when auto-layout doesn't move content off-screen.
+                    mv->zoomToFitIfOffscreen();
+            }
         }
+        emit autoLayoutFinished();
     });
     group->start();
+}
+
+bool MindMapScene::expandToReveal(NodeItem* node) {
+    if (!node)
+        return false;
+    bool changed = false;
+    for (auto* ancestor = node->parentNode(); ancestor; ancestor = ancestor->parentNode()) {
+        if (!ancestor->isCollapsed())
+            continue;
+        ancestor->setCollapsed(false);
+        changed = true;
+        emit nodeCollapseChanged(ancestor);
+    }
+    if (!changed)
+        return false;
+    markModified(); // collapse state is persisted (format v4+)
+    autoLayout(PostLayoutFit::None);
+    return true;
 }

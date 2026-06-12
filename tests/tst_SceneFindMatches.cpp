@@ -5,6 +5,7 @@
 #include "scene/MindMapScene.h"
 #include "scene/NodeItem.h"
 
+#include <QSignalSpy>
 #include <QTest>
 
 class tst_SceneFindMatches : public QObject {
@@ -20,6 +21,10 @@ private slots:
     void substringMatches();
     void noMatchesReturnsEmpty();
     void clearHighlightsResetsBothFlags();
+    void matchesIncludeNodesHiddenByCollapse();
+    void expandToRevealUnfoldsAllCollapsedAncestors();
+    void expandToRevealNoOpForVisibleNode();
+    void expandToRevealLeavesOwnFoldAlone();
 };
 
 void tst_SceneFindMatches::initTestCase() {
@@ -102,6 +107,70 @@ void tst_SceneFindMatches::clearHighlightsResetsBothFlags() {
 
     QVERIFY(!a->isSearchMatch());
     QVERIFY(!b->isSearchMatch());
+}
+
+void tst_SceneFindMatches::matchesIncludeNodesHiddenByCollapse() {
+    MindMapScene scene;
+    scene.rootNode()->setText("root");
+    auto* branch = scene.addNode("branch", scene.rootNode());
+    auto* hidden = scene.addNode("needle inside", branch);
+
+    branch->setCollapsed(true);
+    QVERIFY(!hidden->isVisible());
+
+    auto matches = scene.findMatches("needle");
+    QCOMPARE(matches.size(), 1);
+    QCOMPARE(matches[0], hidden);
+}
+
+void tst_SceneFindMatches::expandToRevealUnfoldsAllCollapsedAncestors() {
+    // root -> outer -> inner -> leaf, with both outer and inner folded:
+    // revealing leaf must unfold both and report each via nodeCollapseChanged.
+    MindMapScene scene;
+    scene.rootNode()->setText("root");
+    auto* outer = scene.addNode("outer", scene.rootNode());
+    auto* inner = scene.addNode("inner", outer);
+    auto* leaf = scene.addNode("leaf", inner);
+
+    inner->setCollapsed(true);
+    outer->setCollapsed(true);
+    QVERIFY(!leaf->isVisible());
+    scene.setModified(false);
+
+    QSignalSpy spy(&scene, &MindMapScene::nodeCollapseChanged);
+    QVERIFY(scene.expandToReveal(leaf));
+
+    QVERIFY(!outer->isCollapsed());
+    QVERIFY(!inner->isCollapsed());
+    QVERIFY(leaf->isVisible());
+    QCOMPARE(spy.count(), 2);
+    QVERIFY(scene.isModified()); // collapse state is persisted
+}
+
+void tst_SceneFindMatches::expandToRevealNoOpForVisibleNode() {
+    MindMapScene scene;
+    auto* child = scene.addNode("child", scene.rootNode());
+    scene.setModified(false);
+
+    QSignalSpy spy(&scene, &MindMapScene::nodeCollapseChanged);
+    QVERIFY(!scene.expandToReveal(child));
+    QVERIFY(!scene.expandToReveal(nullptr));
+
+    QCOMPARE(spy.count(), 0);
+    QVERIFY(!scene.isModified());
+}
+
+void tst_SceneFindMatches::expandToRevealLeavesOwnFoldAlone() {
+    // A collapsed match is itself visible — only its ancestors matter.
+    MindMapScene scene;
+    auto* branch = scene.addNode("branch", scene.rootNode());
+    scene.addNode("leaf", branch);
+
+    branch->setCollapsed(true);
+    QVERIFY(branch->isVisible());
+
+    QVERIFY(!scene.expandToReveal(branch));
+    QVERIFY(branch->isCollapsed());
 }
 
 QTEST_MAIN(tst_SceneFindMatches)

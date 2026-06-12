@@ -40,11 +40,14 @@ public:
     // What the view does once the auto-layout animation lands.
     //   IfOffscreen — refit only when content runs off-screen, so a
     //                 deliberate user zoom survives a layout that stays
-    //                 within the viewport (the Ctrl+L contract).
-    //   Always      — unconditional refit; for template switches, where the
-    //                 algorithm/spacing change rearranges the whole map and
-    //                 the previous zoom/pan no longer frames anything useful.
-    enum class PostLayoutFit { IfOffscreen, Always };
+    //                 within the viewport (collapse/expand re-layouts).
+    //   Always      — unconditional refit; for explicit Auto Layout
+    //                 (Ctrl+L / toolbar) and template switches, where the
+    //                 user asked to see the whole rearranged map.
+    //   None        — no fit at all; for reveals where the caller is about
+    //                 to focus one specific node (find navigation) and a
+    //                 whole-map fit would fight that scroll.
+    enum class PostLayoutFit { IfOffscreen, Always, None };
 
     // Recompute every node position with the active layout algorithm and
     // animate nodes there. This is the ONLY full re-layout entry point, and
@@ -54,6 +57,8 @@ public:
     //   - the user collapses/expands a subtree (visible structure changed:
     //     collapsing reclaims the folded branch's space, expanding makes
     //     room for it) — see toggleNodeCollapsed(),
+    //   - find navigation lands on a match inside a folded branch and
+    //     unfolds it — see expandToReveal(),
     //   - initial arrangement of fresh content (new-from-template, imports).
     // Editing must never trigger it: confirming a node's text, adding a node
     // (placed via LayoutEngine::initialChildPosition), or undo/redo keep all
@@ -70,6 +75,17 @@ public:
     // null or childless nodes. NodeItem::setCollapsed remains the raw state
     // setter for deserialization and tests (no layout side effects).
     void toggleNodeCollapsed(NodeItem* node);
+
+    // Unfold every collapsed ancestor of `node` so it becomes visible on the
+    // canvas — find navigation uses this when the current match sits inside
+    // a folded branch. Per expanded ancestor it mirrors toggleNodeCollapsed
+    // (dirties the document, emits nodeCollapseChanged), but runs a single
+    // re-layout with PostLayoutFit::None: the caller scrolls to `node` once
+    // autoLayoutFinished fires, and a whole-map fit would fight that.
+    // `node`'s own fold state is left alone (a collapsed match is itself
+    // visible). Returns false — and does nothing — when no ancestor is
+    // collapsed.
+    bool expandToReveal(NodeItem* node);
 
     NodeItem* selectedNode() const;
 
@@ -159,6 +175,10 @@ signals:
     // through toggleNodeCollapsed) so other views — the outline panel in
     // particular — can mirror the fold state without polling.
     void nodeCollapseChanged(NodeItem* node);
+    // Emitted once an autoLayout() animation lands (after the post-layout
+    // fit, if any). Lets callers sequence work that needs final node
+    // positions — e.g. scrolling to a just-revealed find match.
+    void autoLayoutFinished();
 
 public slots:
     void addChildToSelected();

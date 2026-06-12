@@ -35,6 +35,7 @@
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QPointer>
 #include <QPushButton>
 #include <QSignalBlocker>
 #include <QSplitter>
@@ -379,7 +380,8 @@ void MainWindow::setupMenuBar() {
     auto* autoLayoutAct = editMenu->addAction(tr("&Auto Layout"));
     autoLayoutAct->setShortcut(QKeySequence("Ctrl+L"));
     connect(autoLayoutAct, &QAction::triggered, this, [this]() {
-        withCurrentScene([](MindMapScene* s) { s->autoLayout(MindMapScene::PostLayoutFit::Always); });
+        withCurrentScene(
+            [](MindMapScene* s) { s->autoLayout(MindMapScene::PostLayoutFit::Always); });
     });
 
     editMenu->addSeparator();
@@ -542,7 +544,7 @@ void MainWindow::onFindQueryChanged(const QString& query) {
     if (!m_findMatches.isEmpty()) {
         m_findCurrentIdx = 0;
         m_findMatches[0]->setSearchCurrent(true);
-        withCurrentView([n = m_findMatches[0]](MindMapView* v) { v->ensureNodeVisible(n); });
+        focusFindMatch(m_findMatches[0]);
     }
     if (m_findBar)
         m_findBar->setMatchStatus(m_findMatches.isEmpty() ? 0 : 1, m_findMatches.size());
@@ -563,9 +565,28 @@ void MainWindow::stepFindMatch(int delta) {
     m_findCurrentIdx = ((m_findCurrentIdx + delta) % n + n) % n; // wrap both ways
     auto* target = m_findMatches[m_findCurrentIdx];
     target->setSearchCurrent(true);
-    withCurrentView([target](MindMapView* v) { v->ensureNodeVisible(target); });
+    focusFindMatch(target);
     if (m_findBar)
         m_findBar->setMatchStatus(m_findCurrentIdx + 1, n);
+}
+
+void MainWindow::focusFindMatch(NodeItem* target) {
+    if (!target)
+        return;
+    auto* scene = m_tabManager ? m_tabManager->currentScene() : nullptr;
+    if (scene && scene->expandToReveal(target)) {
+        // QPointer: the node can die before the layout animation lands
+        // (undo pulled it, the tab closed).
+        connect(
+            scene, &MindMapScene::autoLayoutFinished, this,
+            [this, node = QPointer<NodeItem>(target)]() {
+                if (node)
+                    withCurrentView([n = node.data()](MindMapView* v) { v->ensureNodeVisible(n); });
+            },
+            Qt::SingleShotConnection);
+        return;
+    }
+    withCurrentView([target](MindMapView* v) { v->ensureNodeVisible(target); });
 }
 
 // ---------------------------------------------------------------------------
