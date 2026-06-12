@@ -3,8 +3,30 @@
 
 #include <QAbstractItemView>
 #include <QPainter>
+#include <QTreeView>
 
 OutlineItemDelegate::OutlineItemDelegate(QObject* parent) : QStyledItemDelegate(parent) {}
+
+// Mirror of StyleSheetGenerator's generateBranchIcon(): same 12px chevron,
+// stroke, and color as the QSS ::branch images, centered in the branch cell.
+static void drawBranchChevron(QPainter* painter, const QRect& cell, bool open) {
+    constexpr int sz = 12;
+    const QPointF origin(cell.left() + (cell.width() - sz) / 2.0,
+                         cell.top() + (cell.height() - sz) / 2.0);
+
+    painter->save();
+    painter->setRenderHint(QPainter::Antialiasing);
+    painter->setPen(QPen(QColor("#B0B0B0"), 1.4, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    painter->setBrush(Qt::NoBrush);
+    if (open) {
+        painter->drawLine(origin + QPointF(2, 4), origin + QPointF(6, 8));
+        painter->drawLine(origin + QPointF(6, 8), origin + QPointF(10, 4));
+    } else {
+        painter->drawLine(origin + QPointF(4, 2), origin + QPointF(8, 6));
+        painter->drawLine(origin + QPointF(8, 6), origin + QPointF(4, 10));
+    }
+    painter->restore();
+}
 
 void OutlineItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option,
                                 const QModelIndex& index) const {
@@ -46,6 +68,17 @@ void OutlineItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& o
         painter->setBrush(selected ? selBg : hoverBg);
         painter->drawRoundedRect(bar, radius, radius);
         painter->restore();
+
+        // The tree view paints the QSS ::branch chevron before the delegate
+        // runs, so the full-width bar above just covered it. Repaint it on top
+        // for foldable rows; the cell is the indentation slot left of the item.
+        if (index.model()->hasChildren(index)) {
+            if (const auto* tree = qobject_cast<const QTreeView*>(opt.widget)) {
+                const QRect cell(opt.rect.left() - tree->indentation(), opt.rect.top(),
+                                 tree->indentation(), opt.rect.height());
+                drawBranchChevron(painter, cell, tree->isExpanded(index));
+            }
+        }
     }
 
     // Draw the icon and text on top of our background. State flags have been
