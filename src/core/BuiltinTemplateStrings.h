@@ -108,4 +108,12 @@ namespace BuiltinTemplateStrings {
 [[maybe_unused]] static const char* const kThemeSketchName = QT_TRANSLATE_NOOP("ThemeRegistry", "Sketch");
 [[maybe_unused]] static const char* const kThemeSketchDesc = QT_TRANSLATE_NOOP("ThemeRegistry", "Hand-drawn marker on warm paper — Excalidraw-style wobbly outlines");
 
+// Whimsy
+[[maybe_unused]] static const char* const kThemeWhimsyName = QT_TRANSLATE_NOOP("ThemeRegistry", "Whimsy");
+[[maybe_unused]] static const char* const kThemeWhimsyDesc = QT_TRANSLATE_NOOP("ThemeRegistry", "Sunset confetti — saturated solid pills on warm peach");
+
+// Sequoia
+[[maybe_unused]] static const char* const kThemeSequoiaName = QT_TRANSLATE_NOOP("ThemeRegistry", "Sequoia");
+[[maybe_unused]] static const char* const kThemeSequoiaDesc = QT_TRANSLATE_NOOP("ThemeRegistry", "macOS-style pills — system colors per branch on a neutral canvas");
+
 } // namespace BuiltinTemplateStrings

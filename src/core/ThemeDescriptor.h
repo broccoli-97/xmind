@@ -78,6 +78,14 @@ struct ThemeNodeStyle {
     //   same top-level branch shares one color)
     QString paletteSource = "level";
 
+    // Where node text color comes from when the text sits on the canvas or a
+    // tinted/outlined body (no solid colored slab behind it):
+    //   "auto"   (default — derived from the node color: darker in light
+    //            themes, lighter in dark themes; legacy behavior)
+    //   "scheme" (always use ThemeColorScheme::nodeText — lets pastel themes
+    //            keep neutral, high-contrast labels)
+    QString textColorSource = "auto";
+
     // Hand-drawn / sketch rendering. roughness=0 (default) keeps the crisp
     // path. roughness>0 perturbs the outline; strokePasses>1 redraws with a
     // fresh jitter so two slightly-offset strokes overlay into a sketchy look.

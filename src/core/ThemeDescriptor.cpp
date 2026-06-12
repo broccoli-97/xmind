@@ -117,6 +117,7 @@ ThemeNodeStyle ThemeNodeStyle::fromJson(const QJsonObject& json,
     s.shadowOpacity = getDouble(json, "shadowOpacity", base.shadowOpacity);
     s.selectionWidth = getDouble(json, "selectionWidth", base.selectionWidth);
     s.paletteSource = getStr(json, "paletteSource", base.paletteSource);
+    s.textColorSource = getStr(json, "textColorSource", base.textColorSource);
     s.roughness = getDouble(json, "roughness", base.roughness);
     s.strokePasses = getInt(json, "strokePasses", base.strokePasses);
     s.fontFamily = getStr(json, "fontFamily", base.fontFamily);
@@ -144,6 +145,7 @@ QJsonObject ThemeNodeStyle::toJson() const {
     obj["shadowOpacity"] = shadowOpacity;
     obj["selectionWidth"] = selectionWidth;
     obj["paletteSource"] = paletteSource;
+    obj["textColorSource"] = textColorSource;
     if (roughness != 0.0)
         obj["roughness"] = roughness;
     if (strokePasses != 1)

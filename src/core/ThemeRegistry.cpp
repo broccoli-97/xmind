@@ -49,6 +49,7 @@ void ThemeRegistry::loadBuiltins() {
     // Order here drives the order shown in the Switch Theme picker.
     const QStringList kBuiltinPaths = {
         ":/themes/default.json",
+        ":/themes/sequoia.json",
         ":/themes/morandi.json",
         ":/themes/nord.json",
         ":/themes/sakura.json",

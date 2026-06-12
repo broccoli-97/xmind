@@ -10,8 +10,14 @@
         "fillMode": "tinted",
         "fillAlpha": 0.60,
         "borderWidth": 1.4,
-        "borderColorSource": "darker",
-        "drawShadow": false
+        "borderColorSource": "fixed",
+        "paletteSource": "branch",
+        "textColorSource": "scheme",
+        "drawShadow": true,
+        "shadowLayers": 3,
+        "shadowSpread": 4.0,
+        "shadowOffsetY": 2.0,
+        "shadowOpacity": 0.8
     },
     "rootStyle": {
         "fillAlpha": 0.78,
@@ -20,7 +26,7 @@
     },
     "edgeStyle": {
         "width": 1.8,
-        "colorSource": "target",
+        "colorSource": "branch",
         "anchor": "center",
         "curvature": 0.55,
         "colorModifier": "same",
@@ -30,7 +36,7 @@
     "colors": {
         "light": {
             "canvasBackground": "#F7F3EC",
-            "canvasGridDot": "#E8E1D6",
+            "canvasGridDot": "#12000000",
             "nodePalette": [
                 "#C7A99A",
                 "#A8BFA9",
@@ -39,15 +45,16 @@
                 "#C5AEC2",
                 "#BCC9A8"
             ],
-            "nodeShadow": "#00000000",
+            "nodeShadow": "#24000000",
             "nodeSelectionBorder": "#8C6F58",
             "nodeText": "#3B342E",
+            "nodeBorderColor": "#21000000",
             "edgeLightenFactor": 100,
             "exportBackground": "#F7F3EC"
         },
         "dark": {
             "canvasBackground": "#2E2A26",
-            "canvasGridDot": "#463F39",
+            "canvasGridDot": "#16FFFFFF",
             "nodePalette": [
                 "#D2B9A8",
                 "#BACCB4",
@@ -56,9 +63,10 @@
                 "#CCBCCB",
                 "#C5D0BD"
             ],
-            "nodeShadow": "#00000000",
+            "nodeShadow": "#3C000000",
             "nodeSelectionBorder": "#EAB78C",
             "nodeText": "#EAE1D6",
+            "nodeBorderColor": "#30FFFFFF",
             "edgeLightenFactor": 100,
             "exportBackground": "#2E2A26"
         }

@@ -15,6 +15,7 @@
 #include <QGraphicsSceneHoverEvent>
 #include <QGraphicsSceneMouseEvent>
 #include <QPainter>
+#include <QPainterPath>
 #include <QStyleOptionGraphicsItem>
 #include <QTimer>
 #include <QVariantAnimation>
@@ -127,6 +128,19 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
 
     // ----- Drop shadow -------------------------------------------------------
     if (NodeStyleResolver::drawsShadow(style, shape)) {
+        painter->save();
+        // Translucent fills composite over whatever is behind them; without a
+        // clip the body area would blend against the shadow stack instead of
+        // clean canvas and the tint would muddy. Restrict the shadow to
+        // outside the body for non-solid fills.
+        if (style.fillMode != QLatin1String("solid")) {
+            QPainterPath body;
+            body.addRoundedRect(m_rect, radius, radius);
+            QPainterPath around;
+            const qreal pad = style.shadowSpread + qAbs(style.shadowOffsetY) + 4.0;
+            around.addRect(m_rect.adjusted(-pad, -pad, pad, pad));
+            painter->setClipPath(around.subtracted(body));
+        }
         painter->setPen(Qt::NoPen);
         const int layers = qMax(1, style.shadowLayers);
         const qreal spread = style.shadowSpread;
@@ -141,6 +155,7 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
             QRectF sr = m_rect.adjusted(-expand, -expand, expand, expand).translated(0, offsetY);
             painter->drawRoundedRect(sr, radius + expand, radius + expand);
         }
+        painter->restore();
     }
 
     // ----- Body --------------------------------------------------------------
@@ -280,16 +295,17 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
     // ----- Text --------------------------------------------------------------
     // When the node has no colored slab behind the text (underline / none
     // shapes, or outlined / tinted roundedRect fills), default white text
-    // would vanish on a light canvas. Tint the text from the node color
-    // instead — darker than the accent in light themes, lighter in dark
-    // themes — so it reads against the canvas while still belonging to the
-    // node's hue.
+    // would vanish on a light canvas. Unless the theme pins the text to the
+    // scheme color (textColorSource "scheme"), tint the text from the node
+    // color instead — darker than the accent in light themes, lighter in
+    // dark themes — so it reads against the canvas while still belonging to
+    // the node's hue.
     const bool textOnCanvas =
         shape == QLatin1String("underline") || shape == QLatin1String("none") ||
         (shape == QLatin1String("roundedRect") && (style.fillMode == QLatin1String("outlined") ||
                                                    style.fillMode == QLatin1String("tinted")));
     QColor effTextColor = textColor;
-    if (textOnCanvas) {
+    if (textOnCanvas && style.textColorSource != QLatin1String("scheme")) {
         effTextColor = ThemeManager::isDark() ? nodeCol.lighter(140) : nodeCol.darker(120);
     }
     painter->setPen(effTextColor);

@@ -40,8 +40,6 @@ QFont NodeStyleResolver::fontForLevel(int level, const QFont& base) const {
 bool NodeStyleResolver::drawsShadow(const ThemeNodeStyle& style, const QString& shape) {
     if (shape != QLatin1String("roundedRect"))
         return false;
-    if (style.fillMode != QLatin1String("solid"))
-        return false;
     return style.drawShadow;
 }
 
