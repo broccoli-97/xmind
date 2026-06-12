@@ -1278,6 +1278,26 @@ Do you want to save your changes?</source>
         <source>macOS-style pills — system colors per branch on a neutral canvas</source>
         <translation>macOS 风格胶囊节点 — 中性画布上按分支着色的系统色</translation>
     </message>
+    <message>
+        <location filename="../src/core/BuiltinTemplateStrings.h" line="120"/>
+        <source>Cupertino</source>
+        <translation>库比蒂诺</translation>
+    </message>
+    <message>
+        <location filename="../src/core/BuiltinTemplateStrings.h" line="121"/>
+        <source>White cards with branch accent bars — macOS notification style</source>
+        <translation>白色卡片配分支色侧条 — macOS 通知风格</translation>
+    </message>
+    <message>
+        <location filename="../src/core/BuiltinTemplateStrings.h" line="124"/>
+        <source>Frost</source>
+        <translation>霜雾</translation>
+    </message>
+    <message>
+        <location filename="../src/core/BuiltinTemplateStrings.h" line="125"/>
+        <source>Frosted glass tints on a cool gray canvas — macOS materials</source>
+        <translation>冷灰画布上的磨砂玻璃色调 — macOS 材质质感</translation>
+    </message>
 </context>
 <context>
     <name>UpdateChecker</name>

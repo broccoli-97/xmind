@@ -116,4 +116,12 @@ namespace BuiltinTemplateStrings {
 [[maybe_unused]] static const char* const kThemeSequoiaName = QT_TRANSLATE_NOOP("ThemeRegistry", "Sequoia");
 [[maybe_unused]] static const char* const kThemeSequoiaDesc = QT_TRANSLATE_NOOP("ThemeRegistry", "macOS-style pills — system colors per branch on a neutral canvas");
 
+// Cupertino
+[[maybe_unused]] static const char* const kThemeCupertinoName = QT_TRANSLATE_NOOP("ThemeRegistry", "Cupertino");
+[[maybe_unused]] static const char* const kThemeCupertinoDesc = QT_TRANSLATE_NOOP("ThemeRegistry", "White cards with branch accent bars — macOS notification style");
+
+// Frost
+[[maybe_unused]] static const char* const kThemeFrostName = QT_TRANSLATE_NOOP("ThemeRegistry", "Frost");
+[[maybe_unused]] static const char* const kThemeFrostDesc = QT_TRANSLATE_NOOP("ThemeRegistry", "Frosted glass tints on a cool gray canvas — macOS materials");
+
 } // namespace BuiltinTemplateStrings

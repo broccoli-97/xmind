@@ -1,0 +1,75 @@
+{
+    "$schema": "ymind-theme-v1",
+    "id": "builtin.cupertino",
+    "name": "Cupertino",
+    "description": "White cards with branch accent bars — macOS notification style",
+    "nodeStyle": {
+        "shape": "roundedRect",
+        "borderRadius": 10.0,
+        "padding": 14.0,
+        "fillMode": "solid",
+        "fillColorSource": "card",
+        "accent": "leadingBar",
+        "paletteSource": "branch",
+        "borderWidth": 1.0,
+        "borderColorSource": "fixed",
+        "drawShadow": true,
+        "shadowLayers": 3,
+        "shadowSpread": 5.0,
+        "shadowOffsetY": 2.0,
+        "shadowOpacity": 0.7
+    },
+    "rootStyle": {
+        "padding": 18.0,
+        "fontPointSize": 15.0
+    },
+    "edgeStyle": {
+        "width": 2.0,
+        "colorSource": "branch",
+        "anchor": "center",
+        "curvature": 0.55,
+        "colorModifier": "same",
+        "lineCap": "round"
+    },
+    "backgroundPattern": "none",
+    "colors": {
+        "light": {
+            "canvasBackground": "#F2F2F7",
+            "canvasGridDot": "#E5E5EA",
+            "nodePalette": [
+                "#007AFF",
+                "#34C759",
+                "#FF9500",
+                "#AF52DE",
+                "#FF2D55",
+                "#30B0C7"
+            ],
+            "nodeShadow": "#20000000",
+            "nodeSelectionBorder": "#007AFF",
+            "nodeText": "#1D1D1F",
+            "nodeBorderColor": "#16000000",
+            "cardBackground": "#FFFFFF",
+            "edgeLightenFactor": 100,
+            "exportBackground": "#F2F2F7"
+        },
+        "dark": {
+            "canvasBackground": "#1E1E1E",
+            "canvasGridDot": "#3A3A3C",
+            "nodePalette": [
+                "#0A84FF",
+                "#30D158",
+                "#FF9F0A",
+                "#BF5AF2",
+                "#FF375F",
+                "#40C8E0"
+            ],
+            "nodeShadow": "#50000000",
+            "nodeSelectionBorder": "#0A84FF",
+            "nodeText": "#F5F5F7",
+            "nodeBorderColor": "#24FFFFFF",
+            "cardBackground": "#2C2C2E",
+            "edgeLightenFactor": 100,
+            "exportBackground": "#1E1E1E"
+        }
+    }
+}

@@ -11,6 +11,8 @@
     <qresource prefix="/themes">
         <file alias="default.json">themes/default.json</file>
         <file alias="sequoia.json">themes/sequoia.json</file>
+        <file alias="cupertino.json">themes/cupertino.json</file>
+        <file alias="frost.json">themes/frost.json</file>
         <file alias="morandi.json">themes/morandi.json</file>
         <file alias="nord.json">themes/nord.json</file>
         <file alias="sakura.json">themes/sakura.json</file>

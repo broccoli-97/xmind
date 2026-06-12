@@ -23,6 +23,10 @@ struct ThemeColorScheme {
     QColor exportBackground;
     // Consulted only when ThemeNodeStyle::borderColorSource == "fixed".
     QColor nodeBorderColor;
+    // Consulted only when ThemeNodeStyle::fillColorSource == "card" — the
+    // neutral surface color bodies are filled with (e.g. white cards on a
+    // gray canvas). Invalid → fall back to the node's palette color.
+    QColor cardBackground;
 
     static ThemeColorScheme fromJson(const QJsonObject& json);
     static ThemeColorScheme fromJson(const QJsonObject& json,
@@ -52,6 +56,18 @@ struct ThemeNodeStyle {
     QString fillMode = "solid";
     // Alpha multiplier for "tinted" mode, 0.0 (transparent) – 1.0 (opaque).
     qreal fillAlpha = 0.15;
+    // Base color the fill (solid or tinted) is built from:
+    //   "node" (default — the node's palette color)
+    //   "card" (ThemeColorScheme::cardBackground — neutral surface; the node
+    //          color then only appears in edges, badges, and accents)
+    QString fillColorSource = "node";
+
+    // Decorative accent drawn on top of the body:
+    //   "none"       (default)
+    //   "leadingBar" (slim node-colored bar hugging the left edge — gives
+    //                neutral "card" fills a color identity without putting
+    //                text on a colored surface; macOS notification style)
+    QString accent = "none";
 
     // Border drawn in every visual state. 0 disables the border entirely
     // (current behavior). The selection ring is drawn independently.

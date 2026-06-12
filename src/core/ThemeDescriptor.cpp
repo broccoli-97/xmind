@@ -64,6 +64,7 @@ ThemeColorScheme ThemeColorScheme::fromJson(const QJsonObject& json,
     cs.edgeLightenFactor = getInt(json, "edgeLightenFactor", base.edgeLightenFactor);
     cs.exportBackground = getColor(json, "exportBackground", base.exportBackground);
     cs.nodeBorderColor = getColor(json, "nodeBorderColor", base.nodeBorderColor);
+    cs.cardBackground = getColor(json, "cardBackground", base.cardBackground);
 
     return cs;
 }
@@ -85,6 +86,8 @@ QJsonObject ThemeColorScheme::toJson() const {
     obj["exportBackground"] = exportBackground.name(QColor::HexArgb);
     if (nodeBorderColor.isValid())
         obj["nodeBorderColor"] = nodeBorderColor.name(QColor::HexArgb);
+    if (cardBackground.isValid())
+        obj["cardBackground"] = cardBackground.name(QColor::HexArgb);
 
     return obj;
 }
@@ -108,6 +111,8 @@ ThemeNodeStyle ThemeNodeStyle::fromJson(const QJsonObject& json,
     s.rootShape = getStr(json, "rootShape", base.rootShape);
     s.fillMode = getStr(json, "fillMode", base.fillMode);
     s.fillAlpha = getDouble(json, "fillAlpha", base.fillAlpha);
+    s.fillColorSource = getStr(json, "fillColorSource", base.fillColorSource);
+    s.accent = getStr(json, "accent", base.accent);
     s.borderWidth = getDouble(json, "borderWidth", base.borderWidth);
     s.borderColorSource = getStr(json, "borderColorSource", base.borderColorSource);
     s.drawShadow = getBool(json, "drawShadow", base.drawShadow);
@@ -136,6 +141,9 @@ QJsonObject ThemeNodeStyle::toJson() const {
         obj["rootShape"] = rootShape;
     obj["fillMode"] = fillMode;
     obj["fillAlpha"] = fillAlpha;
+    obj["fillColorSource"] = fillColorSource;
+    if (accent != QLatin1String("none"))
+        obj["accent"] = accent;
     obj["borderWidth"] = borderWidth;
     obj["borderColorSource"] = borderColorSource;
     obj["drawShadow"] = drawShadow;

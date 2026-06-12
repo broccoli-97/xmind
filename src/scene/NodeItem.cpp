@@ -218,17 +218,25 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
         }
         painter->setPen(pen);
 
-        // Brush logic by fillMode.
+        // Brush logic by fillMode. "card" fill source swaps the palette color
+        // for the scheme's neutral surface — the node hue then only shows in
+        // edges, badges, and accents.
+        QColor fillBase = nodeCol;
+        if (style.fillColorSource == QLatin1String("card")) {
+            const QColor card = th ? th->activeColors().cardBackground : QColor();
+            if (card.isValid())
+                fillBase = card;
+        }
         QBrush brush(Qt::NoBrush);
         if (style.fillMode == QLatin1String("outlined")) {
             brush = Qt::NoBrush;
         } else if (style.fillMode == QLatin1String("tinted")) {
-            QColor tint = nodeCol;
+            QColor tint = fillBase;
             tint.setAlphaF(qBound(0.0, style.fillAlpha, 1.0));
             brush = QBrush(tint);
         } else {
-            // "solid" (default) — 100% colored fill, matching pre-refactor behavior.
-            brush = QBrush(nodeCol);
+            // "solid" (default) — 100% fill, matching pre-refactor behavior.
+            brush = QBrush(fillBase);
         }
         painter->setBrush(brush);
 
@@ -249,6 +257,19 @@ void NodeItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option,
             }
         } else {
             painter->drawRoundedRect(m_rect, radius, radius);
+        }
+
+        // Accent: slim node-colored bar hugging the leading edge. Always on
+        // the left regardless of layout side — it reads as a list-item marker
+        // (macOS notification style), not a connector.
+        if (style.accent == QLatin1String("leadingBar")) {
+            const qreal inset = qMin<qreal>(7.0, padding * 0.5);
+            const qreal barW = 3.5;
+            QRectF bar(m_rect.left() + inset, m_rect.top() + inset, barW,
+                       m_rect.height() - 2 * inset);
+            painter->setPen(Qt::NoPen);
+            painter->setBrush(nodeCol);
+            painter->drawRoundedRect(bar, barW / 2, barW / 2);
         }
     }
 
