@@ -97,8 +97,9 @@ void MindMapToolBar::buildContent() {
 
     auto* layoutBtn =
         addButton("auto-layout", tr("Auto Layout"), tr("Automatically arrange all nodes (Ctrl+L)"));
-    connect(layoutBtn, &QToolButton::clicked, this,
-            [withScene]() { withScene([](MindMapScene* s) { s->autoLayout(); }); });
+    connect(layoutBtn, &QToolButton::clicked, this, [withScene]() {
+        withScene([](MindMapScene* s) { s->autoLayout(MindMapScene::PostLayoutFit::Always); });
+    });
 
     addSeparator();
 

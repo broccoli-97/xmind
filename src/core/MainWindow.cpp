@@ -378,8 +378,9 @@ void MainWindow::setupMenuBar() {
 
     auto* autoLayoutAct = editMenu->addAction(tr("&Auto Layout"));
     autoLayoutAct->setShortcut(QKeySequence("Ctrl+L"));
-    connect(autoLayoutAct, &QAction::triggered, this,
-            [this]() { withCurrentScene([](MindMapScene* s) { s->autoLayout(); }); });
+    connect(autoLayoutAct, &QAction::triggered, this, [this]() {
+        withCurrentScene([](MindMapScene* s) { s->autoLayout(MindMapScene::PostLayoutFit::Always); });
+    });
 
     editMenu->addSeparator();
 
