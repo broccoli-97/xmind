@@ -33,6 +33,7 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets Svg PrintSupport Network LinguistTo
 add_library(ymind_lib OBJECT
     # Core – application infrastructure
     src/core/AboutDialog.h        src/core/AboutDialog.cpp
+    src/core/AiClient.h           src/core/AiClient.cpp
     src/core/AppSettings.h        src/core/AppSettings.cpp
     src/core/AutoSaveManager.h    src/core/AutoSaveManager.cpp
     src/core/BuiltinTemplateStrings.h
@@ -75,6 +76,7 @@ add_library(ymind_lib OBJECT
     src/layout/LayoutStyle.h
 
     # UI – widgets and theming
+    src/ui/AiGenerateDialog.h       src/ui/AiGenerateDialog.cpp
     src/ui/FindBar.h                src/ui/FindBar.cpp
     src/ui/FloatingSearchButton.h   src/ui/FloatingSearchButton.cpp
     src/ui/IconFactory.h            src/ui/IconFactory.cpp

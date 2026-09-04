@@ -13,6 +13,7 @@
 #include "scene/MindMapScene.h"
 #include "scene/MindMapView.h"
 #include "scene/NodeItem.h"
+#include "ui/AiGenerateDialog.h"
 #include "ui/FindBar.h"
 #include "ui/FloatingSearchButton.h"
 #include "ui/IconFactory.h"
@@ -220,6 +221,8 @@ void MainWindow::setupCentralLayout() {
         if (m_toggleToolbarAct)
             m_toggleToolbarAct->setChecked(false);
     });
+    connect(m_toolbar, &MindMapToolBar::aiGenerateRequested, this,
+            &MainWindow::showAiGenerateDialog);
 
     // ---- Content area: splitter with outline + right panel (toolbar + tab pages) ----
     m_contentSplitter = new QSplitter(Qt::Horizontal, this);
@@ -338,6 +341,10 @@ void MainWindow::setupMenuBar() {
 
     auto* importAct = fileMenu->addAction(tr("&Import from Markdown..."));
     connect(importAct, &QAction::triggered, m_fileManager, &FileManager::importFromMarkdown);
+
+    auto* aiGenerateAct = fileMenu->addAction(tr("Generate from &Text (AI)..."));
+    aiGenerateAct->setShortcut(QKeySequence("Ctrl+Shift+N"));
+    connect(aiGenerateAct, &QAction::triggered, this, &MainWindow::showAiGenerateDialog);
 
     auto* exportMenu = fileMenu->addMenu(tr("&Export"));
     exportMenu->addAction(tr("As &Text..."), m_fileManager, &FileManager::exportAsText);
@@ -749,6 +756,13 @@ void MainWindow::openSettings() {
 
 void MainWindow::openAbout() {
     AboutDialog dlg(this);
+    dlg.exec();
+}
+
+void MainWindow::showAiGenerateDialog() {
+    AiGenerateDialog dlg(this);
+    connect(&dlg, &AiGenerateDialog::outlineGenerated, this,
+            [this](const QString& markdown) { m_fileManager->importMarkdownContent(markdown); });
     dlg.exec();
 }
 

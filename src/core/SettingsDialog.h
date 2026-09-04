@@ -7,6 +7,7 @@ class QCheckBox;
 class QFontComboBox;
 class QSpinBox;
 class QPushButton;
+class QLineEdit;
 
 class SettingsDialog : public QDialog {
     Q_OBJECT
@@ -29,4 +30,9 @@ private:
     QFontComboBox* m_fontFamilyCombo;
     QSpinBox* m_fontSizeSpin;
     QCheckBox* m_checkUpdatesCheck;
+
+    QComboBox* m_aiProviderCombo;
+    QComboBox* m_aiModelCombo;
+    QLineEdit* m_aiApiKeyEdit;
+    QLineEdit* m_aiEndpointEdit;
 };

@@ -25,6 +25,7 @@ add_ymind_test(tst_TemplateRegistry)
 add_ymind_test(tst_ThemeRegistry)
 add_ymind_test(tst_LayoutAlgorithmRegistry)
 add_ymind_test(tst_AppSettings)
+add_ymind_test(tst_AiClient)
 
 # Tier 3 -- requires QApplication
 add_ymind_test(tst_MindMapSceneSerialization)

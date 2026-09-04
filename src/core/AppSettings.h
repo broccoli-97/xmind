@@ -41,6 +41,18 @@ public:
     QString language() const;
     void setLanguage(const QString& lang);
 
+    QString aiProvider() const;
+    void setAiProvider(const QString& provider);
+
+    QString aiApiKey() const;
+    void setAiApiKey(const QString& key);
+
+    QString aiModel() const;
+    void setAiModel(const QString& model);
+
+    QString aiCustomEndpoint() const;
+    void setAiCustomEndpoint(const QString& endpoint);
+
 signals:
     void themeChanged(AppTheme theme);
     void autoSaveSettingsChanged();

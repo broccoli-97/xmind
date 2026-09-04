@@ -22,9 +22,9 @@ void FileManager::newFile() {
 }
 
 void FileManager::openFile() {
-    QString filePath =
-        QFileDialog::getOpenFileName(m_window, tr("Open Mind Map"), QString(),
-                                     tr("YMind Files (*.ymind);;JSON Files (*.json);;All Files (*)"));
+    QString filePath = QFileDialog::getOpenFileName(
+        m_window, tr("Open Mind Map"), QString(),
+        tr("YMind Files (*.ymind);;JSON Files (*.json);;All Files (*)"));
     if (filePath.isEmpty())
         return;
 
@@ -91,9 +91,9 @@ void FileManager::saveFile() {
 }
 
 void FileManager::saveFileAs() {
-    QString filePath =
-        QFileDialog::getSaveFileName(m_window, tr("Save Mind Map"), QString(),
-                                     tr("YMind Files (*.ymind);;JSON Files (*.json);;All Files (*)"));
+    QString filePath = QFileDialog::getSaveFileName(
+        m_window, tr("Save Mind Map"), QString(),
+        tr("YMind Files (*.ymind);;JSON Files (*.json);;All Files (*)"));
     if (filePath.isEmpty())
         return;
 
@@ -118,8 +118,7 @@ void FileManager::saveFileAs() {
 // Common export helper
 // ---------------------------------------------------------------------------
 void FileManager::doExport(const QString& dialogTitle, const QString& filter,
-                           const QString& defaultExt,
-                           std::function<bool(const QString&)> exporter,
+                           const QString& defaultExt, std::function<bool(const QString&)> exporter,
                            const QString& errorLabel) {
     QString filePath = QFileDialog::getSaveFileName(m_window, dialogTitle, QString(), filter);
     if (filePath.isEmpty())
@@ -138,61 +137,59 @@ void FileManager::doExport(const QString& dialogTitle, const QString& filter,
 }
 
 void FileManager::exportAsText() {
-    doExport(tr("Export as Text"), tr("Text Files (*.txt);;All Files (*)"), ".txt",
-             [this](const QString& path) {
-                 QFile file(path);
-                 if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
-                     return false;
-                 file.write(m_tabManager->currentScene()->exportToText().toUtf8());
-                 file.close();
-                 return true;
-             },
-             tr("file"));
+    doExport(
+        tr("Export as Text"), tr("Text Files (*.txt);;All Files (*)"), ".txt",
+        [this](const QString& path) {
+            QFile file(path);
+            if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+                return false;
+            file.write(m_tabManager->currentScene()->exportToText().toUtf8());
+            file.close();
+            return true;
+        },
+        tr("file"));
 }
 
 void FileManager::exportAsMarkdown() {
-    doExport(tr("Export as Markdown"), tr("Markdown Files (*.md);;All Files (*)"), ".md",
-             [this](const QString& path) {
-                 QFile file(path);
-                 if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
-                     return false;
-                 file.write(m_tabManager->currentScene()->exportToMarkdown().toUtf8());
-                 file.close();
-                 return true;
-             },
-             tr("file"));
+    doExport(
+        tr("Export as Markdown"), tr("Markdown Files (*.md);;All Files (*)"), ".md",
+        [this](const QString& path) {
+            QFile file(path);
+            if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+                return false;
+            file.write(m_tabManager->currentScene()->exportToMarkdown().toUtf8());
+            file.close();
+            return true;
+        },
+        tr("file"));
 }
 
 void FileManager::exportAsPng() {
-    doExport(tr("Export as PNG"), tr("PNG Images (*.png);;All Files (*)"), ".png",
-             [this](const QString& path) {
-                 return m_tabManager->currentScene()->exportToPng(path);
-             },
-             "PNG");
+    doExport(
+        tr("Export as PNG"), tr("PNG Images (*.png);;All Files (*)"), ".png",
+        [this](const QString& path) { return m_tabManager->currentScene()->exportToPng(path); },
+        "PNG");
 }
 
 void FileManager::exportAsSvg() {
-    doExport(tr("Export as SVG"), tr("SVG Files (*.svg);;All Files (*)"), ".svg",
-             [this](const QString& path) {
-                 return m_tabManager->currentScene()->exportToSvg(path);
-             },
-             "SVG");
+    doExport(
+        tr("Export as SVG"), tr("SVG Files (*.svg);;All Files (*)"), ".svg",
+        [this](const QString& path) { return m_tabManager->currentScene()->exportToSvg(path); },
+        "SVG");
 }
 
 void FileManager::exportAsPdf() {
-    doExport(tr("Export as PDF"), tr("PDF Files (*.pdf);;All Files (*)"), ".pdf",
-             [this](const QString& path) {
-                 return m_tabManager->currentScene()->exportToPdf(path);
-             },
-             "PDF");
+    doExport(
+        tr("Export as PDF"), tr("PDF Files (*.pdf);;All Files (*)"), ".pdf",
+        [this](const QString& path) { return m_tabManager->currentScene()->exportToPdf(path); },
+        "PDF");
 }
 
 namespace {
 
 // Render the first N issues from the strict markdown parser as a single
 // translated block, with a "...and X more" tail if we truncate.
-QString formatMarkdownIssues(const QList<MarkdownImportIssue>& issues,
-                             int maxToShow = 10) {
+QString formatMarkdownIssues(const QList<MarkdownImportIssue>& issues, int maxToShow = 10) {
     QStringList lines;
     const int n = std::min<int>(issues.size(), maxToShow);
     for (int i = 0; i < n; ++i) {
@@ -207,8 +204,7 @@ QString formatMarkdownIssues(const QList<MarkdownImportIssue>& issues,
     return lines.join('\n');
 }
 
-void showMarkdownImportError(QWidget* window,
-                             const QString& filePath,
+void showMarkdownImportError(QWidget* window, const QString& filePath,
                              const MarkdownImportReport& report) {
     QMessageBox box(window);
     box.setIcon(QMessageBox::Warning);
@@ -227,16 +223,15 @@ void showMarkdownImportError(QWidget* window,
 } // namespace
 
 void FileManager::importFromMarkdown() {
-    QString filePath = QFileDialog::getOpenFileName(
-        m_window, tr("Import from Markdown"), QString(),
-        tr("Markdown Files (*.md *.markdown);;All Files (*)"));
+    QString filePath =
+        QFileDialog::getOpenFileName(m_window, tr("Import from Markdown"), QString(),
+                                     tr("Markdown Files (*.md *.markdown);;All Files (*)"));
     if (filePath.isEmpty())
         return;
 
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QMessageBox::warning(m_window, "YMind",
-                             tr("Could not read file:\n%1").arg(filePath));
+        QMessageBox::warning(m_window, "YMind", tr("Could not read file:\n%1").arg(filePath));
         return;
     }
     QString text = QString::fromUtf8(file.readAll());
@@ -280,4 +275,48 @@ void FileManager::importFromMarkdown() {
 
     if (auto* mw = qobject_cast<QMainWindow*>(m_window))
         mw->statusBar()->showMessage(tr("Imported from %1").arg(filePath), 3000);
+}
+
+void FileManager::importMarkdownContent(const QString& markdown) {
+    if (markdown.trimmed().isEmpty())
+        return;
+
+    int cur = m_tabManager->currentIndex();
+    if (cur >= 0 && m_tabManager->isTabEmpty(cur)) {
+        auto* scene = m_tabManager->currentScene();
+        auto* view = m_tabManager->currentView();
+        if (!scene->importFromMarkdown(markdown, /*animate=*/true)) {
+            QMessageBox::warning(m_window, QStringLiteral("YMind"),
+                                 tr("Failed to parse generated Markdown into a mind map."));
+            return;
+        }
+        m_tabManager->setCurrentFilePath(QString());
+        auto& tab = m_tabManager->tab(cur);
+        if (tab.stack)
+            tab.stack->setCurrentIndex(1);
+        view->zoomToFit();
+        m_tabManager->notifyTabChanged(cur);
+    } else {
+        auto* scene = new MindMapScene(m_window);
+        auto* view = new MindMapView(m_window);
+        view->setScene(scene);
+
+        if (!scene->importFromMarkdown(markdown, /*animate=*/true)) {
+            QMessageBox::warning(m_window, QStringLiteral("YMind"),
+                                 tr("Failed to parse generated Markdown into a mind map."));
+            delete scene;
+            delete view;
+            return;
+        }
+
+        auto* stack = new QStackedWidget(m_window);
+        stack->addWidget(view);
+        stack->setCurrentIndex(0);
+
+        m_tabManager->addTab(scene, view, stack, QString());
+        m_tabManager->currentView()->zoomToFit();
+    }
+
+    if (auto* mw = qobject_cast<QMainWindow*>(m_window))
+        mw->statusBar()->showMessage(tr("Mind map generated successfully"), 3000);
 }

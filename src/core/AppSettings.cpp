@@ -112,3 +112,35 @@ QString AppSettings::language() const {
 void AppSettings::setLanguage(const QString& lang) {
     m_settings->setValue("appearance/language", lang);
 }
+
+QString AppSettings::aiProvider() const {
+    return m_settings->value("ai/provider", "OrcaRouter").toString();
+}
+
+void AppSettings::setAiProvider(const QString& provider) {
+    m_settings->setValue("ai/provider", provider);
+}
+
+QString AppSettings::aiApiKey() const {
+    return m_settings->value("ai/apiKey", QString()).toString();
+}
+
+void AppSettings::setAiApiKey(const QString& key) {
+    m_settings->setValue("ai/apiKey", key);
+}
+
+QString AppSettings::aiModel() const {
+    return m_settings->value("ai/model", "deepseek/deepseek-chat:free").toString();
+}
+
+void AppSettings::setAiModel(const QString& model) {
+    m_settings->setValue("ai/model", model);
+}
+
+QString AppSettings::aiCustomEndpoint() const {
+    return m_settings->value("ai/customEndpoint", "https://api.orcarouter.ai/v1").toString();
+}
+
+void AppSettings::setAiCustomEndpoint(const QString& endpoint) {
+    m_settings->setValue("ai/customEndpoint", endpoint);
+}
