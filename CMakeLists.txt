@@ -26,6 +26,13 @@ endif()
 
 # ---- Dependencies ------------------------------------------------------------
 
+# Workaround for macOS SDK removing AGL.framework which older Qt6 versions attempt to link
+if(APPLE AND NOT TARGET WrapOpenGL::WrapOpenGL)
+    find_package(OpenGL REQUIRED)
+    add_library(WrapOpenGL::WrapOpenGL INTERFACE IMPORTED)
+    target_link_libraries(WrapOpenGL::WrapOpenGL INTERFACE OpenGL::GL)
+endif()
+
 find_package(Qt6 REQUIRED COMPONENTS Widgets Svg PrintSupport Network LinguistTools)
 
 # ---- Library (all sources except main.cpp) -----------------------------------
