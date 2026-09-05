@@ -153,6 +153,59 @@ Would you like to open Settings now?</source>
     </message>
 </context>
 <context>
+    <name>AiSettingsDialog</name>
+    <message>
+        <location filename="../src/ui/AiSettingsDialog.cpp" line="14"/>
+        <source>AI Settings</source>
+        <translation>AI 设置</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/AiSettingsDialog.cpp" line="20"/>
+        <source>AI Service</source>
+        <translation>AI 服务</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/AiSettingsDialog.cpp" line="24"/>
+        <source>OrcaRouter (Recommended)</source>
+        <translation>OrcaRouter（推荐）</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/AiSettingsDialog.cpp" line="25"/>
+        <source>Custom (OpenAI-compatible)</source>
+        <translation>自定义（OpenAI 兼容）</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/AiSettingsDialog.cpp" line="26"/>
+        <source>Provider:</source>
+        <translation>服务商:</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/AiSettingsDialog.cpp" line="33"/>
+        <source>Model:</source>
+        <translation>模型:</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/AiSettingsDialog.cpp" line="37"/>
+        <source>Enter API Key</source>
+        <translation>输入 API Key</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/AiSettingsDialog.cpp" line="38"/>
+        <source>API Key:</source>
+        <translation>API Key:</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/AiSettingsDialog.cpp" line="42"/>
+        <source>Endpoint URL:</source>
+        <translation>接口地址:</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/AiSettingsDialog.cpp" line="48"/>
+        <source>Get free OrcaRouter API Key</source>
+        <translation>获取 OrcaRouter 免费 API Key</translation>
+    </message>
+</context>
+<context>
     <name>Commands</name>
     <message>
         <location filename="../src/core/Commands.cpp" line="15"/>
@@ -894,152 +947,107 @@ The file must be a simple Markdown outline (optional `# Title` followed by an un
 <context>
     <name>SettingsDialog</name>
     <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="24"/>
+        <location filename="../src/core/SettingsDialog.cpp" line="22"/>
         <source>Settings</source>
         <translation>设置</translation>
     </message>
     <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="30"/>
+        <location filename="../src/core/SettingsDialog.cpp" line="28"/>
         <source>Appearance</source>
         <translation>外观</translation>
     </message>
     <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="33"/>
+        <location filename="../src/core/SettingsDialog.cpp" line="31"/>
         <source>Light</source>
         <translation>浅色</translation>
     </message>
     <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="34"/>
+        <location filename="../src/core/SettingsDialog.cpp" line="32"/>
         <source>Dark</source>
         <translation>深色</translation>
     </message>
     <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="35"/>
+        <location filename="../src/core/SettingsDialog.cpp" line="33"/>
         <source>Theme:</source>
         <translation>主题：</translation>
     </message>
     <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="37"/>
+        <location filename="../src/core/SettingsDialog.cpp" line="35"/>
         <source>Sync with System Theme</source>
         <translation>同步系统主题</translation>
     </message>
     <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="44"/>
+        <location filename="../src/core/SettingsDialog.cpp" line="42"/>
         <source>Language:</source>
         <translation>语言：</translation>
     </message>
     <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="46"/>
+        <location filename="../src/core/SettingsDialog.cpp" line="44"/>
         <source>Restart required to apply language change</source>
         <translation>需要重启应用以使语言更改生效</translation>
     </message>
     <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="53"/>
+        <location filename="../src/core/SettingsDialog.cpp" line="51"/>
         <source>Auto-save</source>
         <translation>自动保存</translation>
     </message>
     <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="55"/>
+        <location filename="../src/core/SettingsDialog.cpp" line="53"/>
         <source>Enable auto-save</source>
         <translation>启用自动保存</translation>
     </message>
     <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="59"/>
+        <location filename="../src/core/SettingsDialog.cpp" line="57"/>
         <source> min</source>
         <translation> 分钟</translation>
     </message>
     <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="60"/>
+        <location filename="../src/core/SettingsDialog.cpp" line="58"/>
         <source>Interval:</source>
         <translation>间隔：</translation>
     </message>
     <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="65"/>
+        <location filename="../src/core/SettingsDialog.cpp" line="63"/>
         <source>Editor</source>
         <translation>编辑器</translation>
     </message>
     <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="68"/>
+        <location filename="../src/core/SettingsDialog.cpp" line="66"/>
         <source>Default font:</source>
         <translation>默认字体：</translation>
     </message>
     <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="71"/>
+        <location filename="../src/core/SettingsDialog.cpp" line="69"/>
         <source> pt</source>
         <translation> 磅</translation>
     </message>
     <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="72"/>
+        <location filename="../src/core/SettingsDialog.cpp" line="70"/>
         <source>Default font size:</source>
         <translation>默认字号：</translation>
     </message>
     <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="73"/>
+        <location filename="../src/core/SettingsDialog.cpp" line="71"/>
         <source>Applies to newly created nodes only</source>
         <translation>仅适用于新创建的节点</translation>
     </message>
     <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="79"/>
+        <location filename="../src/core/SettingsDialog.cpp" line="77"/>
         <source>Updates</source>
         <translation>更新</translation>
     </message>
     <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="81"/>
+        <location filename="../src/core/SettingsDialog.cpp" line="79"/>
         <source>Check for updates on startup</source>
         <translation>启动时检查更新</translation>
     </message>
     <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="86"/>
-        <source>AI Service</source>
-        <translation>AI 服务</translation>
-    </message>
-    <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="90"/>
-        <source>OrcaRouter (Recommended)</source>
-        <translation>OrcaRouter（推荐）</translation>
-    </message>
-    <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="91"/>
-        <source>Custom (OpenAI-compatible)</source>
-        <translation>自定义（OpenAI 兼容）</translation>
-    </message>
-    <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="92"/>
-        <source>Provider:</source>
-        <translation>服务商:</translation>
-    </message>
-    <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="99"/>
-        <source>Model:</source>
-        <translation>模型:</translation>
-    </message>
-    <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="103"/>
-        <source>Enter API Key</source>
-        <translation>输入 API Key</translation>
-    </message>
-    <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="104"/>
-        <source>API Key:</source>
-        <translation>API Key:</translation>
-    </message>
-    <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="108"/>
-        <source>Endpoint URL:</source>
-        <translation>接口地址:</translation>
-    </message>
-    <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="114"/>
-        <source>Get free OrcaRouter API Key</source>
-        <translation>获取 OrcaRouter 免费 API Key</translation>
-    </message>
-    <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="197"/>
+        <location filename="../src/core/SettingsDialog.cpp" line="133"/>
         <source>Restart Required</source>
         <translation>需要重启</translation>
     </message>
     <message>
-        <location filename="../src/core/SettingsDialog.cpp" line="198"/>
+        <location filename="../src/core/SettingsDialog.cpp" line="134"/>
         <source>The language change will take effect after restarting YMind. Restart now?</source>
         <translation>语言更改将在重启 YMind 后生效。现在重启吗？</translation>
     </message>

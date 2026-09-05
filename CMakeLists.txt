@@ -77,6 +77,7 @@ add_library(ymind_lib OBJECT
 
     # UI – widgets and theming
     src/ui/AiGenerateDialog.h       src/ui/AiGenerateDialog.cpp
+    src/ui/AiSettingsDialog.h       src/ui/AiSettingsDialog.cpp
     src/ui/FindBar.h                src/ui/FindBar.cpp
     src/ui/FloatingSearchButton.h   src/ui/FloatingSearchButton.cpp
     src/ui/IconFactory.h            src/ui/IconFactory.cpp

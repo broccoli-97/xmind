@@ -1,5 +1,4 @@
 #include "core/SettingsDialog.h"
-#include "core/AiClient.h"
 #include "core/AppSettings.h"
 #include "ui/ThemeManager.h"
 
@@ -12,7 +11,6 @@
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QLabel>
-#include <QLineEdit>
 #include <QMessageBox>
 #include <QProcess>
 #include <QPushButton>
@@ -82,51 +80,6 @@ SettingsDialog::SettingsDialog(QWidget* parent) : QDialog(parent) {
     updatesLayout->addRow(m_checkUpdatesCheck);
     mainLayout->addWidget(updatesGroup);
 
-    // AI Service group
-    auto* aiGroup = new QGroupBox(tr("AI Service"));
-    auto* aiLayout = new QFormLayout(aiGroup);
-
-    m_aiProviderCombo = new QComboBox;
-    m_aiProviderCombo->addItem(tr("OrcaRouter (Recommended)"), QStringLiteral("OrcaRouter"));
-    m_aiProviderCombo->addItem(tr("Custom (OpenAI-compatible)"), QStringLiteral("Custom"));
-    aiLayout->addRow(tr("Provider:"), m_aiProviderCombo);
-
-    m_aiModelCombo = new QComboBox;
-    m_aiModelCombo->setEditable(true);
-    m_aiModelCombo->addItem(QStringLiteral("deepseek/deepseek-chat:free"));
-    m_aiModelCombo->addItem(QStringLiteral("qwen/qwen-2.5-72b-instruct:free"));
-    m_aiModelCombo->addItem(QStringLiteral("orcarouter/auto"));
-    aiLayout->addRow(tr("Model:"), m_aiModelCombo);
-
-    m_aiApiKeyEdit = new QLineEdit;
-    m_aiApiKeyEdit->setEchoMode(QLineEdit::PasswordEchoOnEdit);
-    m_aiApiKeyEdit->setPlaceholderText(tr("Enter API Key"));
-    aiLayout->addRow(tr("API Key:"), m_aiApiKeyEdit);
-
-    m_aiEndpointEdit = new QLineEdit;
-    m_aiEndpointEdit->setPlaceholderText(QString::fromLatin1(AiClient::kDefaultOrcaEndpoint));
-    aiLayout->addRow(tr("Endpoint URL:"), m_aiEndpointEdit);
-
-    auto* getKeyLabel = new QLabel;
-    getKeyLabel->setOpenExternalLinks(true);
-    getKeyLabel->setText(QStringLiteral("<a href=\"%1\">%2</a>")
-                             .arg(QString::fromLatin1(AiClient::kOrcaPartnerUrl),
-                                  tr("Get free OrcaRouter API Key")));
-    getKeyLabel->setObjectName("settingsHint");
-    aiLayout->addRow("", getKeyLabel);
-
-    auto updateProviderUI = [this]() {
-        bool isCustom = (m_aiProviderCombo->currentData().toString() == QLatin1String("Custom"));
-        m_aiEndpointEdit->setEnabled(isCustom);
-        if (!isCustom) {
-            m_aiEndpointEdit->setText(QString::fromLatin1(AiClient::kDefaultOrcaEndpoint));
-        }
-    };
-    connect(m_aiProviderCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
-            updateProviderUI);
-
-    mainLayout->addWidget(aiGroup);
-
     mainLayout->addStretch();
 
     // Button box
@@ -154,18 +107,6 @@ void SettingsDialog::loadCurrentSettings() {
     int langIdx = m_languageCombo->findData(s.language());
     if (langIdx >= 0)
         m_languageCombo->setCurrentIndex(langIdx);
-
-    int provIdx = m_aiProviderCombo->findData(s.aiProvider());
-    if (provIdx >= 0)
-        m_aiProviderCombo->setCurrentIndex(provIdx);
-    else
-        m_aiProviderCombo->setCurrentIndex(0);
-
-    m_aiModelCombo->setEditText(s.aiModel());
-    m_aiApiKeyEdit->setText(s.aiApiKey());
-    m_aiEndpointEdit->setText(s.aiCustomEndpoint());
-    bool isCustom = (m_aiProviderCombo->currentData().toString() == QLatin1String("Custom"));
-    m_aiEndpointEdit->setEnabled(isCustom);
 }
 
 void SettingsDialog::onSyncSystemTheme() {
@@ -182,11 +123,6 @@ void SettingsDialog::apply() {
     s.setDefaultFontSize(m_fontSizeSpin->value());
     s.setDefaultFontFamily(m_fontFamilyCombo->currentFont().family());
     s.setCheckForUpdatesEnabled(m_checkUpdatesCheck->isChecked());
-
-    s.setAiProvider(m_aiProviderCombo->currentData().toString());
-    s.setAiModel(m_aiModelCombo->currentText().trimmed());
-    s.setAiApiKey(m_aiApiKeyEdit->text().trimmed());
-    s.setAiCustomEndpoint(m_aiEndpointEdit->text().trimmed());
 
     const QString oldLang = s.language();
     const QString newLang = m_languageCombo->currentData().toString();

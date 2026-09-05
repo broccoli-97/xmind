@@ -1,7 +1,7 @@
 #include "ui/AiGenerateDialog.h"
 #include "core/AiClient.h"
 #include "core/AppSettings.h"
-#include "core/SettingsDialog.h"
+#include "ui/AiSettingsDialog.h"
 
 #include <QHBoxLayout>
 #include <QLabel>
@@ -92,7 +92,7 @@ void AiGenerateDialog::updateModelInfo() {
 }
 
 void AiGenerateDialog::onOpenSettings() {
-    SettingsDialog dlg(this);
+    AiSettingsDialog dlg(this);
     if (dlg.exec() == QDialog::Accepted) {
         updateModelInfo();
         m_statusLabel->clear();
