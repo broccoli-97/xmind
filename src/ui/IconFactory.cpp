@@ -117,6 +117,20 @@ QIcon IconFactory::makeToolIcon(const QString& name) {
     } else if (name == "close-panel") {
         p.drawLine(10, 10, 22, 22);
         p.drawLine(22, 10, 10, 22);
+    } else if (name == "ai-generate") {
+        p.setBrush(baseColor);
+        p.setPen(Qt::NoPen);
+        auto drawStar = [&](qreal cx, qreal cy, qreal r) {
+            QPainterPath star;
+            star.moveTo(cx, cy - r);
+            star.quadTo(cx, cy, cx + r, cy);
+            star.quadTo(cx, cy, cx, cy + r);
+            star.quadTo(cx, cy, cx - r, cy);
+            star.quadTo(cx, cy, cx, cy - r);
+            p.drawPath(star);
+        };
+        drawStar(14.0, 16.0, 9.0);
+        drawStar(23.0, 8.0, 5.0);
     } else if (name == "update" || name == "update-available") {
         // Rounded-square package with a download arrow — matches the line-art
         // weight of the other toolbar icons and reads clearly at small sizes.
@@ -290,8 +304,8 @@ void drawCurve(QPainter& p, qreal x1, qreal y1, qreal x2, qreal y2, bool horizon
 // Draw a node = (very subtle drop shadow, light mode only) + tinted fill +
 // colored border. Border is painted last so it always sits on top of any
 // curves that pass underneath.
-void drawNode(QPainter& p, const QRectF& r, qreal radius, const QColor& accent,
-              qreal strokeW, bool dark) {
+void drawNode(QPainter& p, const QRectF& r, qreal radius, const QColor& accent, qreal strokeW,
+              bool dark) {
     if (!dark) {
         // 1-pixel-Y drop shadow gives just enough lift without looking heavy.
         p.setPen(Qt::NoPen);
@@ -348,25 +362,27 @@ void drawMindMapPreview(QPainter& p, const PreviewPalette& pal) {
     constexpr qreal radius = 4.0;
     const QRectF center(42, 26, 36, 18);
     const QRectF leaves[4] = {
-        QRectF(84, 4, 28, 12),  QRectF(84, 52, 28, 12),
-        QRectF(4, 4, 28, 12),   QRectF(4, 52, 28, 12),
+        QRectF(84, 4, 28, 12),
+        QRectF(84, 52, 28, 12),
+        QRectF(4, 4, 28, 12),
+        QRectF(4, 52, 28, 12),
     };
     const int leafColorIdx[4] = {1, 2, 3, 4};
 
     p.setBrush(Qt::NoBrush);
     // Right-side curves
-    p.setPen(QPen(connectorTone(pal.accent[leafColorIdx[0]], pal.dark), kCurveW,
-                  Qt::SolidLine, Qt::RoundCap));
+    p.setPen(QPen(connectorTone(pal.accent[leafColorIdx[0]], pal.dark), kCurveW, Qt::SolidLine,
+                  Qt::RoundCap));
     drawCurve(p, 78 - kInset, 35, 84 + kInset, 10, true);
-    p.setPen(QPen(connectorTone(pal.accent[leafColorIdx[1]], pal.dark), kCurveW,
-                  Qt::SolidLine, Qt::RoundCap));
+    p.setPen(QPen(connectorTone(pal.accent[leafColorIdx[1]], pal.dark), kCurveW, Qt::SolidLine,
+                  Qt::RoundCap));
     drawCurve(p, 78 - kInset, 35, 84 + kInset, 58, true);
     // Left-side curves
-    p.setPen(QPen(connectorTone(pal.accent[leafColorIdx[2]], pal.dark), kCurveW,
-                  Qt::SolidLine, Qt::RoundCap));
+    p.setPen(QPen(connectorTone(pal.accent[leafColorIdx[2]], pal.dark), kCurveW, Qt::SolidLine,
+                  Qt::RoundCap));
     drawCurve(p, 42 + kInset, 35, 32 - kInset, 10, true);
-    p.setPen(QPen(connectorTone(pal.accent[leafColorIdx[3]], pal.dark), kCurveW,
-                  Qt::SolidLine, Qt::RoundCap));
+    p.setPen(QPen(connectorTone(pal.accent[leafColorIdx[3]], pal.dark), kCurveW, Qt::SolidLine,
+                  Qt::RoundCap));
     drawCurve(p, 42 + kInset, 35, 32 - kInset, 58, true);
 
     drawNode(p, center, radius, pal.accent[0], kStrokeW, pal.dark);
@@ -377,14 +393,16 @@ void drawMindMapPreview(QPainter& p, const PreviewPalette& pal) {
 void drawOrgChartPreview(QPainter& p, const PreviewPalette& pal) {
     const QRectF top(42, 4, 36, 14);
     const QRectF leaves[3] = {
-        QRectF(8, 46, 28, 14), QRectF(46, 46, 28, 14), QRectF(84, 46, 28, 14),
+        QRectF(8, 46, 28, 14),
+        QRectF(46, 46, 28, 14),
+        QRectF(84, 46, 28, 14),
     };
     const int leafColorIdx[3] = {1, 2, 3};
 
     p.setBrush(Qt::NoBrush);
     for (int i = 0; i < 3; ++i) {
-        p.setPen(QPen(connectorTone(pal.accent[leafColorIdx[i]], pal.dark), kCurveW,
-                      Qt::SolidLine, Qt::RoundCap));
+        p.setPen(QPen(connectorTone(pal.accent[leafColorIdx[i]], pal.dark), kCurveW, Qt::SolidLine,
+                      Qt::RoundCap));
         const qreal targetX = leaves[i].center().x();
         drawCurve(p, 60, 18 - kInset, targetX, 46 + kInset, false);
     }
@@ -398,8 +416,10 @@ void drawProjectPlanPreview(QPainter& p, const PreviewPalette& pal) {
     const QRectF root(4, 26, 28, 14);
     const QRectF mid[2] = {QRectF(44, 8, 28, 12), QRectF(44, 46, 28, 12)};
     const QRectF leaves[4] = {
-        QRectF(84, 2, 28, 10),  QRectF(84, 18, 28, 10),
-        QRectF(84, 40, 28, 10), QRectF(84, 54, 28, 10),
+        QRectF(84, 2, 28, 10),
+        QRectF(84, 18, 28, 10),
+        QRectF(84, 40, 28, 10),
+        QRectF(84, 54, 28, 10),
     };
 
     p.setBrush(Qt::NoBrush);
@@ -493,13 +513,17 @@ void drawGenericPreview(QPainter& p, const PreviewPalette& pal) {
     p.setBrush(Qt::NoBrush);
     // 4 radiating curves, each colored by a different palette slot for life.
     const int idx[4] = {1, 2, 3, 4};
-    p.setPen(QPen(connectorTone(pal.accent[idx[0]], pal.dark), kCurveW, Qt::SolidLine, Qt::RoundCap));
+    p.setPen(
+        QPen(connectorTone(pal.accent[idx[0]], pal.dark), kCurveW, Qt::SolidLine, Qt::RoundCap));
     drawCurve(p, 85 - kInset, 37, 90 + kInset, 14, true);
-    p.setPen(QPen(connectorTone(pal.accent[idx[1]], pal.dark), kCurveW, Qt::SolidLine, Qt::RoundCap));
+    p.setPen(
+        QPen(connectorTone(pal.accent[idx[1]], pal.dark), kCurveW, Qt::SolidLine, Qt::RoundCap));
     drawCurve(p, 85 - kInset, 37, 90 + kInset, 56, true);
-    p.setPen(QPen(connectorTone(pal.accent[idx[2]], pal.dark), kCurveW, Qt::SolidLine, Qt::RoundCap));
+    p.setPen(
+        QPen(connectorTone(pal.accent[idx[2]], pal.dark), kCurveW, Qt::SolidLine, Qt::RoundCap));
     drawCurve(p, 35 + kInset, 37, 18 - kInset, 14, true);
-    p.setPen(QPen(connectorTone(pal.accent[idx[3]], pal.dark), kCurveW, Qt::SolidLine, Qt::RoundCap));
+    p.setPen(
+        QPen(connectorTone(pal.accent[idx[3]], pal.dark), kCurveW, Qt::SolidLine, Qt::RoundCap));
     drawCurve(p, 35 + kInset, 37, 18 - kInset, 56, true);
 
     drawNode(p, center, radius, pal.accent[0], kStrokeW, pal.dark);
@@ -540,7 +564,6 @@ QPixmap IconFactory::makeTemplatePreview(int index, int width, int height) {
     static const QString ids[] = {QStringLiteral("builtin.mindmap"),
                                   QStringLiteral("builtin.orgchart"),
                                   QStringLiteral("builtin.projectplan")};
-    const QString id =
-        (index >= 0 && size_t(index) < std::size(ids)) ? ids[index] : QString();
+    const QString id = (index >= 0 && size_t(index) < std::size(ids)) ? ids[index] : QString();
     return makeTemplatePreview(id, width, height);
 }

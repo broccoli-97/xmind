@@ -15,14 +15,12 @@ class MindMapToolBar : public QWidget {
     Q_OBJECT
 
 public:
-    MindMapToolBar(TabManager* tabManager,
-                   FileManager* fileManager,
-                   QAction* undoAct,
-                   QAction* redoAct,
-                   QWidget* parent = nullptr);
+    MindMapToolBar(TabManager* tabManager, FileManager* fileManager, QAction* undoAct,
+                   QAction* redoAct, QWidget* parent = nullptr);
 
 signals:
     void closeRequested();
+    void aiGenerateRequested();
 
 private:
     void buildContent();

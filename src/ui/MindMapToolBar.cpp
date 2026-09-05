@@ -12,15 +12,9 @@
 #include <QToolButton>
 #include <QUndoStack>
 
-MindMapToolBar::MindMapToolBar(TabManager* tabManager,
-                               FileManager* fileManager,
-                               QAction* undoAct,
-                               QAction* redoAct,
-                               QWidget* parent)
-    : QWidget(parent),
-      m_tabManager(tabManager),
-      m_fileManager(fileManager),
-      m_undoAct(undoAct),
+MindMapToolBar::MindMapToolBar(TabManager* tabManager, FileManager* fileManager, QAction* undoAct,
+                               QAction* redoAct, QWidget* parent)
+    : QWidget(parent), m_tabManager(tabManager), m_fileManager(fileManager), m_undoAct(undoAct),
       m_redoAct(redoAct) {
     setObjectName("inlineToolbar");
     buildContent();
@@ -135,6 +129,12 @@ void MindMapToolBar::buildContent() {
     exportMenu->addAction(tr("As PDF..."), m_fileManager, &FileManager::exportAsPdf);
     exportBtn->setMenu(exportMenu);
     m_layout->addWidget(exportBtn);
+
+    addSeparator();
+
+    auto* aiBtn =
+        addButton("ai-generate", tr("AI Generate"), tr("Generate mind map from text using AI"));
+    connect(aiBtn, &QToolButton::clicked, this, &MindMapToolBar::aiGenerateRequested);
 
     m_layout->addStretch();
 

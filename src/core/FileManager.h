@@ -21,6 +21,7 @@ public:
     void exportAsSvg();
     void exportAsPdf();
     void importFromMarkdown();
+    void importMarkdownContent(const QString& markdown);
 
 private:
     // Common export helper: shows save dialog, validates extension, runs exporter, shows status.

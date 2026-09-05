@@ -51,6 +51,7 @@ private:
 
     void openSettings();
     void openAbout();
+    void showAiGenerateDialog();
     void saveWindowState();
     void restoreWindowState();
     void applyTheme();
