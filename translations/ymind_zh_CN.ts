@@ -37,39 +37,54 @@
 <context>
     <name>AiClient</name>
     <message>
-        <location filename="../src/core/AiClient.cpp" line="125"/>
+        <location filename="../src/core/AiClient.cpp" line="127"/>
         <source>Invalid API Key. Please verify your API Key in Settings.</source>
         <translation>API Key 无效，请在设置中检查您的 API Key。</translation>
     </message>
     <message>
-        <location filename="../src/core/AiClient.cpp" line="129"/>
+        <location filename="../src/core/AiClient.cpp" line="131"/>
         <source>Rate limit reached. Please wait a moment or try another model.</source>
         <translation>已达到请求速率限制，请稍候重试或更换模型。</translation>
     </message>
     <message>
-        <location filename="../src/core/AiClient.cpp" line="140"/>
+        <location filename="../src/core/AiClient.cpp" line="142"/>
         <source>API Error (%1): %2</source>
         <translation>API 错误 (%1): %2</translation>
     </message>
     <message>
-        <location filename="../src/core/AiClient.cpp" line="146"/>
+        <location filename="../src/core/AiClient.cpp" line="148"/>
         <source>Network request failed: %1 (HTTP %2)</source>
         <translation>网络请求失败: %1 (HTTP %2)</translation>
     </message>
     <message>
-        <location filename="../src/core/AiClient.cpp" line="153"/>
+        <location filename="../src/core/AiClient.cpp" line="155"/>
         <source>Failed to parse API response JSON.</source>
         <translation>解析 API 返回数据失败。</translation>
     </message>
     <message>
-        <location filename="../src/core/AiClient.cpp" line="160"/>
+        <location filename="../src/core/AiClient.cpp" line="162"/>
         <source>API returned no choices.</source>
         <translation>API 未返回有效生成内容。</translation>
     </message>
     <message>
-        <location filename="../src/core/AiClient.cpp" line="170"/>
+        <location filename="../src/core/AiClient.cpp" line="172"/>
         <source>Model returned an empty outline.</source>
         <translation>模型返回的大纲内容为空。</translation>
+    </message>
+    <message>
+        <location filename="../src/core/AiClient.cpp" line="212"/>
+        <source>Failed to obtain API Key: %1</source>
+        <translation>获取 API Key 失败: %1</translation>
+    </message>
+    <message>
+        <location filename="../src/core/AiClient.cpp" line="219"/>
+        <source>Invalid response from OrcaRouter auth server.</source>
+        <translation>OrcaRouter 认证服务器返回的响应无效。</translation>
+    </message>
+    <message>
+        <location filename="../src/core/AiClient.cpp" line="225"/>
+        <source>OrcaRouter returned an empty API Key.</source>
+        <translation>OrcaRouter 返回的 API Key 为空。</translation>
     </message>
 </context>
 <context>
@@ -155,54 +170,87 @@ Would you like to open Settings now?</source>
 <context>
     <name>AiSettingsDialog</name>
     <message>
-        <location filename="../src/ui/AiSettingsDialog.cpp" line="14"/>
+        <location filename="../src/ui/AiSettingsDialog.cpp" line="22"/>
         <source>AI Settings</source>
         <translation>AI 设置</translation>
     </message>
     <message>
-        <location filename="../src/ui/AiSettingsDialog.cpp" line="20"/>
+        <location filename="../src/ui/AiSettingsDialog.cpp" line="28"/>
         <source>AI Service</source>
         <translation>AI 服务</translation>
     </message>
     <message>
-        <location filename="../src/ui/AiSettingsDialog.cpp" line="24"/>
+        <location filename="../src/ui/AiSettingsDialog.cpp" line="32"/>
         <source>OrcaRouter (Recommended)</source>
         <translation>OrcaRouter（推荐）</translation>
     </message>
     <message>
-        <location filename="../src/ui/AiSettingsDialog.cpp" line="25"/>
+        <location filename="../src/ui/AiSettingsDialog.cpp" line="33"/>
         <source>Custom (OpenAI-compatible)</source>
         <translation>自定义（OpenAI 兼容）</translation>
     </message>
     <message>
-        <location filename="../src/ui/AiSettingsDialog.cpp" line="26"/>
+        <location filename="../src/ui/AiSettingsDialog.cpp" line="34"/>
         <source>Provider:</source>
         <translation>服务商:</translation>
     </message>
     <message>
-        <location filename="../src/ui/AiSettingsDialog.cpp" line="33"/>
+        <location filename="../src/ui/AiSettingsDialog.cpp" line="41"/>
         <source>Model:</source>
         <translation>模型:</translation>
     </message>
     <message>
-        <location filename="../src/ui/AiSettingsDialog.cpp" line="37"/>
+        <location filename="../src/ui/AiSettingsDialog.cpp" line="45"/>
         <source>Enter API Key</source>
         <translation>输入 API Key</translation>
     </message>
     <message>
-        <location filename="../src/ui/AiSettingsDialog.cpp" line="38"/>
+        <location filename="../src/ui/AiSettingsDialog.cpp" line="46"/>
         <source>API Key:</source>
         <translation>API Key:</translation>
     </message>
     <message>
-        <location filename="../src/ui/AiSettingsDialog.cpp" line="42"/>
+        <location filename="../src/ui/AiSettingsDialog.cpp" line="50"/>
+        <location filename="../src/ui/AiSettingsDialog.cpp" line="96"/>
+        <location filename="../src/ui/AiSettingsDialog.cpp" line="107"/>
+        <location filename="../src/ui/AiSettingsDialog.cpp" line="218"/>
+        <source>Get API Key from OrcaRouter...</source>
+        <translation>从 OrcaRouter 获取 API Key...</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/AiSettingsDialog.cpp" line="64"/>
         <source>Endpoint URL:</source>
         <translation>接口地址:</translation>
     </message>
     <message>
-        <location filename="../src/ui/AiSettingsDialog.cpp" line="48"/>
-        <source>Get free OrcaRouter API Key</source>
-        <translation>获取 OrcaRouter 免费 API Key</translation>
+        <location filename="../src/ui/AiSettingsDialog.cpp" line="93"/>
+        <source>API Key obtained successfully!</source>
+        <translation>API Key 获取成功！</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/AiSettingsDialog.cpp" line="131"/>
+        <source>Failed to start local auth server.</source>
+        <translation>无法启动本地认证服务器。</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/AiSettingsDialog.cpp" line="156"/>
+        <source>Waiting for authorization...</source>
+        <translation>等待授权中...</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/AiSettingsDialog.cpp" line="158"/>
+        <source>A browser window has been opened. Please authorize YMind on OrcaRouter, then return here.</source>
+        <translation>已打开浏览器窗口，请在 OrcaRouter 上授权 YMind，完成后返回此处。</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/AiSettingsDialog.cpp" line="212"/>
+        <source>Exchanging authorization code for API Key...</source>
+        <translation>正在用授权码换取 API Key...</translation>
+    </message>
+    <message>
+        <location filename="../src/ui/AiSettingsDialog.cpp" line="216"/>
+        <source>Authorization failed: invalid state or missing code.</source>
+        <translation>授权失败：状态无效或缺少授权码。</translation>
     </message>
 </context>
 <context>

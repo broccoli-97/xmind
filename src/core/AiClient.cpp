@@ -1,11 +1,13 @@
 #include "core/AiClient.h"
 
+#include <QCryptographicHash>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <QRandomGenerator>
 #include <QUrl>
 
 AiClient::AiClient(QObject* parent) : QObject(parent), m_nam(new QNetworkAccessManager(this)) {}
@@ -172,4 +174,57 @@ void AiClient::onReplyFinished() {
     }
 
     emit finished(cleaned);
+}
+
+QByteArray AiClient::generateCodeVerifier() {
+    // Generate a 32-byte random verifier, base64url-encoded (43 chars)
+    QByteArray raw(32, '\0');
+    QRandomGenerator::global()->fillRange(reinterpret_cast<quint32*>(raw.data()),
+                                          raw.size() / sizeof(quint32));
+    return raw.toBase64(QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals);
+}
+
+QString AiClient::computeCodeChallenge(const QByteArray& verifier) {
+    QByteArray hash = QCryptographicHash::hash(verifier, QCryptographicHash::Sha256);
+    return QString::fromLatin1(
+        hash.toBase64(QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals));
+}
+
+void AiClient::exchangeCodeForKey(const QString& code, const QByteArray& codeVerifier) {
+    QUrl url(QStringLiteral("https://orcarouter.ai/api/v1/auth/keys"));
+
+    QNetworkRequest request(url);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
+
+    QJsonObject body;
+    body["code"] = code;
+    body["code_verifier"] = QString::fromLatin1(codeVerifier);
+    body["code_challenge_method"] = QStringLiteral("S256");
+
+    QByteArray postData = QJsonDocument(body).toJson(QJsonDocument::Compact);
+    QNetworkReply* reply = m_nam->post(request, postData);
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        reply->deleteLater();
+
+        if (reply->error() != QNetworkReply::NoError) {
+            emit apiKeyError(tr("Failed to obtain API Key: %1").arg(reply->errorString()));
+            return;
+        }
+
+        QJsonParseError jsonErr;
+        QJsonDocument doc = QJsonDocument::fromJson(reply->readAll(), &jsonErr);
+        if (jsonErr.error != QJsonParseError::NoError || !doc.isObject()) {
+            emit apiKeyError(tr("Invalid response from OrcaRouter auth server."));
+            return;
+        }
+
+        QString key = doc.object().value("key").toString();
+        if (key.isEmpty()) {
+            emit apiKeyError(tr("OrcaRouter returned an empty API Key."));
+            return;
+        }
+
+        emit apiKeyReceived(key);
+    });
 }
