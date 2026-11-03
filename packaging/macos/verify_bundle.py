@@ -53,6 +53,18 @@ def rpaths(commands):
     return re.findall(r"cmd LC_RPATH\n.*?\n\s*path (.*?) \(offset", commands)
 
 
+def deployment_targets(commands):
+    targets = []
+    for block in re.split(r"(?m)^Load command \d+\s*$", commands):
+        if re.search(r"^\s*cmd LC_BUILD_VERSION\s*$", block, re.M):
+            # 'version' inside this command refers to build tools (e.g. the
+            # linker version 820.1). Only 'minos' is the OS deployment target.
+            targets.extend(re.findall(r"^\s*minos (\d+(?:\.\d+)+)\s*$", block, re.M))
+        elif re.search(r"^\s*cmd LC_VERSION_MIN_MACOSX\s*$", block, re.M):
+            targets.extend(re.findall(r"^\s*version (\d+(?:\.\d+)+)\s*$", block, re.M))
+    return targets
+
+
 def expand(path, binary, executable):
     return Path(path.replace("@loader_path", str(binary.parent)).replace(
         "@executable_path", str(executable.parent))).resolve()
@@ -112,7 +124,7 @@ def verify(app, expected_minimum=None, architectures=None):
             require(arch in run("lipo", "-archs", str(binary)).split(),
                     f"Missing {arch} architecture: {binary}")
             commands = run("otool", "-arch", arch, "-l", str(binary))
-            targets = re.findall(r"^\s*(?:minos|version) (\d+(?:\.\d+)+)\s*$", commands, re.M)
+            targets = deployment_targets(commands)
             require(targets, f"Missing macOS deployment target: {binary}")
             require(all(version(v) <= version(minimum) for v in targets),
                     f"{binary.name} ({arch}) requires macOS {max(targets, key=version)}, "

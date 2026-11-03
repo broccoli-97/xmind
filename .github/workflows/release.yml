@@ -106,6 +106,7 @@ jobs:
       - name: Package (macOS)
         if: runner.os == 'macOS'
         run: |
+          python3 -m unittest discover -s tests -p test_macos_bundle.py
           bash packaging/macos/package.sh build dist
           python3 packaging/macos/verify_bundle.py dist/YMind.app --minimum 11.0 --architectures '${{ matrix.arch }}'
 
