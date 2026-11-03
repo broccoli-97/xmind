@@ -81,9 +81,13 @@ def verify(app, expected_minimum=None, architectures=None):
         require(binary.is_file() and os.access(binary, os.X_OK),
                 f"Missing executable: {binary}")
     for plugin in ("platforms/libqcocoa.dylib", "platforms/libqoffscreen.dylib",
-                   "imageformats/libqsvg.dylib", "printsupport/libcocoaprintersupport.dylib",
+                   "imageformats/libqsvg.dylib",
                    "tls/libqsecuretransportbackend.dylib"):
         require((contents / "PlugIns" / plugin).is_file(), f"Missing Qt plugin: {plugin}")
+    # Qt 6.7 compiles Cocoa printer support directly into QtPrintSupport;
+    # unlike the Linux CUPS backend, it is not a separate plugin.
+    require((contents / "Frameworks/QtPrintSupport.framework/QtPrintSupport").is_file(),
+            "Missing QtPrintSupport framework (Cocoa printing and PDF export)")
     for catalog in ("qt_zh_CN.qm", "qtbase_zh_CN.qm"):
         require((contents / "Resources/translations" / catalog).is_file(),
                 f"Missing Chinese Qt dialog translations: {catalog}")

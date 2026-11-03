@@ -26,7 +26,7 @@ Qt's Chinese translation catalogs and writes `qt.conf`. It signs only after
 all binary and resource changes are finished.
 
 `verify_bundle.py` checks bundle metadata, Finder association, executable
-permissions, ICNS resolutions, Cocoa/offscreen/SVG/printing/TLS plugins,
+permissions, ICNS resolutions, Cocoa/offscreen/SVG/TLS plugins, QtPrintSupport,
 translations, architectures, Mach-O minimum system versions, dependency
 resolution and signature validity. `smoke_test.py` starts the native Cocoa GUI
 and exercises CLI rendering and MCP without Qt discovery environment variables.
