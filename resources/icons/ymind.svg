@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 150 150">
+  <!-- Vector version of the existing Microsoft Store application logo. -->
+  <rect x="1" y="1" width="148" height="148" rx="22" fill="#3279d9"/>
+  <g stroke="#9dd3ff" stroke-width="3" stroke-linecap="round">
+    <path d="M75 73V23M75 73L33 42M75 73L117 38M75 73L37 109M75 73L121 103M75 73V124"/>
+  </g>
+  <g fill="#9dd3ff">
+    <circle cx="75" cy="23" r="5.5"/>
+    <circle cx="33" cy="42" r="7"/>
+    <circle cx="117" cy="38" r="6.5"/>
+    <circle cx="37" cy="109" r="6.5"/>
+    <circle cx="121" cy="103" r="7.5"/>
+    <circle cx="75" cy="124" r="5.5"/>
+  </g>
+  <circle cx="75" cy="73" r="15.5" fill="#fff"/>
+  <path d="M70 65L75 73L80 65M75 73V80" fill="none" stroke="#3279d9" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -13,6 +13,7 @@ public:
 
     void newFile();
     void openFile();
+    bool openFilePath(const QString& path);
     void saveFile();
     void saveFileAs();
     void exportAsText();

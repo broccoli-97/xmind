@@ -28,10 +28,19 @@ void FileManager::openFile() {
     if (filePath.isEmpty())
         return;
 
+    openFilePath(filePath);
+}
+
+bool FileManager::openFilePath(const QString& path) {
+    if (path.isEmpty())
+        return false;
+    const QFileInfo info(path);
+    const QString filePath = info.exists() ? info.canonicalFilePath() : info.absoluteFilePath();
+
     int existing = m_tabManager->findTabByFilePath(filePath);
     if (existing >= 0) {
         m_tabManager->switchToTab(existing);
-        return;
+        return true;
     }
 
     int cur = m_tabManager->currentIndex();
@@ -40,7 +49,7 @@ void FileManager::openFile() {
         auto* view = m_tabManager->currentView();
         if (!scene->loadFromFile(filePath)) {
             QMessageBox::warning(m_window, "YMind", tr("Could not open file:\n%1").arg(filePath));
-            return;
+            return false;
         }
         m_tabManager->setCurrentFilePath(filePath);
         auto& tab = m_tabManager->tab(cur);
@@ -58,7 +67,7 @@ void FileManager::openFile() {
             QMessageBox::warning(m_window, "YMind", tr("Could not open file:\n%1").arg(filePath));
             delete scene;
             delete view;
-            return;
+            return false;
         }
 
         auto* stack = new QStackedWidget(m_window);
@@ -68,6 +77,7 @@ void FileManager::openFile() {
         m_tabManager->addTab(scene, view, stack, filePath);
         m_tabManager->currentView()->zoomToFit();
     }
+    return true;
 }
 
 void FileManager::saveFile() {

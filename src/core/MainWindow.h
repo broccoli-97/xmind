@@ -29,6 +29,8 @@ public:
     explicit MainWindow(const Services& services, QWidget* parent = nullptr);
     ~MainWindow() override;
 
+    void openFile(const QString& path);
+
 protected:
     void closeEvent(QCloseEvent* event) override;
     // Keeps the floating search button pinned to the canvas's top-right corner

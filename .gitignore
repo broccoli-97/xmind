@@ -5,6 +5,10 @@ deploy/
 *.sh
 # CI helper scripts must be tracked even though *.sh is ignored by default
 !.github/scripts/*.sh
+!packaging/macos/*.sh
+dist/
+*.dmg
+__pycache__/
 .cache/*
 *.zip
 out/

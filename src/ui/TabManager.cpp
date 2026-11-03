@@ -184,6 +184,10 @@ void TabManager::switchToTab(int index) {
 
     disconnectUndoStack();
 
+    {
+        QSignalBlocker blocker(m_tabBar);
+        m_tabBar->setCurrentIndex(index);
+    }
     m_contentStack->setCurrentIndex(index);
 
     connectUndoStack();
@@ -191,15 +195,17 @@ void TabManager::switchToTab(int index) {
 }
 
 void TabManager::disconnectUndoStack() {
-    auto* scene = currentScene();
-    if (!scene)
-        return;
-    auto* stack = scene->undoStack();
-    disconnect(stack, nullptr, m_undoAct, nullptr);
-    disconnect(stack, nullptr, m_redoAct, nullptr);
-    disconnect(stack, &QUndoStack::undoTextChanged, this, nullptr);
-    disconnect(stack, &QUndoStack::redoTextChanged, this, nullptr);
-    disconnect(stack, &QUndoStack::indexChanged, this, nullptr);
+    // QTabBar::currentChanged is emitted after its index changes. Disconnect
+    // every previously connected stack so an inactive document's history
+    // cannot change the active tab's Undo/Redo actions.
+    for (const auto& tab : m_tabs) {
+        auto* stack = tab.scene->undoStack();
+        disconnect(stack, nullptr, m_undoAct, nullptr);
+        disconnect(stack, nullptr, m_redoAct, nullptr);
+        disconnect(stack, &QUndoStack::undoTextChanged, this, nullptr);
+        disconnect(stack, &QUndoStack::redoTextChanged, this, nullptr);
+        disconnect(stack, &QUndoStack::indexChanged, this, nullptr);
+    }
 }
 
 void TabManager::connectUndoStack() {
@@ -260,8 +266,9 @@ bool TabManager::isTabEmpty(int index) const {
 }
 
 int TabManager::findTabByFilePath(const QString& filePath) const {
+    const QFileInfo requested(filePath);
     for (int i = 0; i < m_tabs.size(); ++i) {
-        if (m_tabs[i].filePath == filePath)
+        if (!m_tabs[i].filePath.isEmpty() && QFileInfo(m_tabs[i].filePath) == requested)
             return i;
     }
     return -1;

@@ -83,7 +83,7 @@ export const zh: Record<string, string> = {
     'download.windows': 'Windows',
     'download.windows.desc': '便携 zip 包或 Microsoft Store。',
     'download.macos': 'macOS',
-    'download.macos.desc': '适用于 Apple Silicon 的原生 ARM 应用。',
+    'download.macos.desc': '支持 macOS 11 及以上，提供 Apple Silicon 和 Intel 版本。',
     'download.button': '下载最新版',
     'download.releases': '所有版本',
 
@@ -96,7 +96,7 @@ export const zh: Record<string, string> = {
         '每个主题都是一个小文件夹，包含 theme.json 与可选预览图。把整个文件夹放进 YMind 的模板目录，下次启动即可使用。',
     'themes.howto.step1': '从下方任意卡片下载 theme.json（或整个主题文件夹）。',
     'themes.howto.step2':
-        '把文件放入 YMind 模板目录，可作为 <id>/theme.json 子文件夹，或直接作为 <id>.json 平铺。Linux/macOS：~/.local/share/YMind/templates/，Windows：%APPDATA%/YMind/templates/。',
+        '把文件放入 YMind 模板目录，可作为 <id>/theme.json 子文件夹，或直接作为 <id>.json 平铺。Linux：~/.local/share/YMind/templates/；macOS：~/Library/Application Support/YMind/templates/；Windows：%APPDATA%/YMind/templates/。',
     'themes.howto.step3': '重启 YMind，然后在「主题 → 切换主题」中选择新主题。',
     'themes.download': '下载',
     'themes.loaderror': '无法加载主题清单',
@@ -124,7 +124,8 @@ export const zh: Record<string, string> = {
     'mcp.path.title': '一次性准备：把 ymind-cli 加到 PATH',
     'mcp.path.body':
         '插件通过 ymind-cli 这个命令名调用二进制，所以它必须能在 shell 中被找到。建立一次软链接即可永久解决。',
-    'mcp.path.linuxMac': 'Linux / macOS',
+    'mcp.path.linuxMac': 'Linux',
+    'mcp.path.macos': 'macOS（安装到「应用程序」后）',
     'mcp.path.fromSource': '源码构建',
 
     'mcp.manual.title': '其他客户端（Claude 桌面版、Cursor）',

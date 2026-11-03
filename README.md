@@ -72,7 +72,7 @@ Ask Claude: *"summarise this article as a mindmap, use the nord theme, save it t
 
 - C++17 compiler (GCC, Clang, or MSVC)
 - CMake 3.16+
-- Qt6 (Widgets, Svg, PrintSupport)
+- Qt6 (Widgets, Svg, PrintSupport, Network, LinguistTools)
 
 ### Build Instructions
 
@@ -82,6 +82,45 @@ cmake ..
 make
 ./ymind
 ```
+
+### macOS
+
+Release packages target **macOS 11 (Big Sur) or later**, using Qt **6.7.3**.
+Choose `macos-arm64` for Apple Silicon or `macos-x64` for Intel. Open the DMG
+and drag `YMind.app` into Applications, or extract the `.tar.gz` and move the
+complete application bundle there. Finder can open `.ymind` documents directly.
+
+Build and package on macOS with the matching Qt kit on your PATH:
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+cmake --build build --parallel
+open build/YMind.app
+bash packaging/macos/package.sh build dist
+python3 packaging/macos/smoke_test.py dist/YMind.app
+```
+
+The package script deploys Qt, CLI/MCP, plugins and translations, signs the
+bundle, and checks every bundled binary's deployment target and dependencies.
+Newer Qt versions may require newer macOS; the check rejects bundles that
+advertise a lower minimum than their dependencies actually support.
+
+The default signature is ad-hoc. For a release that passes Gatekeeper without
+a first-launch exception, set `MACOS_CODESIGN_IDENTITY` to your Developer ID
+Application identity and `MACOS_NOTARY_PROFILE` to a `notarytool` Keychain
+profile before packaging. See [macOS packaging details](packaging/macos/README.md).
+
+The installed CLI is inside the bundle:
+
+```bash
+/Applications/YMind.app/Contents/MacOS/ymind-cli mcp
+sudo ln -s /Applications/YMind.app/Contents/MacOS/ymind-cli /usr/local/bin/ymind-cli
+```
+
+For desktop MCP clients, use the absolute bundle path as `command` if their
+environment does not include `/usr/local/bin`. User templates and themes on
+macOS live in `~/Library/Application Support/YMind/templates/` and
+`~/Library/Application Support/YMind/themes/`.
 
 ### Build Options
 
@@ -97,6 +136,9 @@ ctest --output-on-failure
 ```
 
 ## Keyboard Shortcuts
+
+On macOS, use **Command (⌘)** for shortcuts shown with `Ctrl`. Redo also uses
+`⌘+Shift+Z`; deleting a node with the Mac's Backspace key uses `⌘+Backspace`.
 
 | Shortcut            | Action               |
 | ------------------- | -------------------- |

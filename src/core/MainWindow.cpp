@@ -166,6 +166,13 @@ MainWindow::~MainWindow() {
         disconnect(m_services->settings, nullptr, this, nullptr);
 }
 
+void MainWindow::openFile(const QString& path) {
+    m_fileManager->openFilePath(path);
+    show();
+    raise();
+    activateWindow();
+}
+
 // ---------------------------------------------------------------------------
 // Central layout: tab bar + toolbar + splitter(outline, content)
 // ---------------------------------------------------------------------------
@@ -357,6 +364,7 @@ void MainWindow::setupMenuBar() {
     fileMenu->addSeparator();
 
     auto* exitAct = fileMenu->addAction(tr("E&xit"));
+    exitAct->setMenuRole(QAction::QuitRole);
     exitAct->setShortcut(QKeySequence::Quit);
     connect(exitAct, &QAction::triggered, this, &QWidget::close);
 
@@ -475,9 +483,11 @@ void MainWindow::setupMenuBar() {
     helpMenu->addSeparator();
 
     auto* aboutAct = helpMenu->addAction(tr("About &YMind..."));
+    aboutAct->setMenuRole(QAction::AboutRole);
     connect(aboutAct, &QAction::triggered, this, &MainWindow::openAbout);
 
     auto* aboutQtAct = helpMenu->addAction(tr("About &Qt..."));
+    aboutQtAct->setMenuRole(QAction::AboutQtRole);
     connect(aboutQtAct, &QAction::triggered, qApp, &QApplication::aboutQt);
 }
 

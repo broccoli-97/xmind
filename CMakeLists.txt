@@ -1,4 +1,13 @@
 cmake_minimum_required(VERSION 3.16)
+
+# Set this before project() initializes the Apple compiler and SDK. Qt 6.7's
+# official binaries support Big Sur; do not inherit the build host's version.
+if((CMAKE_HOST_APPLE OR CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+        AND NOT CMAKE_OSX_DEPLOYMENT_TARGET
+        AND "$ENV{MACOSX_DEPLOYMENT_TARGET}" STREQUAL "")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version")
+endif()
+
 project(ymind VERSION 1.0.0 LANGUAGES CXX)
 
 # ---- Global settings --------------------------------------------------------
@@ -40,6 +49,7 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets Svg PrintSupport Network LinguistTo
 add_library(ymind_lib OBJECT
     # Core – application infrastructure
     src/core/AboutDialog.h        src/core/AboutDialog.cpp
+    src/core/Application.h        src/core/Application.cpp
     src/core/AiClient.h           src/core/AiClient.cpp
     src/core/AppSettings.h        src/core/AppSettings.cpp
     src/core/AutoSaveManager.h    src/core/AutoSaveManager.cpp
@@ -130,6 +140,26 @@ qt_add_translations(ymind_lib
 
 if(WIN32)
     add_executable(ymind WIN32)
+elseif(APPLE)
+    add_executable(ymind MACOSX_BUNDLE packaging/macos/YMind.icns)
+    set_source_files_properties(packaging/macos/YMind.icns PROPERTIES
+        MACOSX_PACKAGE_LOCATION Resources
+    )
+    # Release tags may contain a prerelease suffix; Apple's version keys must
+    # contain only the numeric portion.
+    string(REGEX MATCH "^[0-9]+\\.[0-9]+\\.[0-9]+" YMIND_BUNDLE_VERSION "${APP_VERSION}")
+    if(NOT YMIND_BUNDLE_VERSION)
+        set(YMIND_BUNDLE_VERSION "${PROJECT_VERSION}")
+    endif()
+    set_target_properties(ymind PROPERTIES
+        OUTPUT_NAME YMind
+        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/packaging/macos/Info.plist.in"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "io.github.broccoli-97.ymind"
+        MACOSX_BUNDLE_BUNDLE_NAME "YMind"
+        MACOSX_BUNDLE_ICON_FILE "YMind.icns"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "${YMIND_BUNDLE_VERSION}"
+        MACOSX_BUNDLE_BUNDLE_VERSION "${YMIND_BUNDLE_VERSION}"
+    )
 else()
     add_executable(ymind)
 endif()
@@ -150,7 +180,12 @@ target_link_libraries(ymind-cli PRIVATE ymind_lib)
 
 # ---- Install -----------------------------------------------------------------
 
-install(TARGETS ymind ymind-cli DESTINATION bin)
+if(APPLE)
+    install(TARGETS ymind BUNDLE DESTINATION .)
+    install(TARGETS ymind-cli RUNTIME DESTINATION YMind.app/Contents/MacOS)
+else()
+    install(TARGETS ymind ymind-cli RUNTIME DESTINATION bin)
+endif()
 
 # ---- Testing -----------------------------------------------------------------
 

@@ -143,6 +143,12 @@ export function MCPGuide() {
                             </code>
                         </div>
                         <div>
+                            <span className="font-semibold">{t('mcp.path.macos')}: </span>
+                            <code className="ml-1 rounded bg-amber-100 px-1.5 py-0.5 font-mono text-xs">
+                                sudo ln -s /Applications/YMind.app/Contents/MacOS/ymind-cli /usr/local/bin/ymind-cli
+                            </code>
+                        </div>
+                        <div>
                             <span className="font-semibold">{t('mcp.path.fromSource')}: </span>
                             <code className="ml-1 rounded bg-amber-100 px-1.5 py-0.5 font-mono text-xs">
                                 export PATH="$PWD/build:$PATH"

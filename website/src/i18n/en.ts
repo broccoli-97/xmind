@@ -92,7 +92,7 @@ export const en: Record<string, string> = {
     'download.windows': 'Windows',
     'download.windows.desc': 'Portable zip or Microsoft Store.',
     'download.macos': 'macOS',
-    'download.macos.desc': 'Native ARM app bundle for Apple Silicon.',
+    'download.macos.desc': 'macOS 11 or later. Available for Apple Silicon and Intel.',
     'download.button': 'Download Latest',
     'download.releases': 'All Releases',
 
@@ -106,7 +106,7 @@ export const en: Record<string, string> = {
     'themes.howto.step1':
         'Download a theme.json from a card below (or grab the whole folder).',
     'themes.howto.step2':
-        'Place it into your YMind templates folder, either as <id>/theme.json or as a flat <id>.json. Linux/macOS: ~/.local/share/YMind/templates/. Windows: %APPDATA%/YMind/templates/.',
+        'Place it into your YMind templates folder, either as <id>/theme.json or as a flat <id>.json. Linux: ~/.local/share/YMind/templates/. macOS: ~/Library/Application Support/YMind/templates/. Windows: %APPDATA%/YMind/templates/.',
     'themes.howto.step3':
         'Restart YMind, then pick the new theme under Theme → Switch Theme.',
     'themes.download': 'Download',
@@ -135,7 +135,8 @@ export const en: Record<string, string> = {
     'mcp.path.title': 'One-time setup: put ymind-cli on PATH',
     'mcp.path.body':
         'The plugin invokes the ymind-cli binary by name — it has to be discoverable in your shell. Symlink it once and you are done.',
-    'mcp.path.linuxMac': 'Linux / macOS',
+    'mcp.path.linuxMac': 'Linux',
+    'mcp.path.macos': 'macOS (installed in Applications)',
     'mcp.path.fromSource': 'From source build',
 
     'mcp.manual.title': 'Other clients (Claude Desktop, Cursor)',

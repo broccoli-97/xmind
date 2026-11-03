@@ -35,7 +35,7 @@
 
 - C++17 编译器（GCC、Clang 或 MSVC）
 - CMake 3.16+
-- Qt6（Widgets、Svg、PrintSupport）
+- Qt6（Widgets、Svg、PrintSupport、Network、LinguistTools）
 
 ### 构建步骤
 
@@ -45,6 +45,44 @@ cmake ..
 make
 ./ymind
 ```
+
+### macOS 构建与安装
+
+发布包使用 **Qt 6.7.3**，最低支持 **macOS 11（Big Sur）**。
+Apple Silicon 选择 `macos-arm64`，Intel Mac 选择 `macos-x64`。
+打开 DMG 后把 `YMind.app` 拖入「应用程序」；也可解压 `.tar.gz` 后移动完整
+应用包。Finder 可直接打开 `.ymind` 文件。
+
+在 macOS 上将对应 Qt 工具加入 PATH 后执行：
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+cmake --build build --parallel
+open build/YMind.app
+bash packaging/macos/package.sh build dist
+python3 packaging/macos/smoke_test.py dist/YMind.app
+```
+
+打包脚本部署 Qt 依赖、CLI/MCP、插件和翻译，再签名并检查包内所有二进制的
+最低系统版本和依赖路径。较新的 Qt 可能要求较新的 macOS；依赖的实际要求
+高于 Info.plist 声明时，检查会失败，避免生成旧系统无法运行的包。
+
+默认使用临时签名（ad-hoc）。正式分发如需通过 Gatekeeper，打包前设置
+`MACOS_CODESIGN_IDENTITY` 为 Developer ID Application 签名身份，并将
+`MACOS_NOTARY_PROFILE` 设置为 `notarytool` 的钥匙串配置，启用公证。
+详见 [macOS 打包说明](packaging/macos/README.md)。
+
+安装后的 CLI/MCP 位于应用包内：
+
+```bash
+/Applications/YMind.app/Contents/MacOS/ymind-cli mcp
+sudo ln -s /Applications/YMind.app/Contents/MacOS/ymind-cli /usr/local/bin/ymind-cli
+```
+
+桌面 MCP 客户端的 PATH 不包含 `/usr/local/bin` 时，使用上述应用包内的绝对
+路径作为 `command`。macOS 自定义模板和主题目录分别为
+`~/Library/Application Support/YMind/templates/` 和
+`~/Library/Application Support/YMind/themes/`。
 
 ### 构建选项
 
@@ -60,6 +98,9 @@ ctest --output-on-failure
 ```
 
 ## 键盘快捷键
+
+macOS 下将表中的 `Ctrl` 替换为 **Command（⌘）**；重做还支持
+`⌘+Shift+Z`，使用 Mac 键盘的退格键删除节点时按 `⌘+Backspace`。
 
 | 快捷键              | 操作               |
 | ------------------- | ------------------ |

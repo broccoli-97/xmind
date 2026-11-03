@@ -1,4 +1,7 @@
 <RCC>
+    <qresource prefix="/icons">
+        <file alias="ymind.png">icons/ymind.png</file>
+    </qresource>
     <qresource prefix="/styles">
         <file alias="theme.qss">theme.qss</file>
     </qresource>
